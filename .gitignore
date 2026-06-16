@@ -1,0 +1,24 @@
+node_modules/
+dist/
+data/
+*.db
+*.db-shm
+*.db-wal
+.env
+.env.local
+.env*.local
+
+# ML models (too large for git — download via ml/download_*.py scripts)
+ml/
+
+# Training datasets (large — not part of source)
+coding.json
+commerce.json
+customer_support.json
+education.json
+general.json
+hospitality.json
+legal.json
+medical.json
+multiwoz.json
+sales.json
