@@ -24,6 +24,18 @@
         "function": "echoregent"
       },
       {
+        "source": "/admin-ui",
+        "function": "echoregent"
+      },
+      {
+        "source": "/admin/**",
+        "function": "echoregent"
+      },
+      {
+        "source": "/health",
+        "function": "echoregent"
+      },
+      {
         "source": "**",
         "destination": "/index.html"
       }
