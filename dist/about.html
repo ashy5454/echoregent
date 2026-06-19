@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>About — EchoRegent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
+  <script type="module" crossorigin src="/assets/nav-DZBsUn2_.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/nav-BekhJzKw.css">
+</head>
+<body class="er-page">
+  <div id="er-nav"></div>
+
+  <section class="er-hero" style="min-height:50vh;padding-top:100px;padding-bottom:64px">
+    <div class="er-hero-eyebrow">About</div>
+    <h1 style="font-family:var(--sans);font-size:clamp(36px,6vw,68px);font-weight:700;letter-spacing:-0.02em;color:var(--titanium);margin-bottom:16px">Built in Hyderabad.<br/>Thinking from first principles.</h1>
+    <p style="font-size:17px;color:var(--text-2);max-width:500px;text-align:center">EchoRegent is built by Yudi Labs — a small AI research team focused on making LLMs structurally better, not just faster.</p>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <section class="er-section">
+    <div class="er-container" style="max-width:760px">
+      <span class="er-label">Origin</span>
+      <h2 class="er-section-title">Why we built this.</h2>
+      <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:20px">Every AI product we built hit the same wall. By turn 10 of a conversation, you're sending thousands of tokens to the LLM — most of which is noise from earlier turns. The model's attention dilutes. Costs climb. Quality drops.</p>
+      <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:20px">The existing solutions were either too broad (truncate everything after N tokens) or too opinionated (extract facts into a graph, then re-inject them). Neither approach preserved conversational meaning well. Neither knew when to leave a conversation alone.</p>
+      <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:40px">EchoRegent started from a simple question: what does the brain do here? Humans don't replay full conversation transcripts to recall context. They compress — keeping signal, discarding noise. The key insight is that compression is domain-specific. You compress a casual chat aggressively. You compress a legal document not at all.</p>
+
+      <span class="er-label">Mission</span>
+      <h2 class="er-section-title">What we're trying to do.</h2>
+      <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:20px">Make context management invisible infrastructure. The same way you don't think about TCP/IP when you send an email — you shouldn't have to think about context compression when you build an AI product.</p>
+      <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:40px">The long-term goal: EchoRegent becomes the default layer between applications and LLMs — the thing that makes AI applications cheaper to run, better in quality, and safer by default.</p>
+
+      <span class="er-label">Principles</span>
+      <h2 class="er-section-title">How we think.</h2>
+      <div style="display:flex;flex-direction:column;gap:16px;margin-bottom:48px">
+        <div class="er-card">
+          <h4 style="margin-bottom:8px">First principles, not benchmarks</h4>
+          <p style="font-size:14px;color:var(--text-2)">We start by asking what the brain does, then ask if that's what we should do. Benchmarks validate — they don't design.</p>
+        </div>
+        <div class="er-card">
+          <h4 style="margin-bottom:8px">Hard floors, not soft guardrails</h4>
+          <p style="font-size:14px;color:var(--text-2)">Protected zones are architectural, not configurable. Some decisions should not be delegatable to end users or API callers.</p>
+        </div>
+        <div class="er-card">
+          <h4 style="margin-bottom:8px">Reproducibility is the claim</h4>
+          <p style="font-size:14px;color:var(--text-2)">Every number we publish comes with a command you can run. If you can't verify it, we won't claim it.</p>
+        </div>
+        <div class="er-card">
+          <h4 style="margin-bottom:8px">Sparse, local, continual</h4>
+          <p style="font-size:14px;color:var(--text-2)">Our broader research agenda at Yudi Labs. AI systems should be sparse in what they attend to, local in how they learn, and continual in how they improve. EchoRegent is one expression of these principles.</p>
+        </div>
+      </div>
+
+      <span class="er-label">Contact</span>
+      <h2 class="er-section-title">Get in touch.</h2>
+      <div class="er-grid-2">
+        <div class="er-card">
+          <h4 style="margin-bottom:8px">General</h4>
+          <p style="font-size:14px;color:var(--text-2)">Questions, feedback, or press inquiries: <a href="mailto:team@yudi.co.in">team@yudi.co.in</a></p>
+        </div>
+        <div class="er-card">
+          <h4 style="margin-bottom:8px">Enterprise &amp; Partnerships</h4>
+          <p style="font-size:14px;color:var(--text-2)">Custom deployments, white-labeling, reseller partnerships: <a href="/enterprise.html">see the Enterprise page</a> or email us directly.</p>
+        </div>
+        <div class="er-card">
+          <h4 style="margin-bottom:8px">GitHub</h4>
+          <p style="font-size:14px;color:var(--text-2)">Open eval harness and issue tracker: <a href="https://github.com/ashy5454/echoregent" target="_blank">github.com/ashy5454/echoregent</a></p>
+        </div>
+        <div class="er-card">
+          <h4 style="margin-bottom:8px">Location</h4>
+          <p style="font-size:14px;color:var(--text-2)">Yudi Labs, Hyderabad, India.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="er-footer"></div>
+</body>
+</html>

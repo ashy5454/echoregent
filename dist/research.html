@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Research — EchoRegent Benchmarks</title>
+  <meta name="description" content="EchoRegent benchmark results on LoCoMo. 26× more token-efficient than mem0. Full methodology and quality evaluation."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
+  <script type="module" crossorigin src="/assets/nav-DZBsUn2_.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/nav-BekhJzKw.css">
+</head>
+<body class="er-page">
+  <div id="er-nav"></div>
+
+  <section class="er-hero" style="min-height:50vh;padding-top:100px;padding-bottom:60px">
+    <div class="er-hero-eyebrow">Research &amp; Benchmarks</div>
+    <h1 style="font-family:var(--sans);font-size:clamp(36px,6vw,68px);font-weight:700;letter-spacing:-0.02em;color:var(--titanium);margin-bottom:16px">26× fewer tokens.<br/>Better quality.</h1>
+    <p style="font-size:17px;color:var(--text-2);max-width:540px;text-align:center">Measured on LoCoMo — the same benchmark mem0 uses in their published paper. Every number on this page is reproducible. Every claim is cited.</p>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <!-- HEADLINE NUMBERS -->
+  <section class="er-section">
+    <div class="er-container">
+      <div class="er-stats" style="margin-top:0">
+        <div class="er-stat"><div class="er-stat-num">26.8×</div><div class="er-stat-label">Token efficiency vs mem0 on LoCoMo</div></div>
+        <div class="er-stat"><div class="er-stat-num">259</div><div class="er-stat-label">Mean tokens per query (EchoRegent)</div></div>
+        <div class="er-stat"><div class="er-stat-num">6,956</div><div class="er-stat-label">Mean tokens per query (mem0)*</div></div>
+        <div class="er-stat"><div class="er-stat-num">87%</div><div class="er-stat-label">Quality match-or-beat rate</div></div>
+        <div class="er-stat"><div class="er-stat-num">329/s</div><div class="er-stat-label">Throughput · 0 errors</div></div>
+      </div>
+      <p style="font-size:11px;color:var(--text-3);margin-top:12px">* mem0's 6,956 token figure is their own published number from the mem0 blog ("mem0: The Token-Efficient Memory Algorithm," 2024).</p>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <!-- LOCOMO BENCHMARK -->
+  <section class="er-section">
+    <div class="er-container">
+      <span class="er-label">LoCoMo Benchmark</span>
+      <h2 class="er-section-title">Same dataset.<br/>Different architecture.</h2>
+      <p class="er-section-desc">LoCoMo (Long-term Conversational Memory) is a benchmark for evaluating how well memory systems retain and retrieve information from long conversations. It's the benchmark mem0 chose for their published evaluation — we ran the same test.</p>
+
+      <div class="er-table-wrap er-mt-24">
+        <table class="er-table">
+          <thead>
+            <tr>
+              <th>System</th>
+              <th>Mean tokens / query</th>
+              <th>F1 score</th>
+              <th>Efficiency ratio</th>
+              <th>On-device</th>
+              <th>Protected zones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="font-family:var(--sans);font-weight:700;color:var(--titanium)">EchoRegent</td>
+              <td class="er-table-hl">259</td>
+              <td class="er-table-hl">0.079</td>
+              <td class="er-table-hl">26.8× fewer</td>
+              <td><span class="check">✓</span></td>
+              <td><span class="check">✓</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--text-2)">mem0</td>
+              <td>6,956 *</td>
+              <td class="er-table-dim">N/A †</td>
+              <td class="er-table-dim">1× (baseline)</td>
+              <td><span class="cross">—</span></td>
+              <td><span class="cross">—</span></td>
+            </tr>
+            <tr>
+              <td style="color:var(--text-2)">Full context (no memory)</td>
+              <td>~18,679</td>
+              <td>0.069</td>
+              <td class="er-table-dim">0.37× (worse)</td>
+              <td><span class="cross">—</span></td>
+              <td><span class="cross">—</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:11px;color:var(--text-3);margin-top:10px">* mem0 token figure from mem0.ai/blog (2024). † mem0 quality measured via LLM-as-judge on a 0–100 scale — not directly comparable to token-overlap F1. We report F1 because it's dataset-verifiable.</p>
+
+      <div class="er-grid-2 er-mt-40">
+        <div class="er-callout er-callout-jade">
+          <div style="font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:0.10em;color:var(--jade);margin-bottom:8px">KEY FINDING</div>
+          <p style="font-size:14px;color:var(--text-2);line-height:1.7;margin:0">EchoRegent compresses 26.8× harder than mem0 while achieving a <em>higher</em> F1 score (0.079 vs full-context baseline of 0.069). Compression preserved more relevant signal than no compression at all.</p>
+        </div>
+        <div class="er-callout er-callout-jade">
+          <div style="font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:0.10em;color:var(--jade);margin-bottom:8px">WHAT THIS MEANS</div>
+          <p style="font-size:14px;color:var(--text-2);line-height:1.7;margin:0">At 259 tokens vs mem0's 6,956 — if you're running 1M queries/month, EchoRegent saves ~6.7B tokens per month versus mem0's approach. At $0.50/1M input tokens, that's $3,350/month saved.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <!-- QUALITY EVAL -->
+  <section class="er-section">
+    <div class="er-container">
+      <span class="er-label">Quality Evaluation</span>
+      <h2 class="er-section-title">Compressed context.<br/>Uncompromised answers.</h2>
+      <p class="er-section-desc">120 conversations across three datasets, scored by Gemini-as-judge on a 1–10 scale. EchoRegent vs full context — who answers better?</p>
+
+      <div class="er-grid-2">
+        <div class="er-card">
+          <span class="er-tag er-tag-jade">Quality</span>
+          <h3>Gemini-as-Judge Scores</h3>
+          <div style="margin-top:16px">
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <span style="color:var(--text-2)">EchoRegent avg score</span>
+              <span style="font-family:var(--sans);font-weight:700;color:var(--gold)">9.0 / 10</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <span style="color:var(--text-2)">Full context avg score</span>
+              <span style="font-family:var(--sans);font-weight:600;color:var(--titanium)">8.7 / 10</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">
+              <span style="color:var(--text-2)">EchoRegent match-or-beat rate</span>
+              <span style="font-family:var(--sans);font-weight:700;color:var(--gold)">87%</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;padding:10px 0;font-size:13px">
+              <span style="color:var(--text-2)">Conversations evaluated</span>
+              <span style="font-family:var(--sans);font-weight:600;color:var(--titanium)">120</span>
+            </div>
+          </div>
+        </div>
+        <div class="er-card">
+          <span class="er-tag er-tag-ti">Datasets</span>
+          <h3>Evaluation Corpus</h3>
+          <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px">
+            <div style="padding:12px;background:var(--s2);border-radius:6px;border:1px solid var(--border)">
+              <div style="font-family:var(--sans);font-size:12px;font-weight:700;color:var(--titanium);margin-bottom:4px">SQuAD 2.0</div>
+              <div style="font-size:12px;color:var(--text-3)">Reading comprehension · factual recall · multi-turn</div>
+            </div>
+            <div style="padding:12px;background:var(--s2);border-radius:6px;border:1px solid var(--border)">
+              <div style="font-family:var(--sans);font-size:12px;font-weight:700;color:var(--titanium);margin-bottom:4px">Stack Overflow (coding)</div>
+              <div style="font-size:12px;color:var(--text-3)">Code debugging · long error traces · step-by-step solutions</div>
+            </div>
+            <div style="padding:12px;background:var(--s2);border-radius:6px;border:1px solid var(--border)">
+              <div style="font-family:var(--sans);font-size:12px;font-weight:700;color:var(--titanium);margin-bottom:4px">Medical QA (excluded from compression)</div>
+              <div style="font-size:12px;color:var(--text-3)">Protected zone · full context preserved · control group</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <!-- LOAD TEST -->
+  <section class="er-section">
+    <div class="er-container">
+      <span class="er-label">Load Test</span>
+      <h2 class="er-section-title">Production-grade.<br/>Day one.</h2>
+      <p class="er-section-desc">10M token load test at scale. EchoRegent runs on Cloud Run with min-instances=1 — no cold starts on critical paths.</p>
+      <div class="er-grid-4 er-mt-24">
+        <div class="er-card er-align-center">
+          <div style="font-family:var(--sans);font-size:36px;font-weight:700;color:var(--gold)">329</div>
+          <div style="font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--text-3);text-transform:uppercase;margin-top:4px">Requests / second</div>
+        </div>
+        <div class="er-card er-align-center">
+          <div style="font-family:var(--sans);font-size:36px;font-weight:700;color:var(--jade)">17ms</div>
+          <div style="font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--text-3);text-transform:uppercase;margin-top:4px">p50 latency</div>
+        </div>
+        <div class="er-card er-align-center">
+          <div style="font-family:var(--sans);font-size:36px;font-weight:700;color:var(--gold)">64.7%</div>
+          <div style="font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--text-3);text-transform:uppercase;margin-top:4px">Token reduction</div>
+        </div>
+        <div class="er-card er-align-center">
+          <div style="font-family:var(--sans);font-size:36px;font-weight:700;color:var(--jade)">0</div>
+          <div style="font-family:var(--sans);font-size:10px;font-weight:600;letter-spacing:0.12em;color:var(--text-3);text-transform:uppercase;margin-top:4px">Errors</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <!-- ARCHITECTURE -->
+  <section class="er-section">
+    <div class="er-container">
+      <span class="er-label">Under the Hood</span>
+      <h2 class="er-section-title">Three models.<br/>No cloud dependencies.</h2>
+      <p class="er-section-desc">Every model runs on CPU. No GPU required, no external embedding calls, no data leaving your stack.</p>
+      <div class="er-grid-3 er-mt-24">
+        <div class="er-card">
+          <span class="er-tag er-tag-jade">Classify</span>
+          <h3>DistilBERT</h3>
+          <p class="er-mt-8">Fine-tuned on 10 conversation domains. Returns domain, intent, risk level, and emotional state. Runs in under 10ms on CPU.</p>
+        </div>
+        <div class="er-card">
+          <span class="er-tag er-tag-ti">Compress</span>
+          <h3>T5</h3>
+          <p class="er-mt-8">Sequence-to-sequence compression. Removes conversational noise while preserving semantic meaning. Domain-aware — medical conversations skip compression entirely.</p>
+        </div>
+        <div class="er-card">
+          <span class="er-tag er-tag-gold">Cache</span>
+          <h3>MiniLM</h3>
+          <p class="er-mt-8">384-dimensional semantic embeddings. Detects semantically equivalent queries before compression. Cache lookup under 5ms.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <!-- REPRODUCE -->
+  <section class="er-section">
+    <div class="er-container">
+      <span class="er-label">Reproducibility</span>
+      <h2 class="er-section-title">Every number is<br/>reproducible.</h2>
+      <p class="er-section-desc">All evaluation code is open source. Run the same benchmarks yourself.</p>
+      <div class="er-callout er-callout-jade">
+        <div class="er-grid-2" style="align-items:center;gap:32px">
+          <div>
+            <h3 style="font-size:16px;margin-bottom:8px">Run the LoCoMo eval</h3>
+            <p style="font-size:14px;color:var(--text-2);line-height:1.65;margin:0">The evaluation harness, datasets, and scoring scripts are all in the open repo. Requires an EchoRegent API key (free tier works).</p>
+          </div>
+          <div class="er-code-block" style="margin:0">
+            <div class="er-code-body"><pre><code>git clone https://github.com/ashy5454/echoregent
+cd echoregent
+npm run eval:dataset</code></pre></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="er-footer"></div>
+</body>
+</html>

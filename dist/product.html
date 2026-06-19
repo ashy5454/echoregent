@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Product — EchoRegent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
+  <script type="module" crossorigin src="/assets/nav-DZBsUn2_.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/nav-BekhJzKw.css">
+</head>
+<body class="er-page">
+  <div id="er-nav"></div>
+
+  <section class="er-hero" style="min-height:45vh;padding-top:100px;padding-bottom:56px">
+    <div class="er-hero-eyebrow">Product</div>
+    <h1 style="font-family:var(--sans);font-size:clamp(36px,6vw,68px);font-weight:700;letter-spacing:-0.02em;color:var(--titanium);margin-bottom:14px">Four systems.<br/>One API.</h1>
+    <p style="font-size:17px;color:var(--text-2);max-width:480px;text-align:center">Everything runs on CPU in your infrastructure. No GPU, no external embedding calls, no data egress.</p>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <section class="er-section" id="classify">
+    <div class="er-container">
+      <div class="er-grid-2" style="gap:56px;align-items:center">
+        <div>
+          <span class="er-tag er-tag-jade" style="margin-bottom:16px;display:inline-block">Classify</span>
+          <h2 class="er-section-title">Context Classifier</h2>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:20px">DistilBERT fine-tuned on 10 conversation domains. Runs entirely on CPU. Returns domain, intent, risk level, and emotional state per turn in under 10ms. No LLM call required.</p>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:28px">The classifier is the foundation of everything else — it determines whether to compress, which compression strategy to apply, and whether the conversation is protected.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> 10 domains: coding, medical, legal, sales, support, finance, education, creative, crisis, general</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> Intent detection (debugging, planning, explaining, etc.)</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> Risk level 0–3 per turn</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> &lt;10ms on CPU · no GPU · no external calls</div>
+          </div>
+        </div>
+        <div class="er-card" style="padding:32px">
+          <div class="er-code-block" style="margin-bottom:16px">
+            <div class="er-code-header"><div class="er-code-dot"></div>Response — /compress</div>
+            <div class="er-code-body"><pre><code>{
+  <span class="c-str">"domain"</span>:   <span class="c-str">"coding"</span>,
+  <span class="c-str">"intent"</span>:   <span class="c-str">"debugging"</span>,
+  <span class="c-str">"riskLevel"</span>: <span class="c-num">0</span>,
+  <span class="c-str">"state"</span>:    <span class="c-str">"frustrated"</span>,
+  <span class="c-str">"protected"</span>: <span class="c-num">false</span>
+}</code></pre></div>
+          </div>
+          <div class="er-stat-num" style="font-size:42px">&lt;10ms</div>
+          <div class="er-stat-label">per classification on CPU</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <section class="er-section" id="compress">
+    <div class="er-container">
+      <div class="er-grid-2" style="gap:56px;align-items:center">
+        <div class="er-card" style="padding:32px">
+          <div style="display:flex;justify-content:space-around;margin-bottom:20px">
+            <div class="er-align-center">
+              <div class="er-stat-num" style="font-size:36px">18,679</div>
+              <div class="er-stat-label">original tokens</div>
+            </div>
+            <div style="display:flex;align-items:center;color:var(--jade);font-size:24px">→</div>
+            <div class="er-align-center">
+              <div class="er-stat-num" style="font-size:36px;color:var(--jade)">6,601</div>
+              <div class="er-stat-label">compressed tokens</div>
+            </div>
+          </div>
+          <div style="background:var(--s2);border-radius:6px;padding:16px;text-align:center">
+            <div style="font-family:var(--sans);font-size:28px;font-weight:700;color:var(--gold)">64.7%</div>
+            <div style="font-size:11px;color:var(--text-3);letter-spacing:0.10em;text-transform:uppercase">Average token reduction</div>
+          </div>
+        </div>
+        <div>
+          <span class="er-tag er-tag-ti" style="margin-bottom:16px;display:inline-block">Compress</span>
+          <h2 class="er-section-title">History Compressor</h2>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:20px">T5 removes conversational noise while preserving semantic meaning. Not a truncation — a summarisation. Previous turns get compressed; the current turn is always left untouched.</p>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:28px">Compression is domain-aware. Medical history doesn't compress. Legal transcripts don't compress. Stack traces compress aggressively. The same model, different strategies per domain.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> T5 sequence-to-sequence summarisation</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> Domain-aware strategy selection</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> Last N turns always preserved uncompressed</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> 64.7% average reduction · 87% quality match</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <section class="er-section" id="cache">
+    <div class="er-container">
+      <div class="er-grid-2" style="gap:56px;align-items:center">
+        <div>
+          <span class="er-tag er-tag-gold" style="margin-bottom:16px;display:inline-block">Cache</span>
+          <h2 class="er-section-title">Semantic Cache</h2>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:20px">MiniLM generates 384-dimensional embeddings for each incoming query. If a semantically equivalent query has been processed before, the cached compressed context is returned — skipping compression entirely.</p>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:28px">Works across users: if two different users ask semantically similar questions in the same session type, the second user benefits from the first user's compression. Cache savings compound over time.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> MiniLM embeddings · 384 dimensions</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> Cosine similarity threshold (configurable)</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> Sub-5ms cache lookup before compression</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--jade)">✓</span> Cache hit returned as <code>x-cts-cache-hit: true</code></div>
+          </div>
+        </div>
+        <div class="er-card" style="padding:32px;text-align:center">
+          <div style="font-family:var(--sans);font-size:42px;font-weight:700;color:var(--jade)">Sub-5ms</div>
+          <div style="font-size:11px;color:var(--text-3);letter-spacing:0.10em;text-transform:uppercase;margin-bottom:24px">cache lookup per turn</div>
+          <div style="background:var(--s2);border-radius:8px;padding:20px;font-size:13px;color:var(--text-2);line-height:1.65;text-align:left">
+            Cache hits return immediately — compression and LLM calls are skipped. For high-repetition workloads (customer support, FAQ bots), cache hit rates above 40% are typical.
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <section class="er-section" id="protect">
+    <div class="er-container">
+      <div class="er-grid-2" style="gap:56px;align-items:center">
+        <div class="er-callout er-callout-red" style="padding:36px">
+          <div style="font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:0.12em;color:var(--red);margin-bottom:16px">ARCHITECTURAL BOUNDARY</div>
+          <p style="font-size:14px;color:var(--text-2);line-height:1.7;margin-bottom:20px">Protected zones cannot be disabled by API callers, subscription tier, or configuration. The check happens inside <code>compressHistory()</code> before any other processing.</p>
+          <div class="er-protected-badges" style="margin-bottom:20px">
+            <span class="er-protected-badge">MEDICAL</span>
+            <span class="er-protected-badge">LEGAL</span>
+            <span class="er-protected-badge">CRISIS</span>
+          </div>
+          <div style="font-size:12px;color:var(--text-3)">Protected conversations are not counted toward token quota.</div>
+        </div>
+        <div>
+          <span class="er-tag er-tag-red" style="margin-bottom:16px;display:inline-block">Protect</span>
+          <h2 class="er-section-title">Protected Zones</h2>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:20px">Medical, legal, and crisis conversations are never compressed, never monetized, and never cached. Not a filter you can turn off. An architectural boundary at the function level.</p>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:28px">If the classifier returns <code>medical</code>, <code>legal</code>, or <code>crisis</code>, compression is disabled. The full context is forwarded to your LLM unchanged. The response header returns <code>x-cts-protected: true</code>.</p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--red)">●</span> Medical: symptoms, diagnoses, prescriptions, procedures</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--red)">●</span> Legal: contracts, litigation, regulatory, compliance</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text-2)"><span style="color:var(--red)">●</span> Crisis: mental health, self-harm, emergency services</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <section class="er-section" id="mcp">
+    <div class="er-container er-align-center">
+      <span class="er-label">MCP Server</span>
+      <h2 class="er-section-title">Works inside your AI IDE.</h2>
+      <p style="font-size:15px;color:var(--text-2);max-width:520px;margin:0 auto 40px">Native MCP server with 4 tools. Add EchoRegent to Claude Desktop, Cursor, or Windsurf in under 2 minutes.</p>
+      <div class="er-grid-3" style="text-align:left;margin-bottom:32px">
+        <div class="er-card"><h4>compress</h4><p class="er-mt-8" style="font-size:13px">Compress a conversation history. Returns the compressed messages array plus classification metadata.</p></div>
+        <div class="er-card"><h4>classify</h4><p class="er-mt-8" style="font-size:13px">Classify a single message or conversation turn. Returns domain, intent, risk level, emotional state.</p></div>
+        <div class="er-card"><h4>remember / recall</h4><p class="er-mt-8" style="font-size:13px">Store and retrieve facts semantically. Persistent across sessions. Works as long-term memory for agents.</p></div>
+      </div>
+      <a href="/docs.html#mcp-server" class="er-btn-secondary">Setup guide →</a>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <section class="er-section" id="proxy">
+    <div class="er-container">
+      <div class="er-grid-2" style="gap:56px;align-items:start">
+        <div>
+          <span class="er-label">OpenAI Proxy</span>
+          <h2 class="er-section-title">Drop-in.<br/>Any model.</h2>
+          <p style="font-size:15px;color:var(--text-2);line-height:1.75;margin-bottom:28px">EchoRegent exposes a fully OpenAI-compatible <code>/v1/chat/completions</code> endpoint. Change <code>baseURL</code> in your client — nothing else changes.</p>
+          <a href="/docs.html#openai-proxy" class="er-btn-jade">Integration docs →</a>
+        </div>
+        <div class="er-code-block">
+          <div class="er-code-header"><div class="er-code-dot"></div>3-line integration</div>
+          <div class="er-code-body"><pre><code><span class="c-kw">const</span> client = <span class="c-kw">new</span> <span class="c-fn">OpenAI</span>({
+  apiKey:   process.env.OPENAI_KEY,
+  baseURL:  <span class="c-str">'https://api.echoregent.ai/v1'</span>,
+  defaultHeaders: {
+    <span class="c-str">'x-cts-key'</span>: process.env.ECHOREGENT_KEY
+  }
+})</code></pre></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div id="er-footer"></div>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Blog — EchoRegent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
+  <script type="module" crossorigin src="/assets/nav-DZBsUn2_.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/nav-BekhJzKw.css">
+</head>
+<body class="er-page">
+  <div id="er-nav"></div>
+
+  <section style="padding:100px 0 48px">
+    <div class="er-container">
+      <span class="er-label">Blog</span>
+      <h1 style="font-family:var(--sans);font-size:clamp(32px,5vw,56px);font-weight:700;letter-spacing:-0.02em;color:var(--titanium);margin-bottom:14px">From the team.</h1>
+      <p style="font-size:16px;color:var(--text-2);max-width:480px">Research findings, product updates, and thinking about context management for AI.</p>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <section class="er-section">
+    <div class="er-container">
+      <!-- FEATURED -->
+      <a href="/blog/locomo-benchmark.html" class="er-blog-card" style="margin-bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center">
+        <div>
+          <span class="er-tag er-tag-jade er-blog-tag">Research</span>
+          <div class="er-blog-date">June 2024</div>
+          <h2 style="font-family:var(--sans);font-size:clamp(22px,3vw,32px);font-weight:700;letter-spacing:-0.01em;color:var(--titanium);margin-bottom:10px">We beat mem0 by 26× on their own benchmark.</h2>
+          <p style="font-size:14px;color:var(--text-2);line-height:1.7">LoCoMo is the benchmark mem0 uses in their published paper. We ran the same test. EchoRegent uses 259 tokens per query. mem0 uses 6,956 — their own published number. Here's how.</p>
+        </div>
+        <div style="background:var(--s2);border-radius:10px;padding:32px;text-align:center">
+          <div style="font-family:var(--sans);font-size:72px;font-weight:700;color:var(--gold);line-height:1">26×</div>
+          <div style="font-family:var(--sans);font-size:12px;font-weight:600;letter-spacing:0.14em;color:var(--text-3);text-transform:uppercase;margin-top:8px">Token efficiency vs mem0</div>
+        </div>
+      </a>
+
+      <div class="er-grid-2" style="margin-bottom:20px">
+        <a href="/blog/introducing-echoregent.html" class="er-blog-card">
+          <span class="er-tag er-tag-ti er-blog-tag">Product</span>
+          <div class="er-blog-date">June 2024</div>
+          <h3>Introducing EchoRegent: the context management layer LLMs were missing.</h3>
+          <p class="er-mt-8" style="font-size:14px">What remains after compression should be the signal — not the noise. We built a three-model pipeline that classifies, compresses, and protects every conversation before it reaches your LLM.</p>
+        </a>
+
+        <a href="/blog/protected-zones.html" class="er-blog-card">
+          <span class="er-tag er-tag-red er-blog-tag">Architecture</span>
+          <div class="er-blog-date">Coming soon</div>
+          <h3>Why medical conversations should never be compressed.</h3>
+          <p class="er-mt-8" style="font-size:14px">Protected zones aren't a feature — they're an architectural decision. The case for hard floors in AI infrastructure.</p>
+        </a>
+      </div>
+
+      <div class="er-grid-2">
+        <a href="/blog/mcp-guide.html" class="er-blog-card">
+          <span class="er-tag er-tag-gold er-blog-tag">Guide</span>
+          <div class="er-blog-date">Coming soon</div>
+          <h3>Add EchoRegent to Cursor in 2 minutes.</h3>
+          <p class="er-mt-8" style="font-size:14px">Step-by-step setup for the MCP server — Claude Desktop, Cursor, and Windsurf. Four tools, one config file.</p>
+        </a>
+
+        <a href="/research.html" class="er-blog-card">
+          <span class="er-tag er-tag-jade er-blog-tag">Research</span>
+          <div class="er-blog-date">Ongoing</div>
+          <h3>Full benchmark methodology and reproducibility guide.</h3>
+          <p class="er-mt-8" style="font-size:14px">All evaluation code is open source. Run the LoCoMo eval yourself. Every number on the research page is reproducible.</p>
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <div id="er-footer"></div>
+</body>
+</html>
