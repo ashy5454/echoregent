@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Introducing EchoRegent — EchoRegent Blog</title>
+  <meta name="description" content="The context management layer LLMs were missing. Classify, compress, cache, and protect every conversation before it costs you a token."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body class="er-page">
+  <div id="er-nav"></div>
+
+  <article style="max-width:720px;margin:0 auto;padding:100px 32px 80px">
+    <div class="er-breadcrumb">
+      <a href="/blog/index.html">Blog</a>
+      <span class="er-breadcrumb-sep">›</span>
+      <span>Product</span>
+    </div>
+
+    <span class="er-tag er-tag-ti" style="margin-bottom:20px;display:inline-block">Product</span>
+    <h1 style="font-family:var(--sans);font-size:clamp(28px,5vw,48px);font-weight:700;letter-spacing:-0.02em;color:var(--titanium);line-height:1.1;margin-bottom:16px">Introducing EchoRegent:<br/>the context management layer<br/>LLMs were missing.</h1>
+    <div style="font-size:13px;color:var(--text-3);margin-bottom:48px;display:flex;gap:16px;flex-wrap:wrap">
+      <span>By Ashmith Atmuri</span>
+      <span>·</span>
+      <span>June 2024</span>
+      <span>·</span>
+      <span>6 min read</span>
+    </div>
+
+    <p style="font-size:17px;color:var(--text-2);line-height:1.8;margin-bottom:24px;font-style:italic">Every LLM call you make sends the full conversation history. Most of it is noise. You're paying for it anyway. We built a layer that strips the noise before it reaches the model — and makes the answers better.</p>
+
+    <hr class="er-divider" style="margin:32px 0"/>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">The problem</h2>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:16px">When you build a conversational AI product, your context window fills up fast. By turn 10, you're sending a wall of text to the LLM — most of which is pleasantries, re-explanations, and conversational filler from earlier in the session.</p>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:24px">You pay for every token in that window. The model's attention degrades as the context gets longer. And you have no idea what domain the conversation is in, so you can't make smart decisions about what to preserve.</p>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">What EchoRegent does</h2>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:16px">EchoRegent sits between your application and the LLM. Before every API call, it runs three small models on CPU — no GPU, no external calls:</p>
+
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:32px">
+      <div style="padding:16px 20px;background:var(--s1);border:1px solid var(--border-j);border-radius:8px">
+        <div style="font-family:var(--sans);font-size:13px;font-weight:700;color:var(--jade);margin-bottom:6px">1 — Classify</div>
+        <p style="font-size:14px;color:var(--text-2);margin:0">DistilBERT reads the conversation and returns domain (coding, medical, legal, etc.), intent, risk level, and emotional state. In under 10ms.</p>
+      </div>
+      <div style="padding:16px 20px;background:var(--s1);border:1px solid var(--border-j);border-radius:8px">
+        <div style="font-family:var(--sans);font-size:13px;font-weight:700;color:var(--jade);margin-bottom:6px">2 — Compress</div>
+        <p style="font-size:14px;color:var(--text-2);margin:0">T5 summarises the conversation history using a domain-aware strategy. Stack traces compress aggressively. Medical notes don't compress at all. 64.7% average reduction.</p>
+      </div>
+      <div style="padding:16px 20px;background:var(--s1);border:1px solid var(--border-j);border-radius:8px">
+        <div style="font-family:var(--sans);font-size:13px;font-weight:700;color:var(--jade);margin-bottom:6px">3 — Cache &amp; Forward</div>
+        <p style="font-size:14px;color:var(--text-2);margin:0">MiniLM checks for semantically similar past queries. Cache hit → skip compression, return immediately. Cache miss → forward compressed context to your LLM.</p>
+      </div>
+    </div>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">The integration</h2>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:16px">We made the integration as close to zero-friction as possible. If you're using the OpenAI client, you change one URL:</p>
+    <div class="er-code-block" style="margin-bottom:24px">
+      <div class="er-code-body"><pre><code><span class="c-cmt">// Before</span>
+<span class="c-kw">const</span> client = <span class="c-kw">new</span> <span class="c-fn">OpenAI</span>({ apiKey: <span class="c-str">"sk-..."</span> })
+
+<span class="c-cmt">// After — that's it</span>
+<span class="c-kw">const</span> client = <span class="c-kw">new</span> <span class="c-fn">OpenAI</span>({
+  apiKey: <span class="c-str">"sk-..."</span>,
+  baseURL: <span class="c-str">"https://api.echoregent.ai/v1"</span>,
+  defaultHeaders: { <span class="c-str">"x-cts-key"</span>: <span class="c-str">"your-echoregent-key"</span> }
+})</code></pre></div>
+    </div>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">Protected zones</h2>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:16px">One design decision we're particularly serious about: medical, legal, and crisis conversations are never compressed. Not configurable. Not overridable by API callers.</p>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:32px">When the classifier returns <code>medical</code>, <code>legal</code>, or <code>crisis</code>, the compression step is skipped at the function level. The full context goes to your LLM. Protected conversations are not counted toward your token quota.</p>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">What remains</h2>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:32px">The tagline is "What Remains." That's the literal output — what remains after noise is removed. It's also a philosophy: what should remain in a conversation history is the signal, not the padding. EchoRegent's job is to tell the difference.</p>
+
+    <hr class="er-divider" style="margin:40px 0"/>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <a href="/pricing.html#get-key" class="er-btn-primary">Get a free API key →</a>
+      <a href="/docs.html" class="er-btn-secondary">Integration docs</a>
+    </div>
+  </article>
+
+  <div id="er-footer"></div>
+  <script type="module" src="/nav.js"></script>
+</body>
+</html>

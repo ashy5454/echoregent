@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Docs — EchoRegent Integration Guide</title>
+  <meta name="description" content="EchoRegent integration documentation. OpenAI proxy, MCP server, direct API reference, authentication, and more."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body class="er-page">
+  <div id="er-nav"></div>
+
+  <div class="er-docs-layout">
+    <!-- SIDEBAR -->
+    <aside class="er-docs-sidebar">
+      <div class="er-sidebar-section">Getting Started</div>
+      <a class="er-sidebar-link" href="#quickstart">Quick Start</a>
+      <a class="er-sidebar-link" href="#authentication">Authentication</a>
+      <a class="er-sidebar-link" href="#free-tier">Free Tier &amp; Limits</a>
+
+      <div class="er-sidebar-section">Integration</div>
+      <a class="er-sidebar-link" href="#openai-proxy">OpenAI Proxy</a>
+      <a class="er-sidebar-link" href="#mcp-server">MCP Server</a>
+      <a class="er-sidebar-link" href="#direct-api">Direct API</a>
+      <a class="er-sidebar-link" href="#python">Python SDK</a>
+
+      <div class="er-sidebar-section">API Reference</div>
+      <a class="er-sidebar-link" href="#compress-endpoint">POST /compress</a>
+      <a class="er-sidebar-link" href="#proxy-endpoint">POST /v1/chat/completions</a>
+      <a class="er-sidebar-link" href="#usage-endpoint">GET /usage</a>
+
+      <div class="er-sidebar-section">Configuration</div>
+      <a class="er-sidebar-link" href="#response-headers">Response Headers</a>
+      <a class="er-sidebar-link" href="#protected-zones">Protected Zones</a>
+      <a class="er-sidebar-link" href="#rate-limits">Rate Limits</a>
+      <a class="er-sidebar-link" href="#domains">Supported Domains</a>
+
+      <div class="er-sidebar-section">Guides</div>
+      <a class="er-sidebar-link" href="#cursor-guide">Cursor Setup</a>
+      <a class="er-sidebar-link" href="#claude-desktop">Claude Desktop</a>
+      <a class="er-sidebar-link" href="#windsurf-guide">Windsurf Setup</a>
+    </aside>
+
+    <!-- CONTENT -->
+    <main class="er-docs-content">
+      <div class="er-breadcrumb">
+        <a href="/index.html">EchoRegent</a>
+        <span class="er-breadcrumb-sep">›</span>
+        <span>Documentation</span>
+      </div>
+
+      <h1 class="er-docs-h1">Integration Guide</h1>
+      <p class="er-docs-p">EchoRegent sits between your application and any LLM. Three integration paths: OpenAI-compatible proxy (recommended), native MCP server, or direct REST API.</p>
+
+      <div class="er-callout er-callout-jade" style="margin-bottom:32px">
+        <div style="font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:0.10em;color:var(--jade);margin-bottom:6px">FREE TIER ACTIVE</div>
+        <p class="er-docs-p er-mb-0" style="font-size:14px">10M tokens/month at no cost. No credit card required. <a href="/pricing.html#get-key">Get your API key →</a></p>
+      </div>
+
+      <!-- QUICK START -->
+      <h2 class="er-docs-h2" id="quickstart">Quick Start</h2>
+      <p class="er-docs-p">The fastest path: change one URL in your existing OpenAI client. Your code stays exactly the same — EchoRegent intercepts, classifies, compresses, and forwards to your LLM.</p>
+
+      <h3 class="er-docs-h3">Step 1 — Get your API key</h3>
+      <p class="er-docs-p">Request a free key at <a href="/pricing.html#get-key">echoregent.ai/pricing</a>. It arrives by email within 60 seconds.</p>
+
+      <h3 class="er-docs-h3">Step 2 — Point your client at EchoRegent</h3>
+      <div class="er-code-block" style="margin-bottom:16px">
+        <div class="er-code-header"><div class="er-code-dot"></div>JavaScript / TypeScript</div>
+        <div class="er-code-body"><pre><code><span class="c-kw">import</span> OpenAI <span class="c-kw">from</span> <span class="c-str">'openai'</span>
+
+<span class="c-kw">const</span> client = <span class="c-kw">new</span> <span class="c-fn">OpenAI</span>({
+  apiKey: process.env.OPENAI_API_KEY,       <span class="c-cmt">// your existing LLM key</span>
+  baseURL: <span class="c-str">'https://api.echoregent.ai/v1'</span>,
+  defaultHeaders: {
+    <span class="c-str">'x-cts-key'</span>: process.env.ECHOREGENT_KEY, <span class="c-cmt">// your EchoRegent key</span>
+  }
+})
+
+<span class="c-cmt">// Everything else stays identical</span>
+<span class="c-kw">const</span> response = <span class="c-kw">await</span> client.chat.completions.<span class="c-fn">create</span>({
+  model: <span class="c-str">'gpt-4o'</span>,
+  messages: conversationHistory  <span class="c-cmt">// EchoRegent compresses this automatically</span>
+})</code></pre></div>
+      </div>
+
+      <div class="er-code-block" style="margin-bottom:16px">
+        <div class="er-code-header"><div class="er-code-dot" style="background:#3572A5"></div>Python</div>
+        <div class="er-code-body"><pre><code><span class="c-kw">from</span> openai <span class="c-kw">import</span> OpenAI
+
+client = <span class="c-fn">OpenAI</span>(
+    api_key=<span class="c-str">"sk-..."</span>,                          <span class="c-cmt"># your existing LLM key</span>
+    base_url=<span class="c-str">"https://api.echoregent.ai/v1"</span>,
+    default_headers={
+        <span class="c-str">"x-cts-key"</span>: <span class="c-str">"your-echoregent-key"</span>
+    }
+)
+
+<span class="c-cmt"># Your calls stay identical</span>
+response = client.chat.completions.<span class="c-fn">create</span>(
+    model=<span class="c-str">"gpt-4o"</span>,
+    messages=conversation_history
+)</code></pre></div>
+      </div>
+
+      <h3 class="er-docs-h3">Step 3 — Read what was saved</h3>
+      <p class="er-docs-p">Every response includes EchoRegent headers showing exactly what happened:</p>
+      <div class="er-code-block">
+        <div class="er-code-header"><div class="er-code-dot"></div>Response headers</div>
+        <div class="er-code-body"><pre><code>x-cts-tokens-saved:      1,842
+x-cts-domain:            coding
+x-cts-intent:            debugging
+x-cts-compression-pct:  67
+x-cts-cache-hit:         false
+x-cts-protected:         false</code></pre></div>
+      </div>
+
+      <!-- AUTHENTICATION -->
+      <h2 class="er-docs-h2" id="authentication">Authentication</h2>
+      <p class="er-docs-p">EchoRegent uses two separate keys: your EchoRegent key for billing and rate limiting, and your LLM provider key which is forwarded to the upstream model.</p>
+
+      <div class="er-table-wrap" style="margin-bottom:20px">
+        <table class="er-table">
+          <thead><tr><th>Header</th><th>Value</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>x-cts-key</code></td><td>Your EchoRegent API key</td><td>Billing, rate limit, quota</td></tr>
+            <tr><td><code>x-llm-key</code></td><td>Your LLM provider key (OpenAI, etc.)</td><td>Forwarded to upstream model</td></tr>
+            <tr><td><code>x-llm-provider</code></td><td><code>openai</code> · <code>anthropic</code> · <code>gemini</code></td><td>Which provider to route to</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="er-docs-p">When using the OpenAI-compatible proxy, your LLM key is passed as <code>Authorization: Bearer sk-...</code> and EchoRegent forwards it transparently to the upstream model. It is never stored.</p>
+
+      <!-- FREE TIER -->
+      <h2 class="er-docs-h2" id="free-tier">Free Tier &amp; Limits</h2>
+      <div class="er-table-wrap" style="margin-bottom:16px">
+        <table class="er-table">
+          <thead><tr><th>Tier</th><th>Monthly tokens</th><th>Rate limit</th><th>Price</th></tr></thead>
+          <tbody>
+            <tr><td style="font-weight:600;color:var(--titanium)">Free</td><td class="er-table-hl">10M</td><td>60 req/min</td><td>$0</td></tr>
+            <tr><td style="color:var(--text-2)">Starter</td><td>50M</td><td>200 req/min</td><td>$199/mo</td></tr>
+            <tr><td style="color:var(--text-2)">Pro</td><td>250M</td><td>500 req/min</td><td>$499/mo</td></tr>
+            <tr><td style="color:var(--text-2)">Agency</td><td>Unlimited</td><td>Custom</td><td>$999/mo</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="er-docs-p">Token counts refer to tokens saved, not tokens processed. The demo endpoint (<code>/demo/compress</code>) allows up to 20 requests/minute per IP without an API key — for testing only.</p>
+
+      <!-- OPENAI PROXY -->
+      <h2 class="er-docs-h2" id="openai-proxy">OpenAI Proxy</h2>
+      <p class="er-docs-p">The recommended integration. EchoRegent exposes a fully OpenAI-compatible <code>/v1/chat/completions</code> endpoint. Change your <code>baseURL</code> — nothing else changes in your codebase.</p>
+      <div class="er-endpoint"><span class="er-method post">POST</span><code>/v1/chat/completions</code></div>
+      <p class="er-docs-p">EchoRegent intercepts the request, runs the classify + compress pipeline on <code>messages</code>, then forwards the compressed payload to your upstream model. The response you receive is identical to what your LLM returns — EchoRegent adds its headers and steps aside.</p>
+
+      <h3 class="er-docs-h3">Supported providers via proxy</h3>
+      <ul class="er-docs-ul">
+        <li>OpenAI (GPT-4o, GPT-4o-mini, o1, o3)</li>
+        <li>Anthropic (Claude 3.5, Claude Sonnet 4.6)</li>
+        <li>Google (Gemini 2.0 Flash, Gemini 1.5 Pro)</li>
+        <li>Mistral, Groq, Together, or any OpenAI-compatible endpoint</li>
+      </ul>
+
+      <h3 class="er-docs-h3">Specifying a non-OpenAI provider</h3>
+      <div class="er-code-block">
+        <div class="er-code-header"><div class="er-code-dot"></div>Route to Anthropic via proxy</div>
+        <div class="er-code-body"><pre><code><span class="c-kw">const</span> client = <span class="c-kw">new</span> <span class="c-fn">OpenAI</span>({
+  apiKey: process.env.ANTHROPIC_KEY,
+  baseURL: <span class="c-str">'https://api.echoregent.ai/v1'</span>,
+  defaultHeaders: {
+    <span class="c-str">'x-cts-key'</span>:       process.env.ECHOREGENT_KEY,
+    <span class="c-str">'x-llm-provider'</span>:  <span class="c-str">'anthropic'</span>,
+  }
+})</code></pre></div>
+      </div>
+
+      <!-- MCP SERVER -->
+      <h2 class="er-docs-h2" id="mcp-server">MCP Server</h2>
+      <p class="er-docs-p">EchoRegent ships a native MCP (Model Context Protocol) server. Four tools are available immediately — <code>compress</code>, <code>classify</code>, <code>remember</code>, and <code>recall</code>. Works with Claude Desktop, Cursor, Windsurf, and any MCP client.</p>
+
+      <h3 class="er-docs-h3" id="cursor-guide">Cursor Setup</h3>
+      <p class="er-docs-p">Add to your <code>~/.cursor/mcp.json</code>:</p>
+      <div class="er-code-block">
+        <div class="er-code-header"><div class="er-code-dot"></div>~/.cursor/mcp.json</div>
+        <div class="er-code-body"><pre><code>{
+  <span class="c-str">"mcpServers"</span>: {
+    <span class="c-str">"echoregent"</span>: {
+      <span class="c-str">"url"</span>: <span class="c-str">"https://api.echoregent.ai/mcp"</span>,
+      <span class="c-str">"headers"</span>: {
+        <span class="c-str">"x-cts-key"</span>: <span class="c-str">"your-echoregent-key"</span>
+      }
+    }
+  }
+}</code></pre></div>
+      </div>
+
+      <h3 class="er-docs-h3" id="claude-desktop">Claude Desktop Setup</h3>
+      <div class="er-code-block">
+        <div class="er-code-header"><div class="er-code-dot"></div>claude_desktop_config.json</div>
+        <div class="er-code-body"><pre><code>{
+  <span class="c-str">"mcpServers"</span>: {
+    <span class="c-str">"echoregent"</span>: {
+      <span class="c-str">"command"</span>: <span class="c-str">"npx"</span>,
+      <span class="c-str">"args"</span>: [<span class="c-str">"-y"</span>, <span class="c-str">"@echoregent/mcp-server"</span>],
+      <span class="c-str">"env"</span>: { <span class="c-str">"ECHOREGENT_KEY"</span>: <span class="c-str">"your-key"</span> }
+    }
+  }
+}</code></pre></div>
+      </div>
+
+      <h3 class="er-docs-h3">Available MCP Tools</h3>
+      <div class="er-table-wrap">
+        <table class="er-table">
+          <thead><tr><th>Tool</th><th>Description</th><th>Input</th></tr></thead>
+          <tbody>
+            <tr><td><code>compress</code></td><td>Compress conversation history</td><td>messages array</td></tr>
+            <tr><td><code>classify</code></td><td>Classify domain, intent, risk</td><td>message text</td></tr>
+            <tr><td><code>remember</code></td><td>Store a fact in semantic memory</td><td>key, value, session</td></tr>
+            <tr><td><code>recall</code></td><td>Retrieve semantically similar facts</td><td>query, session</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- DIRECT API -->
+      <h2 class="er-docs-h2" id="direct-api">Direct API</h2>
+      <p class="er-docs-p">Call EchoRegent directly without going through the proxy. Useful when you want to pre-process context before assembling your LLM request.</p>
+
+      <h2 class="er-docs-h2" id="compress-endpoint">POST /compress</h2>
+      <div class="er-endpoint"><span class="er-method post">POST</span><code>https://api.echoregent.ai/compress</code></div>
+      <p class="er-docs-p">Requires <code>Authorization: Bearer &lt;your-echoregent-key&gt;</code> header.</p>
+      <div class="er-code-block" style="margin-bottom:12px">
+        <div class="er-code-header"><div class="er-code-dot"></div>Request body</div>
+        <div class="er-code-body"><pre><code>{
+  <span class="c-str">"messages"</span>: [
+    { <span class="c-str">"role"</span>: <span class="c-str">"user"</span>, <span class="c-str">"content"</span>: <span class="c-str">"..."</span> },
+    { <span class="c-str">"role"</span>: <span class="c-str">"assistant"</span>, <span class="c-str">"content"</span>: <span class="c-str">"..."</span> }
+  ],
+  <span class="c-str">"options"</span>: {
+    <span class="c-str">"maxTokens"</span>: <span class="c-num">4096</span>,       <span class="c-cmt">// optional target window</span>
+    <span class="c-str">"preserveLast"</span>: <span class="c-num">2</span>        <span class="c-cmt">// always keep last N turns uncompressed</span>
+  }
+}</code></pre></div>
+      </div>
+      <div class="er-code-block">
+        <div class="er-code-header"><div class="er-code-dot" style="background:var(--gold)"></div>Response</div>
+        <div class="er-code-body"><pre><code>{
+  <span class="c-str">"compressed"</span>: [ <span class="c-cmt">/* compressed messages array */</span> ],
+  <span class="c-str">"domain"</span>: <span class="c-str">"coding"</span>,
+  <span class="c-str">"intent"</span>: <span class="c-str">"debugging"</span>,
+  <span class="c-str">"tokensSaved"</span>: <span class="c-num">1842</span>,
+  <span class="c-str">"compressionPct"</span>: <span class="c-num">67</span>,
+  <span class="c-str">"protected"</span>: <span class="c-num">false</span>,
+  <span class="c-str">"cacheHit"</span>: <span class="c-num">false</span>
+}</code></pre></div>
+      </div>
+
+      <!-- PROXY ENDPOINT -->
+      <h2 class="er-docs-h2" id="proxy-endpoint">POST /v1/chat/completions</h2>
+      <div class="er-endpoint"><span class="er-method post">POST</span><code>https://api.echoregent.ai/v1/chat/completions</code></div>
+      <p class="er-docs-p">Fully OpenAI-compatible. Accepts the exact same body as <code>openai.chat.completions.create()</code>. EchoRegent compresses the <code>messages</code> field, then forwards to your upstream model. Returns the upstream response unmodified plus EchoRegent headers.</p>
+      <p class="er-docs-p">Additional headers required:</p>
+      <ul class="er-docs-ul">
+        <li><code>x-cts-key</code> — your EchoRegent key</li>
+        <li><code>x-llm-key</code> — your upstream LLM API key (optional if using <code>Authorization: Bearer</code>)</li>
+        <li><code>x-llm-provider</code> — <code>openai</code> (default) · <code>anthropic</code> · <code>gemini</code></li>
+      </ul>
+
+      <!-- RESPONSE HEADERS -->
+      <h2 class="er-docs-h2" id="response-headers">Response Headers</h2>
+      <div class="er-table-wrap">
+        <table class="er-table">
+          <thead><tr><th>Header</th><th>Type</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><code>x-cts-tokens-saved</code></td><td>integer</td><td>Tokens removed from context</td></tr>
+            <tr><td><code>x-cts-compression-pct</code></td><td>integer 0–100</td><td>% reduction in context length</td></tr>
+            <tr><td><code>x-cts-domain</code></td><td>string</td><td>Detected conversation domain</td></tr>
+            <tr><td><code>x-cts-intent</code></td><td>string</td><td>Detected intent</td></tr>
+            <tr><td><code>x-cts-cache-hit</code></td><td>boolean</td><td>Whether response came from semantic cache</td></tr>
+            <tr><td><code>x-cts-protected</code></td><td>boolean</td><td>True if compression was disabled (medical/legal/crisis)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- PROTECTED ZONES -->
+      <h2 class="er-docs-h2" id="protected-zones">Protected Zones</h2>
+      <p class="er-docs-p">Three conversation types are architecturally protected from compression:</p>
+      <div class="er-callout er-callout-red" style="margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-family:var(--sans);font-size:13px;font-weight:700;color:var(--red);margin-bottom:6px">Protected — compression disabled</div>
+            <p class="er-docs-p er-mb-0" style="font-size:13px">When the classifier detects one of these domains, the compression step is skipped entirely. The full context is forwarded. These zones cannot be overridden by API callers.</p>
+          </div>
+          <div class="er-protected-badges">
+            <span class="er-protected-badge">MEDICAL</span>
+            <span class="er-protected-badge">LEGAL</span>
+            <span class="er-protected-badge">CRISIS</span>
+          </div>
+        </div>
+      </div>
+      <p class="er-docs-p">Protected conversations return <code>x-cts-protected: true</code> and are not counted toward your quota.</p>
+
+      <!-- RATE LIMITS -->
+      <h2 class="er-docs-h2" id="rate-limits">Rate Limits</h2>
+      <p class="er-docs-p">Rate limits are per API key, per minute. Exceeding the limit returns HTTP 429 with a <code>Retry-After</code> header.</p>
+      <div class="er-table-wrap">
+        <table class="er-table">
+          <thead><tr><th>Tier</th><th>Requests/min</th><th>Burst</th></tr></thead>
+          <tbody>
+            <tr><td>Demo (no key)</td><td>20 / IP</td><td>—</td></tr>
+            <tr><td>Free</td><td>60</td><td>80</td></tr>
+            <tr><td>Starter</td><td>200</td><td>300</td></tr>
+            <tr><td>Pro</td><td>500</td><td>700</td></tr>
+            <tr><td>Agency</td><td>Custom</td><td>Custom</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- DOMAINS -->
+      <h2 class="er-docs-h2" id="domains">Supported Domains</h2>
+      <p class="er-docs-p">The classifier returns one of these domain values per conversation turn:</p>
+      <div class="er-grid-2" style="margin-bottom:24px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:13px;color:var(--text-2)"><code>coding</code> — software development, debugging, code review</div>
+          <div style="font-size:13px;color:var(--text-2)"><code>medical</code> — health, symptoms, medications <span style="color:var(--red);font-size:11px">⬥ Protected</span></div>
+          <div style="font-size:13px;color:var(--text-2)"><code>legal</code> — contracts, compliance, advice <span style="color:var(--red);font-size:11px">⬥ Protected</span></div>
+          <div style="font-size:13px;color:var(--text-2)"><code>crisis</code> — mental health, emergency <span style="color:var(--red);font-size:11px">⬥ Protected</span></div>
+          <div style="font-size:13px;color:var(--text-2)"><code>customer_support</code> — tickets, complaints, returns</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="font-size:13px;color:var(--text-2)"><code>sales</code> — outreach, negotiation, CRM</div>
+          <div style="font-size:13px;color:var(--text-2)"><code>finance</code> — budgeting, investing, accounting</div>
+          <div style="font-size:13px;color:var(--text-2)"><code>education</code> — tutoring, explanations</div>
+          <div style="font-size:13px;color:var(--text-2)"><code>creative</code> — writing, brainstorming, ideation</div>
+          <div style="font-size:13px;color:var(--text-2)"><code>general</code> — catch-all for uncategorized</div>
+        </div>
+      </div>
+
+      <h2 class="er-docs-h2" id="windsurf-guide">Windsurf Setup</h2>
+      <p class="er-docs-p">Add to your Windsurf MCP configuration file at <code>~/.windsurf/mcp_config.json</code>:</p>
+      <div class="er-code-block">
+        <div class="er-code-header"><div class="er-code-dot"></div>~/.windsurf/mcp_config.json</div>
+        <div class="er-code-body"><pre><code>{
+  <span class="c-str">"servers"</span>: {
+    <span class="c-str">"echoregent"</span>: {
+      <span class="c-str">"serverUrl"</span>: <span class="c-str">"https://api.echoregent.ai/mcp"</span>,
+      <span class="c-str">"auth"</span>: {
+        <span class="c-str">"type"</span>: <span class="c-str">"header"</span>,
+        <span class="c-str">"header"</span>: <span class="c-str">"x-cts-key"</span>,
+        <span class="c-str">"value"</span>: <span class="c-str">"your-echoregent-key"</span>
+      }
+    }
+  }
+}</code></pre></div>
+      </div>
+
+      <div class="er-callout er-callout-jade" style="margin-top:48px">
+        <h3 style="font-size:15px;margin-bottom:8px">Need help?</h3>
+        <p class="er-docs-p er-mb-0" style="font-size:14px">Email <a href="mailto:team@yudi.co.in">team@yudi.co.in</a> — we respond within 24 hours. For enterprise support and SLAs, see the <a href="/enterprise.html">Enterprise page</a>.</p>
+      </div>
+    </main>
+  </div>
+
+  <div id="er-footer"></div>
+  <script type="module" src="/nav.js"></script>
+</body>
+</html>

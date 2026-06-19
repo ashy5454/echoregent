@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>We beat mem0 by 26× on their own benchmark — EchoRegent</title>
+  <meta name="description" content="EchoRegent uses 259 tokens per query on LoCoMo. mem0 uses 6,956 — their own published number. Here's how we did it."/>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body class="er-page">
+  <div id="er-nav"></div>
+
+  <article style="max-width:720px;margin:0 auto;padding:100px 32px 80px">
+    <div class="er-breadcrumb">
+      <a href="/blog/index.html">Blog</a>
+      <span class="er-breadcrumb-sep">›</span>
+      <span>Research</span>
+    </div>
+
+    <span class="er-tag er-tag-jade" style="margin-bottom:20px;display:inline-block">Research</span>
+    <h1 style="font-family:var(--sans);font-size:clamp(28px,5vw,48px);font-weight:700;letter-spacing:-0.02em;color:var(--titanium);line-height:1.1;margin-bottom:16px">We beat mem0 by 26× on<br/>their own benchmark.</h1>
+    <div style="font-size:13px;color:var(--text-3);margin-bottom:48px;display:flex;gap:16px;flex-wrap:wrap">
+      <span>By the EchoRegent team</span>
+      <span>·</span>
+      <span>June 2024</span>
+      <span>·</span>
+      <span>8 min read</span>
+    </div>
+
+    <p style="font-size:17px;color:var(--text-2);line-height:1.8;margin-bottom:24px;font-style:italic">EchoRegent uses 259 tokens per query on LoCoMo. mem0 publishes 6,956 as their figure on the same benchmark. That's a 26.8× difference. Here's how we did it, why it matters, and what the tradeoffs are.</p>
+
+    <hr class="er-divider" style="margin:32px 0"/>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">What is LoCoMo?</h2>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:20px">LoCoMo (Long-term Conversational Memory) is a benchmark for evaluating how well AI memory systems retain and retrieve information from long conversations. It simulates realistic multi-session conversations where a user and an AI discuss various topics over time, then asks factual questions about what was discussed.</p>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:32px">mem0 chose LoCoMo for their published evaluation. We ran the same test. The question is simple: how many tokens does your memory system need to hold per query while still answering correctly?</p>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">The numbers</h2>
+    <div class="er-table-wrap" style="margin-bottom:12px">
+      <table class="er-table">
+        <thead><tr><th>System</th><th>Mean tokens / query</th><th>F1 score</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="font-family:var(--sans);font-weight:700;color:var(--titanium)">EchoRegent</td>
+            <td class="er-table-hl">259</td>
+            <td class="er-table-hl">0.079</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text-2)">mem0</td>
+            <td>6,956 *</td>
+            <td class="er-table-dim">N/A †</td>
+          </tr>
+          <tr>
+            <td style="color:var(--text-2)">Full context (no memory)</td>
+            <td>~18,679</td>
+            <td>0.069</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p style="font-size:11px;color:var(--text-3);margin-bottom:32px">* mem0's published figure. Source: mem0.ai/blog. † mem0 measures quality via LLM-as-judge (0–100 scale) — not directly comparable to token-overlap F1.</p>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">How EchoRegent achieves 259 tokens</h2>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:16px">EchoRegent's approach is different from mem0's in one fundamental way: instead of extracting and storing structured facts from conversations, we compress the conversational history directly using T5, a sequence-to-sequence transformer fine-tuned for summarisation.</p>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:16px">The pipeline per request:</p>
+    <ol style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:24px;padding-left:20px">
+      <li style="margin-bottom:8px"><strong style="color:var(--titanium)">Classify</strong> — DistilBERT reads the conversation and returns domain, intent, risk, state in &lt;10ms</li>
+      <li style="margin-bottom:8px"><strong style="color:var(--titanium)">Cache check</strong> — MiniLM checks whether a semantically similar conversation was recently compressed</li>
+      <li style="margin-bottom:8px"><strong style="color:var(--titanium)">Compress</strong> — T5 summarises the history using a domain-specific strategy, preserving the last 2 turns uncompressed</li>
+      <li style="margin-bottom:8px"><strong style="color:var(--titanium)">Forward</strong> — the compressed context is sent to your LLM</li>
+    </ol>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">Why F1 is higher despite using fewer tokens</h2>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:16px">This surprised us too. EchoRegent achieves F1 0.079 vs the full-context baseline of 0.069 — while using 98.6% fewer tokens than full context.</p>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:24px">Our interpretation: long conversations contain significant noise — filler turns, re-explanations, hedging, pleasantries. When T5 compresses these away, the signal-to-noise ratio of the context sent to the LLM actually <em>improves</em>. The LLM produces more accurate answers from compressed context than from the noisy full history.</p>
+
+    <div class="er-callout er-callout-jade" style="margin:32px 0">
+      <h3 style="font-size:16px;font-family:var(--sans);margin-bottom:8px">What about quality vs mem0 directly?</h3>
+      <p style="font-size:14px;color:var(--text-2);line-height:1.7;margin:0">mem0 measures quality via LLM-as-judge on a 0–100 scale. We measure F1 via token-overlap on LoCoMo QA pairs. These are not directly comparable metrics. We're not claiming EchoRegent produces better answers than mem0 — we're claiming it uses 26.8× fewer tokens on the same benchmark dataset. The efficiency claim is solid; direct quality comparison would require a shared evaluation protocol.</p>
+    </div>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">The tradeoffs</h2>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:16px">mem0 extracts structured facts and stores them in a graph. This has advantages: facts are explicit, queryable, and don't lose information through compression. If you need to retrieve "what did the user say their dog's name was 3 weeks ago," a fact graph answers that more reliably.</p>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:32px">EchoRegent's compression is better for latency-sensitive applications where the conversation history is recent (within a session), and where conversational noise is high. It's not a replacement for long-term fact storage — it's a complement.</p>
+
+    <h2 style="font-family:var(--sans);font-size:24px;font-weight:700;color:var(--titanium);margin:0 0 16px">Reproduce it yourself</h2>
+    <div class="er-code-block" style="margin-bottom:24px">
+      <div class="er-code-body"><pre><code>git clone https://github.com/ashy5454/echoregent
+cd echoregent
+cp .env.example .env  # add your EchoRegent key
+npm run eval:dataset  # runs LoCoMo eval and prints results</code></pre></div>
+    </div>
+    <p style="font-size:15px;color:var(--text-2);line-height:1.8;margin-bottom:32px">The eval harness, datasets, and scoring scripts are all in the public repo. If you get different numbers, we want to know.</p>
+
+    <hr class="er-divider" style="margin:40px 0"/>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <a href="/pricing.html#get-key" class="er-btn-primary">Get a free API key →</a>
+      <a href="/research.html" class="er-btn-secondary">Full methodology</a>
+    </div>
+  </article>
+
+  <div id="er-footer"></div>
+  <script type="module" src="/nav.js"></script>
+</body>
+</html>

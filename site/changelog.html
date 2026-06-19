@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Changelog — EchoRegent</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/style.css"/>
+</head>
+<body class="er-page">
+  <div id="er-nav"></div>
+
+  <section style="padding:100px 0 48px">
+    <div class="er-container">
+      <span class="er-label">Changelog</span>
+      <h1 style="font-family:var(--sans);font-size:clamp(32px,5vw,56px);font-weight:700;letter-spacing:-0.02em;color:var(--titanium);margin-bottom:14px">What's new.</h1>
+      <p style="font-size:16px;color:var(--text-2)">Every release, documented. No dark patterns, no buried breaking changes.</p>
+    </div>
+  </section>
+
+  <hr class="er-divider"/>
+
+  <section class="er-section">
+    <div class="er-container" style="max-width:760px">
+
+      <!-- v0.4 -->
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:40px;margin-bottom:56px;padding-bottom:56px;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-family:var(--sans);font-size:18px;font-weight:700;color:var(--gold)">v0.4</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">June 2024</div>
+          <span class="er-tag er-tag-jade" style="margin-top:10px;display:inline-block">Latest</span>
+        </div>
+        <div>
+          <h2 style="font-family:var(--sans);font-size:22px;font-weight:700;color:var(--titanium);margin-bottom:16px">OpenAI proxy, MCP server, SaaS billing</h2>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">OpenAI-compatible proxy</strong> — <code>/v1/chat/completions</code> endpoint. Change <code>baseURL</code>, nothing else.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">Native MCP server</strong> — 4 tools: compress, classify, remember, recall. Claude Desktop, Cursor, Windsurf.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">SaaS billing layer</strong> — API key management, per-key quotas, usage logging, admin dashboard.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">Demo endpoints</strong> — <code>/demo/compress</code> and <code>/demo/request-key</code>, no auth required, 20 req/min per IP.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">Resend integration</strong> — automated API key delivery emails.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">Cloud Run deployment</strong> — 4GiB memory, min-instances=1, no cold starts.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- v0.3 -->
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:40px;margin-bottom:56px;padding-bottom:56px;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-family:var(--sans);font-size:18px;font-weight:700;color:var(--titanium)">v0.3</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">May 2024</div>
+        </div>
+        <div>
+          <h2 style="font-family:var(--sans);font-size:22px;font-weight:700;color:var(--titanium);margin-bottom:16px">Protected zones, eval harness, load test</h2>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:24px">
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">Protected zones</strong> — medical, legal, crisis detection. Compression disabled at function level.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">LoCoMo eval harness</strong> — <code>npm run eval:dataset</code>. Reproducible benchmark results.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">Load test</strong> — 329 req/s, 17ms p50, 0 errors on 10M token run.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">Quality eval</strong> — Gemini-as-judge on 120 conversations. 87% match-or-beat rate vs full context.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--red);flex-shrink:0;margin-top:2px">!</span><span><strong style="color:var(--titanium)">Breaking</strong> — <code>/classify</code> removed. Classification is now part of <code>/compress</code> response.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- v0.2 -->
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:40px;margin-bottom:56px;padding-bottom:56px;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-family:var(--sans);font-size:18px;font-weight:700;color:var(--titanium)">v0.2</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">April 2024</div>
+        </div>
+        <div>
+          <h2 style="font-family:var(--sans);font-size:22px;font-weight:700;color:var(--titanium);margin-bottom:16px">T5 compression + semantic cache</h2>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">T5 compression</strong> — sequence-to-sequence summarisation. Domain-aware strategy selection.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">MiniLM semantic cache</strong> — 384-dim embeddings, cosine similarity threshold, sub-5ms lookup.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span><strong style="color:var(--titanium)">Response headers</strong> — x-cts-tokens-saved, x-cts-domain, x-cts-compression-pct, x-cts-cache-hit.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- v0.1 -->
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:40px">
+        <div>
+          <div style="font-family:var(--sans);font-size:18px;font-weight:700;color:var(--text-3)">v0.1</div>
+          <div style="font-size:11px;color:var(--text-3);margin-top:4px">March 2024</div>
+        </div>
+        <div>
+          <h2 style="font-family:var(--sans);font-size:22px;font-weight:700;color:var(--titanium);margin-bottom:16px">DistilBERT classifier, initial API</h2>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span>DistilBERT domain classifier — 10 domains, intent detection.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span>Initial REST API — <code>POST /compress</code> with Bearer auth.</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--text-2)"><span style="color:var(--jade);flex-shrink:0;margin-top:2px">+</span><span>JSON file fallback — works without a database in local development.</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <div id="er-footer"></div>
+  <script type="module" src="/nav.js"></script>
+</body>
+</html>
