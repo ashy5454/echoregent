@@ -13,7 +13,7 @@
   const NAV_HTML = `
 <nav class="er-nav">
   <div class="er-nav-inner">
-    <a class="er-nav-logo" href="/index.html">${LOGO_SVG}<span class="er-nav-wordmark">EchoRegent</span></a>
+    <a class="er-nav-logo" href="/">${LOGO_SVG}<span class="er-nav-wordmark">EchoRegent</span></a>
     <button class="er-nav-toggle" aria-label="Toggle menu">
       <span class="er-hamburger-bar"></span>
       <span class="er-hamburger-bar"></span>
@@ -23,35 +23,35 @@
       <div class="er-dropdown">
         <button class="er-nav-link er-nav-link--dd">Product <span class="er-dd-arrow">▾</span></button>
         <div class="er-dropdown-menu">
-          <a href="/product.html"><span class="dd-icon">🔍</span>Context Classifier</a>
-          <a href="/product.html#compress"><span class="dd-icon">🗜</span>History Compressor</a>
-          <a href="/product.html#cache"><span class="dd-icon">⚡</span>Semantic Cache</a>
-          <a href="/product.html#protect"><span class="dd-icon">🛡</span>Protected Zones</a>
+          <a href="/product"><span class="dd-icon">🔍</span>Context Classifier</a>
+          <a href="/product#compress"><span class="dd-icon">🗜</span>History Compressor</a>
+          <a href="/product#cache"><span class="dd-icon">⚡</span>Semantic Cache</a>
+          <a href="/product#protect"><span class="dd-icon">🛡</span>Protected Zones</a>
           <hr class="er-dropdown-separator"/>
-          <a href="/product.html#mcp"><span class="dd-icon">🔌</span>MCP Server</a>
-          <a href="/product.html#proxy"><span class="dd-icon">↔</span>OpenAI Proxy</a>
+          <a href="/product#mcp"><span class="dd-icon">🔌</span>MCP Server</a>
+          <a href="/product#proxy"><span class="dd-icon">↔</span>OpenAI Proxy</a>
         </div>
       </div>
       <div class="er-dropdown">
         <button class="er-nav-link er-nav-link--dd">Solutions <span class="er-dd-arrow">▾</span></button>
         <div class="er-dropdown-menu">
-          <a href="/solutions/customer-support.html"><span class="dd-icon">💬</span>Customer Support</a>
-          <a href="/solutions/coding-assistants.html"><span class="dd-icon">💻</span>Coding Assistants</a>
-          <a href="/solutions/ai-agents.html"><span class="dd-icon">🤖</span>AI Agents</a>
+          <a href="/solutions/customer-support"><span class="dd-icon">💬</span>Customer Support</a>
+          <a href="/solutions/coding-assistants"><span class="dd-icon">💻</span>Coding Assistants</a>
+          <a href="/solutions/ai-agents"><span class="dd-icon">🤖</span>AI Agents</a>
           <hr class="er-dropdown-separator"/>
-          <a href="/enterprise.html"><span class="dd-icon">🏢</span>Enterprise</a>
+          <a href="/enterprise"><span class="dd-icon">🏢</span>Enterprise</a>
         </div>
       </div>
-      <a href="/research.html" class="er-nav-link">Research</a>
-      <a href="/docs.html" class="er-nav-link">Docs</a>
-      <a href="/pricing.html" class="er-nav-link">Pricing</a>
-      <a href="/blog/index.html" class="er-nav-link">Blog</a>
-      <a href="/changelog.html" class="er-nav-link">Changelog</a>
+      <a href="/research" class="er-nav-link">Research</a>
+      <a href="/docs" class="er-nav-link">Docs</a>
+      <a href="/pricing" class="er-nav-link">Pricing</a>
+      <a href="/blog/" class="er-nav-link">Blog</a>
+      <a href="/changelog" class="er-nav-link">Changelog</a>
       <span class="er-nav-spacer"></span>
-      <a href="/enterprise.html" class="er-nav-link er-nav-link--enterprise">Enterprise</a>
-      <a href="/pricing.html#get-key" class="er-btn-nav er-btn-nav-mobile">Get API Key</a>
+      <a href="/enterprise" class="er-nav-link er-nav-link--enterprise">Enterprise</a>
+      <a href="/pricing#get-key" class="er-btn-nav er-btn-nav-mobile">Get API Key</a>
     </div>
-    <a href="/pricing.html#get-key" class="er-btn-nav er-btn-nav-desktop">Get API Key</a>
+    <a href="/pricing#get-key" class="er-btn-nav er-btn-nav-desktop">Get API Key</a>
   </div>
 </nav>`
 
@@ -66,34 +66,34 @@
       </div>
       <div class="er-footer-col">
         <div class="er-footer-col-title">Product</div>
-        <a href="/product.html">Overview</a>
-        <a href="/product.html#classify">Classifier</a>
-        <a href="/product.html#compress">Compressor</a>
-        <a href="/product.html#cache">Cache</a>
-        <a href="/product.html#protect">Protected Zones</a>
-        <a href="/product.html#mcp">MCP Server</a>
+        <a href="/product">Overview</a>
+        <a href="/product#classify">Classifier</a>
+        <a href="/product#compress">Compressor</a>
+        <a href="/product#cache">Cache</a>
+        <a href="/product#protect">Protected Zones</a>
+        <a href="/product#mcp">MCP Server</a>
       </div>
       <div class="er-footer-col">
         <div class="er-footer-col-title">Solutions</div>
-        <a href="/solutions/customer-support.html">Customer Support</a>
-        <a href="/solutions/coding-assistants.html">Coding Assistants</a>
-        <a href="/solutions/ai-agents.html">AI Agents</a>
-        <a href="/enterprise.html">Enterprise</a>
+        <a href="/solutions/customer-support">Customer Support</a>
+        <a href="/solutions/coding-assistants">Coding Assistants</a>
+        <a href="/solutions/ai-agents">AI Agents</a>
+        <a href="/enterprise">Enterprise</a>
       </div>
       <div class="er-footer-col">
         <div class="er-footer-col-title">Resources</div>
-        <a href="/research.html">Research</a>
-        <a href="/docs.html">Documentation</a>
-        <a href="/blog/index.html">Blog</a>
-        <a href="/changelog.html">Changelog</a>
-        <a href="/security.html">Security</a>
+        <a href="/research">Research</a>
+        <a href="/docs">Documentation</a>
+        <a href="/blog/">Blog</a>
+        <a href="/changelog">Changelog</a>
+        <a href="/security">Security</a>
         <a href="https://github.com/ashy5454/echoregent" target="_blank">GitHub ↗</a>
       </div>
       <div class="er-footer-col">
         <div class="er-footer-col-title">Company</div>
-        <a href="/about.html">About</a>
-        <a href="/enterprise.html">Enterprise</a>
-        <a href="/security.html">Security</a>
+        <a href="/about">About</a>
+        <a href="/enterprise">Enterprise</a>
+        <a href="/security">Security</a>
         <a href="mailto:team@yudi.co.in">Contact</a>
         <a href="mailto:team@yudi.co.in">team@yudi.co.in</a>
       </div>
@@ -101,9 +101,9 @@
     <div class="er-footer-bottom">
       <span class="er-footer-copy">© 2024 EchoRegent · Yudi Labs, Hyderabad, India</span>
       <div class="er-footer-legal">
-        <a href="/security.html">Privacy</a>
-        <a href="/security.html">Terms</a>
-        <a href="/security.html">Security</a>
+        <a href="/security">Privacy</a>
+        <a href="/security">Terms</a>
+        <a href="/security">Security</a>
       </div>
     </div>
   </div>
