@@ -7,9 +7,6 @@ export const echoregent = onRequest(
     timeoutSeconds: 60,
     cpu: 1,
     cors: true,
-    // Set admin secret so /admin endpoints are accessible
-    // Change this value in production for security
-    invoker: 'public',
   },
   async (req: any, res: any) => {
     // Inject admin secret if not already set via environment
@@ -19,3 +16,4 @@ export const echoregent = onRequest(
     await route(req, res)
   }
 )
+

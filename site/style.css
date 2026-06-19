@@ -188,6 +188,8 @@ pre {
   transition: background 0.15s, color 0.15s;
 }
 .er-btn-nav:hover { background: var(--gold); color: var(--void); opacity: 1; }
+.er-btn-nav-desktop { display: inline-block; }
+.er-btn-nav-mobile { display: none; }
 
 /* ── PAGE BODY OFFSET ── */
 .er-page { padding-top: var(--nav-h); }
@@ -387,7 +389,7 @@ pre {
 .er-table tr:last-child td { border-bottom: none; }
 .er-table .er-table-hl { color: var(--gold); font-family: var(--sans); font-weight: 700; }
 .er-table .er-table-dim { color: var(--text-3); }
-.er-table-wrap { background: var(--s1); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.er-table-wrap { background: var(--s1); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .check { color: var(--jade); } .cross { color: var(--text-3); }
 
 /* ── GRIDS ── */
@@ -558,6 +560,36 @@ pre {
 .er-footer-legal a { font-size: 12px; color: var(--text-3); text-decoration: none; }
 .er-footer-legal a:hover { color: var(--titanium); }
 
+/* Hamburger Toggle Button */
+.er-nav-toggle {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 22px;
+  height: 16px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  z-index: 210;
+}
+.er-hamburger-bar {
+  width: 100%;
+  height: 2px;
+  background-color: var(--titanium);
+  border-radius: 2px;
+  transition: all 0.2s ease-in-out;
+}
+.er-nav-toggle.open .er-hamburger-bar:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+.er-nav-toggle.open .er-hamburger-bar:nth-child(2) {
+  opacity: 0;
+}
+.er-nav-toggle.open .er-hamburger-bar:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
 @media (max-width: 800px) {
   .er-footer-grid { grid-template-columns: 1fr 1fr; }
   .er-docs-layout { grid-template-columns: 1fr; }
@@ -565,10 +597,86 @@ pre {
   .er-stats { flex-wrap: wrap; }
   .er-stat { min-width: 50%; }
 }
+
+@media (max-width: 768px) {
+  .er-nav-toggle {
+    display: flex;
+  }
+  .er-btn-nav-desktop {
+    display: none;
+  }
+  .er-btn-nav-mobile {
+    display: block;
+    width: 100%;
+    text-align: center;
+    margin-top: 10px;
+  }
+  .er-nav-links {
+    position: absolute;
+    top: var(--nav-h);
+    left: 0;
+    right: 0;
+    background: rgba(8, 11, 10, 0.98);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(95, 143, 133, 0.15);
+    display: none;
+    flex-direction: column;
+    padding: 24px;
+    gap: 16px;
+    z-index: 199;
+    max-height: calc(100vh - var(--nav-h));
+    overflow-y: auto;
+  }
+  .er-nav-links.open {
+    display: flex;
+  }
+  .er-nav-link {
+    width: 100%;
+    padding: 10px 16px;
+    font-size: 15px;
+    text-align: left;
+  }
+  .er-nav-spacer {
+    display: none;
+  }
+  .er-dropdown-menu {
+    position: static;
+    display: none;
+    box-shadow: none;
+    border: none;
+    background: rgba(255, 255, 255, 0.02);
+    margin-top: 6px;
+    padding-left: 12px;
+  }
+  .er-dropdown.open .er-dropdown-menu {
+    display: block;
+  }
+  .er-pipeline-row {
+    flex-direction: column;
+    min-width: auto;
+    gap: 8px;
+  }
+  .er-pipe-arrow {
+    transform: rotate(90deg);
+    padding: 12px 0;
+  }
+  .er-pipe-box {
+    width: 100%;
+    max-width: 280px;
+  }
+}
+
 @media (max-width: 500px) {
   .er-footer-grid { grid-template-columns: 1fr; }
-  .er-container { padding: 0 20px; }
-  .er-hero { padding: 60px 20px 48px; }
+  .er-container { padding: 0 16px; }
+  .er-hero { padding: 60px 16px 48px; }
+  .er-section { padding: 48px 0; }
+  .er-section-sm { padding: 32px 0; }
+  .er-docs-content { padding: 24px 16px; }
+  .er-code-body { padding: 12px; }
+  .er-code-body pre { font-size: 11.5px; }
+  .er-stat { min-width: 100%; border-right: none; border-bottom: 1px solid var(--border); }
+  .er-stat:last-child { border-bottom: none; }
 }
 
 /* ── LOGO SVG ── */
@@ -588,3 +696,4 @@ pre {
 .er-flex { display: flex; } .er-flex-center { align-items: center; } .er-gap-12 { gap: 12px; }
 .er-protected-badges { display: flex; gap: 8px; flex-wrap: wrap; }
 .er-protected-badge { font-family: var(--sans); font-size: 10px; font-weight: 700; letter-spacing: 0.10em; padding: 5px 11px; border-radius: 3px; background: var(--red-dim); color: var(--red); }
+

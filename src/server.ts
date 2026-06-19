@@ -614,14 +614,14 @@ export async function route(req: IncomingMessage, res: ServerResponse): Promise<
     return
   }
 
-  if (req.method === 'POST' && url.pathname === '/compress') {
+  if (req.method === 'POST' && (url.pathname === '/compress' || url.pathname === '/v1/compress')) {
     const body        = await readJson(req)
     const message     = String(body.message ?? '')
     const history     = asMessages(body.history)
     const frame       = classify(message, history, asPlugins(body.customDomainPlugins))
     const current     = { role: 'user' as const, content: message }
     const compression = compressHistory([...history, current], frame)
-    recordUsage(key.id, '/compress', compression.tokensSaved)
+    recordUsage(key.id, url.pathname, compression.tokensSaved)
     sendJson(res, 200, {
       compressedHistory: compression.compressed,
       intent: frame.intent, domain: frame.domain, state: frame.state,
@@ -986,8 +986,8 @@ async function routeAdmin(req: IncomingMessage, res: ServerResponse, url: URL): 
 
 function setCors(res: ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN)
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret,X-Session-Token')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,PATCH,OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret,X-Session-Token,X-CTS-Key,X-EchoRegent-Key,X-LLM-Key,X-LLM-Provider,X-LLM-Model,X-LLM-Base-URL')
   res.setHeader('Vary', 'Origin')
   // Security headers
   res.setHeader('X-Content-Type-Options', 'nosniff')

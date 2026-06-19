@@ -22,17 +22,31 @@ export async function authenticate(
   req: IncomingMessage,
   res: ServerResponse,
 ): Promise<ApiKey | null> {
-  const header = req.headers['authorization'] ?? ''
-  const raw    = header.startsWith('Bearer ') ? header.slice(7).trim() : ''
+  const authHeader = req.headers['authorization'] ?? ''
+  let raw = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : ''
+
+  // Fallback to x-cts-key or x-echoregent-key headers
+  if (!raw && req.headers['x-cts-key']) {
+    raw = String(req.headers['x-cts-key']).trim()
+  } else if (!raw && req.headers['x-echoregent-key']) {
+    raw = String(req.headers['x-echoregent-key']).trim()
+  }
 
   if (!raw) {
-    sendUnauth(res, 'Missing Authorization header. Use: Authorization: Bearer <your-cts-key>')
+    sendUnauth(res, 'Missing Authorization header, X-CTS-Key, or X-EchoRegent-Key header. Use: Authorization: Bearer <your-key> or X-EchoRegent-Key: <your-key>')
     return null
   }
 
   const key = await lookupKey(raw)
   if (!key) {
     sendUnauth(res, 'Invalid or revoked API key.')
+    return null
+  }
+
+  // Quota enforcement
+  if (key.quotaUsed >= key.quotaLimit) {
+    res.writeHead(403, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ error: 'Quota exceeded. Please upgrade your plan or request higher limits.' }))
     return null
   }
 

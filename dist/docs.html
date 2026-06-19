@@ -6,8 +6,8 @@
   <meta name="description" content="EchoRegent integration documentation. OpenAI proxy, MCP server, direct API reference, authentication, and more."/>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet"/>
   <link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,600,700&display=swap" rel="stylesheet"/>
-  <script type="module" crossorigin src="/assets/nav-DZBsUn2_.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/nav-BekhJzKw.css">
+  <script type="module" crossorigin src="/assets/nav-Bzlmj-MN.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/nav-Dk00PlGO.css">
 </head>
 <body class="er-page">
   <div id="er-nav"></div>
@@ -75,7 +75,7 @@
   apiKey: process.env.OPENAI_API_KEY,       <span class="c-cmt">// your existing LLM key</span>
   baseURL: <span class="c-str">'https://api.echoregent.ai/v1'</span>,
   defaultHeaders: {
-    <span class="c-str">'x-cts-key'</span>: process.env.ECHOREGENT_KEY, <span class="c-cmt">// your EchoRegent key</span>
+    <span class="c-str">'x-echoregent-key'</span>: process.env.ECHOREGENT_KEY, <span class="c-cmt">// your EchoRegent key</span>
   }
 })
 
@@ -94,7 +94,7 @@ client = <span class="c-fn">OpenAI</span>(
     api_key=<span class="c-str">"sk-..."</span>,                          <span class="c-cmt"># your existing LLM key</span>
     base_url=<span class="c-str">"https://api.echoregent.ai/v1"</span>,
     default_headers={
-        <span class="c-str">"x-cts-key"</span>: <span class="c-str">"your-echoregent-key"</span>
+        <span class="c-str">"x-echoregent-key"</span>: <span class="c-str">"your-echoregent-key"</span>
     }
 )
 
@@ -109,12 +109,12 @@ response = client.chat.completions.<span class="c-fn">create</span>(
       <p class="er-docs-p">Every response includes EchoRegent headers showing exactly what happened:</p>
       <div class="er-code-block">
         <div class="er-code-header"><div class="er-code-dot"></div>Response headers</div>
-        <div class="er-code-body"><pre><code>x-cts-tokens-saved:      1,842
-x-cts-domain:            coding
-x-cts-intent:            debugging
-x-cts-compression-pct:  67
-x-cts-cache-hit:         false
-x-cts-protected:         false</code></pre></div>
+        <div class="er-code-body"><pre><code>x-echoregent-tokens-saved:      1,842
+x-echoregent-domain:            coding
+x-echoregent-intent:            debugging
+x-echoregent-compression-pct:  67
+x-echoregent-cache-hit:         false
+x-echoregent-protected:         false</code></pre></div>
       </div>
 
       <!-- AUTHENTICATION -->
@@ -125,7 +125,7 @@ x-cts-protected:         false</code></pre></div>
         <table class="er-table">
           <thead><tr><th>Header</th><th>Value</th><th>Purpose</th></tr></thead>
           <tbody>
-            <tr><td><code>x-cts-key</code></td><td>Your EchoRegent API key</td><td>Billing, rate limit, quota</td></tr>
+            <tr><td><code>x-echoregent-key</code></td><td>Your EchoRegent API key</td><td>Billing, rate limit, quota</td></tr>
             <tr><td><code>x-llm-key</code></td><td>Your LLM provider key (OpenAI, etc.)</td><td>Forwarded to upstream model</td></tr>
             <tr><td><code>x-llm-provider</code></td><td><code>openai</code> · <code>anthropic</code> · <code>gemini</code></td><td>Which provider to route to</td></tr>
           </tbody>
@@ -169,7 +169,7 @@ x-cts-protected:         false</code></pre></div>
   apiKey: process.env.ANTHROPIC_KEY,
   baseURL: <span class="c-str">'https://api.echoregent.ai/v1'</span>,
   defaultHeaders: {
-    <span class="c-str">'x-cts-key'</span>:       process.env.ECHOREGENT_KEY,
+    <span class="c-str">'x-echoregent-key'</span>: process.env.ECHOREGENT_KEY,
     <span class="c-str">'x-llm-provider'</span>:  <span class="c-str">'anthropic'</span>,
   }
 })</code></pre></div>
@@ -184,11 +184,11 @@ x-cts-protected:         false</code></pre></div>
       <div class="er-code-block">
         <div class="er-code-header"><div class="er-code-dot"></div>~/.cursor/mcp.json</div>
         <div class="er-code-body"><pre><code>{
-  <span class="c-str">"mcpServers"</span>: {
-    <span class="c-str">"echoregent"</span>: {
-      <span class="c-str">"url"</span>: <span class="c-str">"https://api.echoregent.ai/mcp"</span>,
-      <span class="c-str">"headers"</span>: {
-        <span class="c-str">"x-cts-key"</span>: <span class="c-str">"your-echoregent-key"</span>
+  "mcpServers": {
+    "echoregent": {
+      "url": "https://api.echoregent.ai/mcp",
+      "headers": {
+        "x-echoregent-key": "your-echoregent-key"
       }
     }
   }
@@ -199,11 +199,11 @@ x-cts-protected:         false</code></pre></div>
       <div class="er-code-block">
         <div class="er-code-header"><div class="er-code-dot"></div>claude_desktop_config.json</div>
         <div class="er-code-body"><pre><code>{
-  <span class="c-str">"mcpServers"</span>: {
-    <span class="c-str">"echoregent"</span>: {
-      <span class="c-str">"command"</span>: <span class="c-str">"npx"</span>,
-      <span class="c-str">"args"</span>: [<span class="c-str">"-y"</span>, <span class="c-str">"@echoregent/mcp-server"</span>],
-      <span class="c-str">"env"</span>: { <span class="c-str">"ECHOREGENT_KEY"</span>: <span class="c-str">"your-key"</span> }
+  "mcpServers": {
+    "echoregent": {
+      "command": "npx",
+      "args": ["-y", "@echoregent/mcp-server"],
+      "env": { "ECHOREGENT_KEY": "your-key" }
     }
   }
 }</code></pre></div>
@@ -232,26 +232,26 @@ x-cts-protected:         false</code></pre></div>
       <div class="er-code-block" style="margin-bottom:12px">
         <div class="er-code-header"><div class="er-code-dot"></div>Request body</div>
         <div class="er-code-body"><pre><code>{
-  <span class="c-str">"messages"</span>: [
-    { <span class="c-str">"role"</span>: <span class="c-str">"user"</span>, <span class="c-str">"content"</span>: <span class="c-str">"..."</span> },
-    { <span class="c-str">"role"</span>: <span class="c-str">"assistant"</span>, <span class="c-str">"content"</span>: <span class="c-str">"..."</span> }
+  "messages": [
+    { "role": "user", "content": "..." },
+    { "role": "assistant", "content": "..." }
   ],
-  <span class="c-str">"options"</span>: {
-    <span class="c-str">"maxTokens"</span>: <span class="c-num">4096</span>,       <span class="c-cmt">// optional target window</span>
-    <span class="c-str">"preserveLast"</span>: <span class="c-num">2</span>        <span class="c-cmt">// always keep last N turns uncompressed</span>
+  "options": {
+    "maxTokens": 4096,       // optional target window
+    "preserveLast": 2        // always keep last N turns uncompressed
   }
 }</code></pre></div>
       </div>
       <div class="er-code-block">
         <div class="er-code-header"><div class="er-code-dot" style="background:var(--gold)"></div>Response</div>
         <div class="er-code-body"><pre><code>{
-  <span class="c-str">"compressed"</span>: [ <span class="c-cmt">/* compressed messages array */</span> ],
-  <span class="c-str">"domain"</span>: <span class="c-str">"coding"</span>,
-  <span class="c-str">"intent"</span>: <span class="c-str">"debugging"</span>,
-  <span class="c-str">"tokensSaved"</span>: <span class="c-num">1842</span>,
-  <span class="c-str">"compressionPct"</span>: <span class="c-num">67</span>,
-  <span class="c-str">"protected"</span>: <span class="c-num">false</span>,
-  <span class="c-str">"cacheHit"</span>: <span class="c-num">false</span>
+  "compressed": [ /* compressed messages array */ ],
+  "domain": "coding",
+  "intent": "debugging",
+  "tokensSaved": 1842,
+  "compressionPct": 67,
+  "protected": false,
+  "cacheHit": false
 }</code></pre></div>
       </div>
 
@@ -261,7 +261,7 @@ x-cts-protected:         false</code></pre></div>
       <p class="er-docs-p">Fully OpenAI-compatible. Accepts the exact same body as <code>openai.chat.completions.create()</code>. EchoRegent compresses the <code>messages</code> field, then forwards to your upstream model. Returns the upstream response unmodified plus EchoRegent headers.</p>
       <p class="er-docs-p">Additional headers required:</p>
       <ul class="er-docs-ul">
-        <li><code>x-cts-key</code> — your EchoRegent key</li>
+        <li><code>x-echoregent-key</code> — your EchoRegent key</li>
         <li><code>x-llm-key</code> — your upstream LLM API key (optional if using <code>Authorization: Bearer</code>)</li>
         <li><code>x-llm-provider</code> — <code>openai</code> (default) · <code>anthropic</code> · <code>gemini</code></li>
       </ul>
@@ -272,12 +272,12 @@ x-cts-protected:         false</code></pre></div>
         <table class="er-table">
           <thead><tr><th>Header</th><th>Type</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td><code>x-cts-tokens-saved</code></td><td>integer</td><td>Tokens removed from context</td></tr>
-            <tr><td><code>x-cts-compression-pct</code></td><td>integer 0–100</td><td>% reduction in context length</td></tr>
-            <tr><td><code>x-cts-domain</code></td><td>string</td><td>Detected conversation domain</td></tr>
-            <tr><td><code>x-cts-intent</code></td><td>string</td><td>Detected intent</td></tr>
-            <tr><td><code>x-cts-cache-hit</code></td><td>boolean</td><td>Whether response came from semantic cache</td></tr>
-            <tr><td><code>x-cts-protected</code></td><td>boolean</td><td>True if compression was disabled (medical/legal/crisis)</td></tr>
+            <tr><td><code>x-echoregent-tokens-saved</code></td><td>integer</td><td>Tokens removed from context</td></tr>
+            <tr><td><code>x-echoregent-compression-pct</code></td><td>integer 0–100</td><td>% reduction in context length</td></tr>
+            <tr><td><code>x-echoregent-domain</code></td><td>string</td><td>Detected conversation domain</td></tr>
+            <tr><td><code>x-echoregent-intent</code></td><td>string</td><td>Detected intent</td></tr>
+            <tr><td><code>x-echoregent-cache-hit</code></td><td>boolean</td><td>Whether response came from semantic cache</td></tr>
+            <tr><td><code>x-echoregent-protected</code></td><td>boolean</td><td>True if compression was disabled (medical/legal/crisis)</td></tr>
           </tbody>
         </table>
       </div>
@@ -298,7 +298,7 @@ x-cts-protected:         false</code></pre></div>
           </div>
         </div>
       </div>
-      <p class="er-docs-p">Protected conversations return <code>x-cts-protected: true</code> and are not counted toward your quota.</p>
+      <p class="er-docs-p">Protected conversations return <code>x-echoregent-protected: true</code> and are not counted toward your quota.</p>
 
       <!-- RATE LIMITS -->
       <h2 class="er-docs-h2" id="rate-limits">Rate Limits</h2>
@@ -346,7 +346,7 @@ x-cts-protected:         false</code></pre></div>
       <span class="c-str">"serverUrl"</span>: <span class="c-str">"https://api.echoregent.ai/mcp"</span>,
       <span class="c-str">"auth"</span>: {
         <span class="c-str">"type"</span>: <span class="c-str">"header"</span>,
-        <span class="c-str">"header"</span>: <span class="c-str">"x-cts-key"</span>,
+        <span class="c-str">"header"</span>: <span class="c-str">"x-echoregent-key"</span>,
         <span class="c-str">"value"</span>: <span class="c-str">"your-echoregent-key"</span>
       }
     }

@@ -14,6 +14,11 @@
 <nav class="er-nav">
   <div class="er-nav-inner">
     <a class="er-nav-logo" href="/index.html">${LOGO_SVG}<span class="er-nav-wordmark">EchoRegent</span></a>
+    <button class="er-nav-toggle" aria-label="Toggle menu">
+      <span class="er-hamburger-bar"></span>
+      <span class="er-hamburger-bar"></span>
+      <span class="er-hamburger-bar"></span>
+    </button>
     <div class="er-nav-links">
       <div class="er-dropdown">
         <button class="er-nav-link er-nav-link--dd">Product <span class="er-dd-arrow">▾</span></button>
@@ -44,8 +49,9 @@
       <a href="/changelog.html" class="er-nav-link">Changelog</a>
       <span class="er-nav-spacer"></span>
       <a href="/enterprise.html" class="er-nav-link er-nav-link--enterprise">Enterprise</a>
+      <a href="/pricing.html#get-key" class="er-btn-nav er-btn-nav-mobile">Get API Key</a>
     </div>
-    <a href="/pricing.html#get-key" class="er-btn-nav">Get API Key</a>
+    <a href="/pricing.html#get-key" class="er-btn-nav er-btn-nav-desktop">Get API Key</a>
   </div>
 </nav>`
 
@@ -143,8 +149,30 @@
         if (!isOpen) dd.classList.add('open')
       })
     })
+
+    // Hamburger menu toggle
+    const toggleBtn = document.querySelector('.er-nav-toggle')
+    const navLinks = document.querySelector('.er-nav-links')
+    if (toggleBtn && navLinks) {
+      toggleBtn.addEventListener('click', e => {
+        e.stopPropagation()
+        const isOpen = navLinks.classList.contains('open')
+        if (isOpen) {
+          navLinks.classList.remove('open')
+          toggleBtn.classList.remove('open')
+        } else {
+          navLinks.classList.add('open')
+          toggleBtn.classList.add('open')
+        }
+      })
+    }
+
     document.addEventListener('click', () => {
       document.querySelectorAll('.er-dropdown.open').forEach(d => d.classList.remove('open'))
+      if (navLinks && toggleBtn) {
+        navLinks.classList.remove('open')
+        toggleBtn.classList.remove('open')
+      }
     })
 
     // Smooth scroll for anchor links
