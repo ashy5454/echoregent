@@ -264,25 +264,35 @@ const server = createServer(async (req, res) => {
 process.on('uncaughtException',  (err)    => console.error('[crash] uncaughtException:', err))
 process.on('unhandledRejection', (reason) => console.error('[crash] unhandledRejection:', reason))
 
-// Start listening immediately, then init DB + warm up ML model in background
-server.listen(PORT, HOST, () => {
-  console.log(`EchoRegent API listening on http://${HOST}:${PORT} (raw PORT env: ${process.env.PORT})`)
-  if (!ADMIN_SECRET) console.warn('[warn] ECHOREGENT_ADMIN_SECRET not set - admin endpoints disabled')
+if (!process.env.FUNCTION_TARGET && !process.env.FUNCTION_SIGNATURE_TYPE) {
+  server.listen(PORT, HOST, () => {
+    console.log(`EchoRegent API listening on http://${HOST}:${PORT} (raw PORT env: ${process.env.PORT})`)
+    if (!ADMIN_SECRET) console.warn('[warn] ECHOREGENT_ADMIN_SECRET not set - admin endpoints disabled')
+    initDb().then(() => {
+      startupState.dbReady = true
+      startupState.dbError = null
+      console.log('[db] ready')
+    }).catch((err) => {
+      startupState.dbReady = false
+      startupState.dbError = err instanceof Error ? err.message : String(err)
+      console.error('[db] init error (will retry on first request):', err)
+    })
+    startModelWarmup()
+  })
+} else {
+  // Initialize DB immediately when Cloud Function starts
   initDb().then(() => {
     startupState.dbReady = true
-    startupState.dbError = null
-    console.log('[db] ready')
+    console.log('[db] Cloud Function DB ready')
   }).catch((err) => {
-    startupState.dbReady = false
-    startupState.dbError = err instanceof Error ? err.message : String(err)
     console.error('[db] init error (will retry on first request):', err)
   })
   startModelWarmup()
-})
+}
 
 // â”€â”€ Route â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
+export async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const url = new URL(req.url ?? '/', `http://${req.headers.host ?? `${HOST}:${PORT}`}`)
 
   // â”€â”€ Health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

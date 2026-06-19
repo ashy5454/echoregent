@@ -1,0 +1,43 @@
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/api/**",
+        "function": "echoregent"
+      },
+      {
+        "source": "/compress",
+        "function": "echoregent"
+      },
+      {
+        "source": "/v1/**",
+        "function": "echoregent"
+      },
+      {
+        "source": "/demo/**",
+        "function": "echoregent"
+      },
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "functions": {
+    "source": ".",
+    "codebase": "default",
+    "runtime": "nodejs20",
+    "ignore": [
+      "node_modules",
+      "data",
+      "scripts",
+      "deploy"
+    ]
+  }
+}
