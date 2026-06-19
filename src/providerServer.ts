@@ -1,5 +1,5 @@
-import type { LiveLLMConfig } from './llmClient'
-import type { Message } from './cts-core'
+import type { LiveLLMConfig } from './llmClient.js'
+import type { Message } from './cts-core/index.js'
 
 export interface ProviderRequest extends LiveLLMConfig {
   systemPrompt: string

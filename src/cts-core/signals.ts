@@ -1,4 +1,4 @@
-import type { ExtractedSignals, Message } from './types'
+import type { ExtractedSignals, Message } from './types.js'
 
 const keywordGroups = {
   coding: ['code', 'function', 'api', 'auth', 'login', 'webhook', 'typescript', 'javascript', 'python', 'bug', 'stack trace'],

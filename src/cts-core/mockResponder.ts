@@ -1,4 +1,4 @@
-import type { CompressionResult, RouteResult, RoutingFrame } from './types'
+import type { CompressionResult, RouteResult, RoutingFrame } from './types.js'
 
 export function mockRespond(message: string, frame: RoutingFrame, compression: CompressionResult, route: RouteResult): string {
   if (frame.risk.includes('unsafe_request')) {

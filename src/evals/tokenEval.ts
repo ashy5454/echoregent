@@ -1,4 +1,4 @@
-import { cts, type Message } from '../cts-core'
+import { cts, type Message } from '../cts-core/index.js'
 
 type EvalCase = {
   name: string

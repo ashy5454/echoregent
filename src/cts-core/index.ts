@@ -1,17 +1,17 @@
-import { classify, classifyAsync } from './classifier'
-import { compressHistory, compressHistoryAsync } from './compressor'
-import { mockRespond } from './mockResponder'
-import { routePrompt } from './router'
-import type { CTSAsyncInput, CTSInput, CTSResult, Message } from './types'
+import { classify, classifyAsync } from './classifier.js'
+import { compressHistory, compressHistoryAsync } from './compressor.js'
+import { mockRespond } from './mockResponder.js'
+import { routePrompt } from './router.js'
+import type { CTSAsyncInput, CTSInput, CTSResult, Message } from './types.js'
 
-export * from './types'
-export { classify, classifyAsync } from './classifier'
-export { compressHistory, compressHistoryAsync, getCompressionStats } from './compressor'
-export { routePrompt } from './router'
-export { createEmptyWiki, ingestSession, wikiToContextString } from './wiki'
-export { createEmptyLLMWiki, ingestSourceIntoLLMWiki, lintLLMWiki, llmWikiToContextString } from './llmWiki'
-export { warmUpClassifier, getClassifierHealth } from './ml-classifier'
-export { warmUpT5, getT5Health } from './ml-t5'
+export * from './types.js'
+export { classify, classifyAsync } from './classifier.js'
+export { compressHistory, compressHistoryAsync, getCompressionStats } from './compressor.js'
+export { routePrompt } from './router.js'
+export { createEmptyWiki, ingestSession, wikiToContextString } from './wiki.js'
+export { createEmptyLLMWiki, ingestSourceIntoLLMWiki, lintLLMWiki, llmWikiToContextString } from './llmWiki.js'
+export { warmUpClassifier, getClassifierHealth } from './ml-classifier.js'
+export { warmUpT5, getT5Health } from './ml-t5.js'
 export {
   warmUpSemanticCache,
   checkCache,
@@ -23,7 +23,7 @@ export {
   isHighCacheDomain,
   type CacheResult,
   type CacheStats,
-} from './semantic-cache'
+} from './semantic-cache.js'
 
 export function cts(input: CTSInput): CTSResult {
   const started = performance.now()

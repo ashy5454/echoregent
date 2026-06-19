@@ -1,4 +1,4 @@
-import type { LLMResponder, LLMResponderInput } from './cts-core'
+import type { LLMResponder, LLMResponderInput } from './cts-core/index.js'
 
 export type LiveProvider = 'openai' | 'gemini' | 'anthropic' | 'openrouter'
 

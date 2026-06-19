@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
-import { cts, type DomainType, type IntentType, type Message, type RiskSignal } from '../cts-core'
+import { cts, type DomainType, type IntentType, type Message, type RiskSignal } from '../cts-core/index.js'
 
 type DatasetRow = {
   id: string

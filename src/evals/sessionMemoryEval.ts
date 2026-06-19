@@ -10,8 +10,8 @@
  *     → check that expectedWikiContains and expectedContextContains pass
  */
 
-import { classify, compressHistory, createEmptyLLMWiki, ingestSourceIntoLLMWiki, llmWikiToContextString } from '../cts-core'
-import type { MemoryFrame, Message, SourceInput } from '../cts-core'
+import { classify, compressHistory, createEmptyLLMWiki, ingestSourceIntoLLMWiki, llmWikiToContextString } from '../cts-core/index.js'
+import type { MemoryFrame, Message, SourceInput } from '../cts-core/index.js'
 
 interface SessionMemoryCase {
   id: string

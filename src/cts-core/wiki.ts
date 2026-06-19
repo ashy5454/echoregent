@@ -1,4 +1,4 @@
-import type { Message, RoutingFrame, WikiDocument } from './types'
+import type { Message, RoutingFrame, WikiDocument } from './types.js'
 
 export function createEmptyWiki(): WikiDocument {
   return {

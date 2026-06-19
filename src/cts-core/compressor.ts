@@ -1,5 +1,5 @@
-import type { CompressionResult, MemoryFrame, Message, RoutingFrame } from './types'
-import { summarizeWithT5 } from './ml-t5'
+import type { CompressionResult, MemoryFrame, Message, RoutingFrame } from './types.js'
+import { summarizeWithT5 } from './ml-t5.js'
 
 const HIGH_VALUE_DOMAINS = new Set(['coding', 'customer_support', 'sales'])
 const GENERIC_DISTRACTOR_PATTERNS = [

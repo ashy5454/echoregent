@@ -1,4 +1,4 @@
-import type { Message } from './cts-core'
+import type { Message } from './cts-core/index.js'
 
 export interface Scenario {
   id: string

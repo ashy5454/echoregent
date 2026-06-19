@@ -33,8 +33,8 @@ import {
   type RoutingFrame,
   type SourceInput,
   type WikiDocument,
-} from './cts-core'
-import { callLLMProvider, validateProviderRequest, type ProviderRequest } from './providerServer'
+} from './cts-core/index.js'
+import { callLLMProvider, validateProviderRequest, type ProviderRequest } from './providerServer.js'
 import { authenticate, recordUsage } from './saas/auth.js'
 import {
   createApiKey,

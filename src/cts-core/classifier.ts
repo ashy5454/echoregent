@@ -1,6 +1,6 @@
-import { extractSignals } from './signals'
-import { classifyDomainML } from './ml-classifier'
-import type { ConversationState, CustomDomainPlugin, DomainType, IntentType, Message, RiskSignal, RoutingFrame } from './types'
+import { extractSignals } from './signals.js'
+import { classifyDomainML } from './ml-classifier.js'
+import type { ConversationState, CustomDomainPlugin, DomainType, IntentType, Message, RiskSignal, RoutingFrame } from './types.js'
 
 export function classify(message: string, history: Message[] = [], customDomainPlugins: CustomDomainPlugin[] = []): RoutingFrame {
   const signals = extractSignals(message, history)

@@ -1,5 +1,5 @@
-import type { CTSResult, CustomDomainPlugin, LLMWiki, Message, RoutingFrame, SourceInput, WikiDocument } from './cts-core'
-import type { LiveLLMConfig } from './llmClient'
+import type { CTSResult, CustomDomainPlugin, LLMWiki, Message, RoutingFrame, SourceInput, WikiDocument } from './cts-core/index.js'
+import type { LiveLLMConfig } from './llmClient.js'
 
 const API_BASE = 'http://127.0.0.1:8787'
 

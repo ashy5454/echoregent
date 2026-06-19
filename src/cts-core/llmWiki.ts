@@ -1,4 +1,4 @@
-import type { LLMWiki, RoutingFrame, SourceInput, WikiPage, WikiSource } from './types'
+import type { LLMWiki, RoutingFrame, SourceInput, WikiPage, WikiSource } from './types.js'
 
 export type WikiLLMCall = (prompt: string) => Promise<string>
 

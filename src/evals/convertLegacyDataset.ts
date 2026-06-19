@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'node:fs/promises'
 import { basename } from 'node:path'
-import type { DomainType, IntentType, Message, RiskSignal } from '../cts-core'
+import type { DomainType, IntentType, Message, RiskSignal } from '../cts-core/index.js'
 
 type LegacyRow = {
   id: string

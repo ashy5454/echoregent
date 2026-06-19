@@ -6,8 +6,8 @@
  *   4. Compose correctly when multiple plugins are registered
  */
 
-import { classify, routePrompt } from '../cts-core'
-import type { CustomDomainPlugin, Message } from '../cts-core'
+import { classify, routePrompt } from '../cts-core/index.js'
+import type { CustomDomainPlugin, Message } from '../cts-core/index.js'
 
 interface PluginCase {
   id: string

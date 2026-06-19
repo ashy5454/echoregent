@@ -1,4 +1,4 @@
-import type { CustomDomainPlugin, RouteResult, RoutingFrame } from './types'
+import type { CustomDomainPlugin, RouteResult, RoutingFrame } from './types.js'
 
 const intentBehaviors: Record<string, string> = {
   information_seeking: 'Answer the question directly, then add only necessary context.',
