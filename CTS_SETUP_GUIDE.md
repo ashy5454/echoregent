@@ -8,7 +8,7 @@
 CTS is a SaaS API that runs **before** every LLM call in a chatbot. It does three things in one request:
 
 1. **Classifies** the message — detects domain (coding, medical, legal, sales, customer support, education, commerce, general), intent (debugging, generation, information seeking, etc.), and conversation state (opening, deepening, resolving, closing)
-2. **Compresses** the conversation history — removes noise while preserving all facts, entities, and context. Average **88% token reduction**
+2. **Compresses** low-risk conversation history — removes selected noise while preserving critical facts. Token savings are workload-dependent and must be checked with the context-quality evaluation endpoint.
 3. **Routes** to the right system prompt — domain-specific prompt is returned so your LLM behaves correctly for this exact message
 
 Zero LLM tokens spent on routing. Everything is rule-based, under 1ms.
@@ -182,7 +182,7 @@ What CTS does under the hood:
 1. Classifies the message (domain=coding, intent=debugging)
 2. Looks up the User Wiki — finds `current_work: Next.js app with Stripe`
 3. Searches the LLM Wiki — finds the Stripe webhook page you ingested
-4. Compresses history (88% token reduction)
+4. Compresses eligible history and records a context plan; protected context stays verbatim
 5. Builds system prompt: coding domain prompt + user context + Stripe wiki page
 6. Calls your LLM with everything
 7. If conversation is closing/resolving, auto-saves a memory frame to the LLM Wiki

@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm exec tsc -- --noEmit
+      - run: npm test
+      - run: npm run build
+      - run: npm ci
+        working-directory: cts-mcp
+      - run: npm run build
+        working-directory: cts-mcp

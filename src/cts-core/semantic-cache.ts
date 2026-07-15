@@ -19,7 +19,8 @@
  */
 
 import { join } from 'node:path'
-import type { DomainType } from './types'
+import { isResponseCacheAllowed } from './policy'
+import type { DomainType, RiskSignal } from './types'
 
 // â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -36,7 +37,7 @@ const HIGH_CACHE_DOMAINS = new Set<DomainType>([
 
 // Domains where caching is risky (answers change per-session context)
 const NO_CACHE_DOMAINS = new Set<DomainType>([
-  'legal',  // legal advice is highly context-specific
+  'legal', 'medical', // protected and context-specific by default
 ])
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -200,9 +201,10 @@ export async function checkCache(
   query:     string,
   domain:    DomainType,
   sessionId: string,
+  risk: RiskSignal[] = [],
 ): Promise<CacheResult> {
   // Skip caching for domains where it's unsafe
-  if (NO_CACHE_DOMAINS.has(domain)) return { hit: false }
+  if (!isCacheable(domain, risk)) return { hit: false }
 
   const queryEmbedding = await embed(query)
   if (!queryEmbedding) return { hit: false }   // model not available â†’ miss
@@ -255,9 +257,10 @@ export async function storeCache(
   response:  string,
   domain:    DomainType,
   sessionId: string,
+  risk: RiskSignal[] = [],
 ): Promise<void> {
   // Skip for no-cache domains or very short responses (not worth caching)
-  if (NO_CACHE_DOMAINS.has(domain)) return
+  if (!isCacheable(domain, risk)) return
   if (response.length < 50) return
 
   const embedding = await embed(query)
@@ -305,8 +308,12 @@ export function clearSessionCache(sessionId: string): void {
  * Whether caching is enabled for this domain.
  * Useful for UI/logging to indicate cache eligibility.
  */
-export function isCacheable(domain: DomainType): boolean {
-  return !NO_CACHE_DOMAINS.has(domain)
+export function isCacheable(domain: DomainType, risk: RiskSignal[] = []): boolean {
+  const frame = {
+    domain,
+    risk,
+  } as Parameters<typeof isResponseCacheAllowed>[0]
+  return !NO_CACHE_DOMAINS.has(domain) && isResponseCacheAllowed(frame)
 }
 
 /**
@@ -316,4 +323,3 @@ export function isCacheable(domain: DomainType): boolean {
 export function isHighCacheDomain(domain: DomainType): boolean {
   return HIGH_CACHE_DOMAINS.has(domain)
 }
-

@@ -135,6 +135,30 @@ export async function lookupKey(raw: string): Promise<Omit<ApiKey, 'keyHash'> | 
   }
 }
 
+/**
+ * Atomically reserves one request from an API key's quota. Usage is reserved
+ * at authentication time so concurrent requests cannot exceed the limit.
+ */
+export async function reserveQuota(keyId: string): Promise<boolean> {
+  const db = getDb()
+  if (db) {
+    const { rowCount } = await db.query(
+      `UPDATE api_keys
+       SET quota_used = quota_used + 1
+       WHERE id = $1 AND active = TRUE AND quota_used < quota_limit`,
+      [keyId],
+    )
+    return (rowCount ?? 0) === 1
+  }
+
+  const keys = loadKeys()
+  const key = keys.find((item) => item.id === keyId && item.active)
+  if (!key || key.quotaUsed >= key.quotaLimit) return false
+  key.quotaUsed += 1
+  saveKeys(keys)
+  return true
+}
+
 export async function revokeKey(keyId: string): Promise<boolean> {
   const db = getDb()
 
@@ -186,11 +210,6 @@ export function logUsage(keyId: string, endpoint: string, tokensSaved: number): 
       [keyId, endpoint, tokensSaved],
     ).catch((err) => console.error('[db] logUsage error:', err))
 
-    // Increment quota_used
-    db.query(
-      `UPDATE api_keys SET quota_used = quota_used + 1 WHERE id = $1`,
-      [keyId],
-    ).catch((err) => console.error('[db] quota increment error:', err))
   } else {
     // Defer to next tick so the HTTP response is not blocked by a synchronous file write
     setImmediate(() => {

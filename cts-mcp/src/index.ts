@@ -9,6 +9,7 @@ import {
 import { pipeline, env } from "@xenova/transformers";
 import { smartScrape } from "./tools.js";
 import { recallContext, rememberSource } from "./memory.js";
+import { classifyLocally } from "./localClassifier.js";
 
 // Disable local models since we'll fetch from HF
 env.allowLocalModels = false;
@@ -16,7 +17,6 @@ env.useBrowserCache = false;
 
 // Global pipelines
 let t5Pipeline: any = null;
-let distilbertPipeline: any = null;
 
 const server = new Server(
   {
@@ -233,16 +233,29 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       try {
-        if (!distilbertPipeline) {
-           distilbertPipeline = await pipeline("text-classification", "Xenova/distilbert-base-uncased-finetuned-sst-2-english", { quantized: true });
+        const API_URL = process.env.CTS_API_URL || "http://127.0.0.1:8787";
+        const API_KEY = process.env.CTS_API_KEY;
+        if (API_KEY) {
+          const response = await fetch(`${API_URL}/api/classify`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${API_KEY}`,
+            },
+            body: JSON.stringify({ message: args.message, history: [] }),
+          });
+          if (!response.ok) throw new Error(`CTS API returned ${response.status}`);
+          const result = await response.json();
+          return {
+            content: [{ type: "text", text: `[CTS CLASSIFICATION]\n${JSON.stringify(result, null, 2)}` }],
+          };
         }
-        
-        const result = await distilbertPipeline(args.message);
+        const result = classifyLocally(String(args.message));
         return {
             content: [
               {
                 type: "text",
-                text: `[CTS CLASSIFICATION]\n${JSON.stringify(result, null, 2)}`,
+                text: `[CTS CLASSIFICATION]\n${JSON.stringify(result, null, 2)}\n\nClassification source: local deterministic fallback. Set CTS_API_URL and CTS_API_KEY to use the central CTS policy-aware classifier.`,
               },
             ],
         };

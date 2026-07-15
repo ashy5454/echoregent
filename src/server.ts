@@ -8,12 +8,19 @@ import {
   classifyAsync,
   compressHistory,
   compressHistoryAsync,
+  correctMemoryFact,
   createEmptyLLMWiki,
   ctsAsync,
+  buildContextPlan,
+  evaluateContextPolicy,
+  evaluateContextQuality,
+  forgetMemoryFact,
   ingestSession,
   ingestSourceIntoLLMWiki,
   lintLLMWiki,
   llmWikiToContextString,
+  purgeExpiredMemory,
+  recallMemoryFacts,
   warmUpClassifier,
   warmUpT5,
   warmUpSemanticCache,
@@ -26,6 +33,7 @@ import {
   getSemanticCacheHealth,
   wikiToContextString,
   type CustomDomainPlugin,
+  type ContextPolicy,
   type LLMWiki,
   type MemoryFrame,
   type Message,
@@ -49,7 +57,10 @@ import {
   updateKeyQuota,
 } from './saas/db.js'
 import { initDb, getDb } from './saas/database.js'
+import { getContextPolicy, saveContextPolicy } from './saas/policies.js'
+import { listContextTraces, recordContextTrace } from './saas/traces.js'
 import { getAdminDashboardHtml } from './admin-ui.js'
+import { getOpenApiDocument } from './openapi.js'
 
 // Load .env for local dev (no extra dependencies needed)
 const envFile = join(process.cwd(), '.env')
@@ -73,9 +84,10 @@ function sanitizeSessionId(raw: string): string {
 
 const PORT         = Number(process.env.PORT || process.env.CTS_API_PORT || 8787)
 const HOST         = process.env.CTS_HOST || '0.0.0.0'
-const CORS_ORIGIN  = process.env.CTS_CORS_ORIGIN || '*'
-const ADMIN_SECRET = process.env.CTS_ADMIN_SECRET || ''
 const IS_PROD      = process.env.NODE_ENV === 'production'
+const CORS_ORIGIN  = process.env.CTS_CORS_ORIGIN || (IS_PROD ? '' : '*')
+const ADMIN_SECRET = process.env.CTS_ADMIN_SECRET || ''
+const REQUIRE_LOCAL_MODELS = process.env.CTS_REQUIRE_LOCAL_MODELS === 'true'
 const distPath     = join(process.cwd(), 'dist')
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -112,6 +124,9 @@ async function sendApiKeyEmail(email: string, key: string, name: string): Promis
 
 if (IS_PROD && CORS_ORIGIN === '*') {
   console.warn('[warn] CTS_CORS_ORIGIN is "*" in production — set it to your frontend origin')
+}
+if (IS_PROD && !CORS_ORIGIN) {
+  console.warn('[warn] CORS is disabled in production; set CTS_CORS_ORIGIN only when a separate browser frontend needs access')
 }
 
 // Demo rate limit: 20 requests per IP per minute
@@ -296,13 +311,15 @@ function currentModelHealth() {
 
 function requiredModelsReady(): boolean {
   const models = currentModelHealth()
-  // T5 is optional — it has a rule-based fallback. Only the classifier is required.
-  return models.classifier.loaded
+  // Rule classification and compression are supported production fallbacks.
+  // Strict model readiness is available to deployments that ship local ONNX.
+  return !REQUIRE_LOCAL_MODELS || models.classifier.loaded
 }
 
 function readinessPayload() {
   return {
     ok: requiredModelsReady(),
+    mode: REQUIRE_LOCAL_MODELS ? 'local-models-required' : 'fallback-capable',
     service: 'cts-api',
     version: '0.4.0',
     startup: startupState,
@@ -360,6 +377,13 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (req.method === 'GET' && url.pathname === '/ready') {
     const payload = readinessPayload()
     sendJson(res, payload.ok ? 200 : 503, payload)
+    return
+  }
+
+  if (req.method === 'GET' && url.pathname === '/openapi.json') {
+    const proto = String(req.headers['x-forwarded-proto'] ?? 'http')
+    const host = String(req.headers.host ?? `localhost:${PORT}`)
+    sendJson(res, 200, getOpenApiDocument(`${proto}://${host}`))
     return
   }
 
@@ -535,17 +559,20 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const sessionId   = sanitizeSessionId(String(body.sessionId ?? ip))
     const history     = asMessages(body.history)
     const frame       = classify(message, history)
+    const policy      = evaluateContextPolicy(frame)
     const compression = compressHistory([...history, { role: 'user' as const, content: message }], frame)
     // ── Load LLM Wiki for this session and inject as context ─────────────────
-    const { llmWiki: sessionWiki } = await loadWiki(sessionId)
-    const wikiContext = llmWikiToContextString(sessionWiki, message)
+    const { llmWiki: sessionWiki } = policy.retrieval === 'allow'
+      ? await loadWiki(sessionId)
+      : { llmWiki: null }
+    const wikiContext = policy.retrieval === 'allow' ? llmWikiToContextString(sessionWiki, message) : ''
     const baseSystemPrompt = getDemoSystemPrompt(frame.domain)
     const systemPrompt = wikiContext
       ? `${baseSystemPrompt}\n\n${wikiContext}`
       : baseSystemPrompt
 
     // ── Semantic cache check (saves output tokens) ────────────────────────────
-    const cached = await checkCache(message, frame.domain, sessionId)
+    const cached = await checkCache(message, frame.domain, sessionId, frame.risk)
     if (cached.hit && cached.response) {
       sendJson(res, 200, {
         reply:             cached.response,
@@ -567,10 +594,10 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       ? await callGemini(demoKey, compression.compressed, message, systemPrompt)
       : await callOpenRouter(demoKey, compression.compressed, message, systemPrompt)
 
-    await storeCache(message, reply, frame.domain, sessionId)
+    await storeCache(message, reply, frame.domain, sessionId, frame.risk)
 
     // ── Fire-and-forget wiki ingest (after ≥4 turns, non-blocking) ──────────
-    if (history.length >= 4 && compression.memoryFrame) {
+    if (policy.memoryWrite === 'allow' && history.length >= 4 && compression.memoryFrame) {
       const wikiCall = makeDemoWikiCall(demoKey, useGemini)
       if (wikiCall) {
         ingestSourceIntoLLMWiki(
@@ -589,6 +616,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       intent: frame.intent, domain: frame.domain, state: frame.state,
       tokensSaved: compression.tokensSaved,
       frame: { confidence: frame.confidence, risk: frame.risk },
+      policy,
       cacheHit: false,
       wikiPageCount: sessionWiki?.pages?.length ?? 0,
     })
@@ -616,6 +644,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (!key) return
 
   const userId = key.id
+  const tenantPolicy = await getContextPolicy(userId)
 
   if (req.method === 'POST' && url.pathname === '/api/classify') {
     const body  = await readJson(req)
@@ -625,38 +654,100 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     return
   }
 
+  if (req.method === 'POST' && url.pathname === '/api/context-plan') {
+    const body = await readJson(req)
+    const history = asMessages(body.history)
+    const frame = classify(String(body.message ?? ''), history, asPlugins(body.customDomainPlugins))
+    const plan = buildContextPlan({
+      frame,
+      history: [...history, { role: 'user', content: String(body.message ?? '') }],
+      policy: tenantPolicy,
+      provider: typeof body.provider === 'string' ? body.provider : undefined,
+    })
+    recordUsage(key.id, '/api/context-plan')
+    sendJson(res, 200, { frame, plan })
+    return
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/policy') {
+    recordUsage(key.id, '/api/policy')
+    sendJson(res, 200, tenantPolicy)
+    return
+  }
+
+  if (req.method === 'PUT' && url.pathname === '/api/policy') {
+    const body = await readJson(req)
+    const updated = await saveContextPolicy(userId, asContextPolicy(body) ?? {})
+    recordUsage(key.id, 'PUT /api/policy')
+    sendJson(res, 200, updated)
+    return
+  }
+
   if (req.method === 'POST' && url.pathname === '/compress') {
     const body        = await readJson(req)
     const message     = String(body.message ?? '')
     const history     = asMessages(body.history)
     const frame       = classify(message, history, asPlugins(body.customDomainPlugins))
     const current     = { role: 'user' as const, content: message }
-    const compression = compressHistory([...history, current], frame)
+    const compression = compressHistory([...history, current], frame, tenantPolicy)
+    const plan = buildContextPlan({ frame, history: [...history, current], policy: tenantPolicy, provider: typeof body.provider === 'string' ? body.provider : undefined })
     recordUsage(key.id, '/compress', compression.tokensSaved)
+    void recordContextTrace(makeContextTrace(key.id, '/compress', frame, plan, compression)).catch((error) => console.error('[trace] write failed:', error))
     sendJson(res, 200, {
       compressedHistory: compression.compressed,
       intent: frame.intent, domain: frame.domain, state: frame.state,
       tokensSaved: compression.tokensSaved,
       memoryFrame: compression.memoryFrame ?? null,
+      contextPlan: plan,
     })
+    return
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/evaluations/context') {
+    const body = await readJson(req)
+    const message = String(body.message ?? '')
+    const history = asMessages(body.history)
+    const frame = classify(message, history, asPlugins(body.customDomainPlugins))
+    const fullHistory = [...history, { role: 'user' as const, content: message }]
+    const compression = compressHistory(fullHistory, frame, tenantPolicy)
+    const contextPlan = buildContextPlan({ frame, history: fullHistory, policy: tenantPolicy, provider: typeof body.provider === 'string' ? body.provider : undefined })
+    const requiredFacts = Array.isArray(body.requiredFacts)
+      ? body.requiredFacts.filter((fact): fact is string => typeof fact === 'string').slice(0, 100)
+      : undefined
+    const report = evaluateContextQuality({ original: fullHistory, compression, frame, requiredFacts })
+    recordUsage(key.id, '/api/evaluations/context', compression.tokensSaved)
+    void recordContextTrace(makeContextTrace(key.id, '/api/evaluations/context', frame, contextPlan, compression)).catch((error) => console.error('[trace] write failed:', error))
+    sendJson(res, 200, { frame, contextPlan, compression, report })
     return
   }
 
   if (req.method === 'POST' && url.pathname === '/api/chat') {
     const body                = await readJson(req)
-    const { userWiki, llmWiki } = await loadWiki(userId)
     const history             = asMessages(body.history)
     const customDomainPlugins = asPlugins(body.customDomainPlugins)
-    const smallWikiContext    = wikiToContextString(userWiki)
-    const knowledgeContext    = llmWikiToContextString(llmWiki, String(body.message ?? ''))
+    const preFrame            = await classifyAsync(String(body.message ?? ''), history, customDomainPlugins)
+    const prePolicy           = evaluateContextPolicy(preFrame, tenantPolicy)
+    const { userWiki, llmWiki } = prePolicy.retrieval === 'allow'
+      ? await loadWiki(userId)
+      : { userWiki: null, llmWiki: null }
+    const smallWikiContext    = prePolicy.retrieval === 'allow' ? wikiToContextString(userWiki) : ''
+    const knowledgeContext    = prePolicy.retrieval === 'allow' ? llmWikiToContextString(llmWiki, String(body.message ?? '')) : ''
     const wikiContext         = [smallWikiContext, knowledgeContext].filter(Boolean).join('\n\n')
     const live                = body.live
+    const sessionId           = sanitizeSessionId(String(body.sessionId ?? userId))
+    const cached = live && prePolicy.responseCache === 'allow'
+      ? await checkCache(String(body.message ?? ''), preFrame.domain, sessionId, preFrame.risk)
+      : { hit: false }
 
     const result = await ctsAsync({
       message: String(body.message ?? ''),
-      history, customDomainPlugins, wikiContext,
+      history, frame: preFrame, customDomainPlugins, wikiContext,
+      contextPolicy: tenantPolicy,
+      provider: isLiveProvider(body.live) ? body.live.provider : undefined,
       responder: live
-        ? async ({ systemPrompt, compressedHistory, message }) => {
+        ? cached.hit && cached.response
+          ? async () => cached.response!
+          : async ({ systemPrompt, compressedHistory, message }) => {
             const providerRequest: Partial<ProviderRequest> = { ...live, systemPrompt, compressedHistory, message }
             validateProviderRequest(providerRequest)
             return callLLMProvider(providerRequest)
@@ -666,7 +757,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
     const memoryFrame = result.compression.memoryFrame
     const state       = result.frame.state
-    if (memoryFrame && live && (state === 'closing' || state === 'resolving') && history.length >= 4) {
+    if (result.policy.memoryWrite === 'allow' && memoryFrame && live && (state === 'closing' || state === 'resolving') && history.length >= 4) {
       const wikiCall = makeLLMCall(live)
       if (wikiCall) {
         const newLLMWiki = await ingestSourceIntoLLMWiki(
@@ -674,17 +765,30 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
           memoryFrameToSource(memoryFrame, Math.floor(history.length / 2)),
           result.frame,
           wikiCall,
+          { retentionDays: tenantPolicy.defaultRetentionDays },
         )
         await saveLLMWiki(userId, newLLMWiki)
       }
     }
 
+    if (live && !cached.hit && result.policy.responseCache === 'allow') {
+      await storeCache(String(body.message ?? ''), result.response, result.frame.domain, sessionId, result.frame.risk)
+    }
+
     recordUsage(key.id, '/api/chat', result.compression.tokensSaved)
-    const updatedWiki = await loadWiki(userId)
+    void recordContextTrace(makeContextTrace(key.id, '/api/chat', result.frame, result.contextPlan, result.compression, result.processingMs)).catch((error) => console.error('[trace] write failed:', error))
+    const updatedWiki = result.policy.retrieval === 'allow'
+      ? await loadWiki(userId)
+      : { userWiki: null, llmWiki: null }
     sendJson(res, 200, {
       result,
       userWiki: updatedWiki.userWiki,
       llmWiki:  updatedWiki.llmWiki,
+      cache: {
+        hit: cached.hit,
+        similarity: cached.similarity ?? null,
+        outputTokensSaved: cached.savedTokens ?? 0,
+      },
     })
     return
   }
@@ -725,6 +829,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       { title: source.title, content: source.content },
       frame,
       makeLLMCall(body.live),
+      { retentionDays: tenantPolicy.defaultRetentionDays },
     )
     await saveLLMWiki(userId, updated)
     recordUsage(key.id, '/api/llm-wiki/ingest-source')
@@ -739,6 +844,54 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     return
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/memory/facts') {
+    const query = String(url.searchParams.get('query') ?? '')
+    const limit = Number(url.searchParams.get('limit') ?? 8)
+    const policy = evaluateContextPolicy(classify(query), tenantPolicy)
+    if (policy.retrieval === 'block') {
+      sendJson(res, 403, { error: 'Policy blocks cross-session memory retrieval for this request.', policy })
+      return
+    }
+    const { llmWiki } = await loadWiki(userId)
+    recordUsage(key.id, '/api/memory/facts')
+    sendJson(res, 200, { facts: recallMemoryFacts(llmWiki, query, limit), policy })
+    return
+  }
+
+  if (req.method === 'POST' && /^\/api\/memory\/facts\/[^/]+\/correct$/.test(url.pathname)) {
+    const body = await readJson(req)
+    const factId = url.pathname.split('/')[4]
+    const { llmWiki } = await loadWiki(userId)
+    if (!llmWiki) { sendJson(res, 404, { error: 'No memory exists for this workspace.' }); return }
+    const fact = correctMemoryFact(llmWiki, factId, String(body.value ?? ''))
+    await saveLLMWiki(userId, llmWiki)
+    recordUsage(key.id, '/api/memory/facts/correct')
+    sendJson(res, 200, { fact })
+    return
+  }
+
+  if (req.method === 'DELETE' && /^\/api\/memory\/facts\/[^/]+$/.test(url.pathname)) {
+    const factId = url.pathname.split('/')[4]
+    const { llmWiki } = await loadWiki(userId)
+    if (!llmWiki) { sendJson(res, 404, { error: 'No memory exists for this workspace.' }); return }
+    const forgotten = forgetMemoryFact(llmWiki, factId)
+    if (!forgotten) { sendJson(res, 404, { error: 'Current memory fact not found.' }); return }
+    await saveLLMWiki(userId, llmWiki)
+    recordUsage(key.id, 'DELETE /api/memory/facts')
+    sendJson(res, 200, { ok: true })
+    return
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/memory/purge') {
+    const { llmWiki } = await loadWiki(userId)
+    if (!llmWiki) { sendJson(res, 200, { sources: 0, pages: 0, facts: 0 }); return }
+    const removed = purgeExpiredMemory(llmWiki)
+    if (removed.sources || removed.pages || removed.facts) await saveLLMWiki(userId, llmWiki)
+    recordUsage(key.id, '/api/memory/purge')
+    sendJson(res, 200, removed)
+    return
+  }
+
   if (req.method === 'POST' && url.pathname === '/api/llm') {
     const body = await readJson(req)
     validateProviderRequest(body)
@@ -750,6 +903,13 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (req.method === 'GET' && url.pathname === '/api/usage') {
     recordUsage(key.id, '/api/usage')
     sendJson(res, 200, await getOwnUsage(key.id))
+    return
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/traces') {
+    const limit = Number(url.searchParams.get('limit') ?? 100)
+    recordUsage(key.id, '/api/traces')
+    sendJson(res, 200, { traces: await listContextTraces(key.id, limit) })
     return
   }
 
@@ -792,7 +952,8 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     // Run CTS classify + compress pipeline
     const frame       = classify(currentMessage, historyMsgs)
     const currentMsg: Message = { role: 'user', content: currentMessage }
-    const compression = compressHistory([...historyMsgs, currentMsg], frame)
+    const compression = compressHistory([...historyMsgs, currentMsg], frame, tenantPolicy)
+    const contextPlan = buildContextPlan({ frame, history: [...historyMsgs, currentMsg], policy: tenantPolicy, provider: String(req.headers['x-llm-provider'] ?? 'openai') })
 
     const tokensSaved  = compression.tokensSaved
     const comprPct     = compression.originalTokens > 0
@@ -800,6 +961,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       : 0
 
     recordUsage(key.id, '/v1/chat/completions', tokensSaved)
+    void recordContextTrace(makeContextTrace(key.id, '/v1/chat/completions', frame, contextPlan, compression)).catch((error) => console.error('[trace] write failed:', error))
 
     // Resolve which LLM to call
     const llmKey      = String(req.headers['x-llm-key'] ?? '')
@@ -862,6 +1024,8 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     res.setHeader('x-cts-domain',          frame.domain)
     res.setHeader('x-cts-intent',          frame.intent)
     res.setHeader('x-cts-compression-pct', String(comprPct))
+    res.setHeader('x-cts-context-strategy', contextPlan.strategy)
+    res.setHeader('x-cts-policy-version', contextPlan.policy.policyVersion)
 
     if (stream) {
       // Stream passthrough — pipe LLM response directly to client
@@ -872,6 +1036,8 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
         'x-cts-domain':          frame.domain,
         'x-cts-intent':          frame.intent,
         'x-cts-compression-pct': String(comprPct),
+        'x-cts-context-strategy': contextPlan.strategy,
+        'x-cts-policy-version': contextPlan.policy.policyVersion,
       })
       if (llmResponse.body) {
         const reader = llmResponse.body.getReader()
@@ -996,10 +1162,12 @@ async function routeAdmin(req: IncomingMessage, res: ServerResponse, url: URL): 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function setCors(res: ServerResponse): void {
-  res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN)
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret')
-  res.setHeader('Vary', 'Origin')
+  if (CORS_ORIGIN) {
+    res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN)
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret,X-LLM-Key,X-LLM-Provider,X-LLM-Model,X-LLM-Base-URL')
+    res.setHeader('Vary', 'Origin')
+  }
   // Security headers
   res.setHeader('X-Content-Type-Options', 'nosniff')
   res.setHeader('X-Frame-Options', 'DENY')
@@ -1046,6 +1214,52 @@ function asPlugins(value: unknown): CustomDomainPlugin[] {
       typeof plugin.constraints === 'string',
     )
   })
+}
+
+function asContextPolicy(value: unknown): Partial<ContextPolicy> | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const raw = value as Partial<ContextPolicy>
+  const policy: Partial<ContextPolicy> = {}
+  if (typeof raw.version === 'string') policy.version = raw.version
+  if (Array.isArray(raw.protectedDomains) && raw.protectedDomains.every((item) => typeof item === 'string')) {
+    policy.protectedDomains = raw.protectedDomains
+  }
+  if (Array.isArray(raw.protectedRisks) && raw.protectedRisks.every((item) => typeof item === 'string')) {
+    policy.protectedRisks = raw.protectedRisks as ContextPolicy['protectedRisks']
+  }
+  if (typeof raw.defaultRetentionDays === 'number') policy.defaultRetentionDays = raw.defaultRetentionDays
+  return policy
+}
+
+function isLiveProvider(value: unknown): value is { provider: string } {
+  return Boolean(value && typeof value === 'object' && typeof (value as { provider?: unknown }).provider === 'string')
+}
+
+function makeContextTrace(
+  keyId: string,
+  endpoint: string,
+  frame: RoutingFrame,
+  plan: import('./cts-core').ContextPlan,
+  compression: import('./cts-core').CompressionResult,
+  processingMs?: number,
+): import('./saas/traces.js').ContextTrace {
+  return {
+    id: `trace-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    keyId,
+    endpoint,
+    createdAt: new Date().toISOString(),
+    frame: {
+      domain: frame.domain,
+      intent: frame.intent,
+      state: frame.state,
+      risk: frame.risk,
+    },
+    plan,
+    originalTokens: compression.originalTokens,
+    compressedTokens: compression.compressedTokens,
+    tokensSaved: compression.tokensSaved,
+    processingMs,
+  }
 }
 
 function asFrame(value: unknown): RoutingFrame {
@@ -1173,4 +1387,3 @@ function memoryFrameToSource(frame: MemoryFrame, turnCount: number): SourceInput
     content: lines.join('\n'),
   }
 }
-

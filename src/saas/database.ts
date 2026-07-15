@@ -80,10 +80,29 @@ export async function initDb(): Promise<void> {
     )
   `)
 
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS context_policies (
+      key_id      TEXT PRIMARY KEY,
+      policy      JSONB NOT NULL,
+      updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS context_traces (
+      id          BIGSERIAL PRIMARY KEY,
+      key_id      TEXT NOT NULL,
+      endpoint    TEXT NOT NULL,
+      trace       JSONB NOT NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `)
+
   // Indexes for common query patterns
   await db.query(`CREATE INDEX IF NOT EXISTS idx_usage_key_id  ON usage_log(key_id)`)
   await db.query(`CREATE INDEX IF NOT EXISTS idx_usage_time    ON usage_log(called_at DESC)`)
   await db.query(`CREATE INDEX IF NOT EXISTS idx_keys_active   ON api_keys(active)`)
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_traces_key_time ON context_traces(key_id, created_at DESC)`)
 
   console.log('[db] PostgreSQL schema ready ✓')
 }

@@ -4,7 +4,7 @@
 
 **Conversation Intelligence Middleware**
 
-*Classifies every conversation turn. Compresses history without losing meaning. Enforces protected zones where no compression — and no monetization — ever happens.*
+*A policy-governed context layer for AI agents. It classifies turns, protects sensitive context, compresses low-risk history, and records explainable decisions.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6)](src/)
@@ -16,26 +16,9 @@
 
 ---
 
-## Results
+## Validation status
 
-Evaluated on 120 conversations across SQuAD, StackOverflow, and Medical QA. Graded by Gemini as judge.
-
-| Metric | EchoRegent | Full context |
-|---|---|---|
-| Avg quality score | **9.0** | 8.7 |
-| Win / tie / loss | **48 / 32 / 12** | — |
-| Match-or-beat rate | **87%** | baseline |
-
-**LoCoMo benchmark** (same benchmark mem0 used):
-
-| | EchoRegent | mem0 |
-|---|---|---|
-| F1 | **0.079** | 0.069 |
-| Tokens used | **259** | 6,956 |
-| Efficiency | **26× fewer tokens** | baseline |
-
-**Load test** (10M tokens, production API):
-- 329 req/s · 17ms p50 · 0 errors · 64.7% token reduction
+EchoRegent ships deterministic context-quality checks that report whether critical IDs, dates, paths, error codes, and explicitly required facts survived a context transformation. Run `POST /api/evaluations/context` against your own redacted workload before relying on a token-savings claim. Historical benchmark or load-test numbers are not presented as current product guarantees.
 
 ---
 
@@ -46,12 +29,12 @@ LLMs receive your full conversation history on every turn. At 100 turns, that is
 EchoRegent sits between your application and the LLM and fixes all three:
 
 ```
-Better answers. 65% fewer tokens. Protected zones that never compress.
+Explainable context decisions. Low-risk history compression. Protected handling for sensitive context.
 ```
 
 - **Classifier** — domain, intent, emotional state, risk level on every turn, <10ms on CPU
-- **Compressor** — T5-based summarization, 64.7% token reduction, 87% quality match-or-beat rate
-- **Protected zones** — medical, crisis, legal: never compressed, never monetized, architecturally enforced
+- **Compressor** — rule-based compression with an optional local T5 summarizer
+- **Protected zones** — medical, legal, crisis, and protected-risk traffic is kept verbatim; response caching, cross-session retrieval, and automatic memory writes are blocked
 - **MCP server** — drop into Claude, Cursor, Windsurf, or any MCP-compatible tool in minutes
 
 ---
@@ -109,14 +92,14 @@ Four tools available immediately: `cts_compress_history`, `cts_classify_intent`,
      protected      commerce      general
      zone ▼          zone ▼        zone ▼
   no compression   compress      compress
-  no monetization  + route       + route
+  no cache/memory  + route       + route
           │            │              │
           └────────────┴──────────────┘
                         │
                         ▼
               ┌──────────────────┐
               │   COMPRESSOR     │  T5 — removes noise, keeps semantics
-              │                  │  50–80% token reduction
+              │                  │  context-quality checks required
               └────────┬─────────┘
                         │
                         ▼
@@ -161,8 +144,8 @@ When the classifier returns `medical`, `legal`, or `crisis`:
 
 1. Compression is **disabled at the function level** — not skipped, not flagged, disabled
 2. The raw history is passed to the LLM unchanged
-3. Any monetization hook (ads, upsells, affiliate) is **architecturally prevented** from firing
-4. The turn is logged with elevated retention and cannot be purged automatically
+3. Semantic response caching, cross-session retrieval, and automatic long-term memory writes are blocked
+4. The policy decision is included in the context plan and can be traced without storing prompt text
 
 This is the CTBM (Conversation-Type-Based Monetization) principle: conversation type is the primary structural boundary, not user consent or subscription tier.
 
@@ -171,13 +154,16 @@ This is the CTBM (Conversation-Type-Based Monetization) principle: conversation 
 ## Memory layer
 
 ```
-wiki/
-  session.db      WAL SQLite — full turn history, searchable within session
-  skills.db       FTS5 index — searchable across all sessions
-  memory/         Per-session JSON — survives restarts, exportable
+PostgreSQL (when `DATABASE_URL` is set)
+  wiki_store          User and LLM wiki documents per API key
+  context_policies    Versioned policy per API key
+  context_traces      Prompt-free context-decision audit traces
+
+data/ (local fallback)
+  JSON stores for keys, wiki data, policies, and traces
 ```
 
-The MCP tools `cts_memory_remember` and `cts_memory_recall` expose this to any MCP-compatible client. EchoRegent never proposes what already failed — and never forgets what the user told it last week.
+The MCP tools `cts_memory_remember` and `cts_memory_recall` expose local CTS memory to MCP-compatible clients. API memory facts include source IDs and support correction or deletion.
 
 ---
 
@@ -188,7 +174,7 @@ The MCP tools `cts_memory_remember` and `cts_memory_recall` expose this to any M
 | Core classifier | Base HuggingFace DistilBERT | Fine-tuned Yudi weights |
 | Compressor | Base T5-small | Fine-tuned T5 (higher recall) |
 | Protected zone enforcement | ✓ full | ✓ full |
-| Token savings | 40–60% | 50–80% |
+| Token savings | workload-dependent | workload-dependent; validate with quality evaluation |
 | Setup | `npm run dev` | API key + one line |
 | Cost | Your compute | Pay per call |
 
@@ -247,7 +233,7 @@ POST /compress
 → { "compressed": [...], "tokens_saved": 3420, "ratio": 0.61 }
 
 # Health + model readiness
-GET /ready   → 200 when classifier + T5 are loaded, 503 while loading
+GET /ready   → 200 with rule-based fallbacks by default; set `CTS_REQUIRE_LOCAL_MODELS=true` to require the local classifier
 GET /health  → always 200 if HTTP server is alive
 ```
 
