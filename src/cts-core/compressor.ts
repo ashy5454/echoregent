@@ -1,4 +1,5 @@
-import type { CompressionResult, MemoryFrame, Message, RoutingFrame } from './types'
+import { evaluateContextPolicy } from './policy'
+import type { CompressionResult, ContextPolicy, MemoryFrame, Message, RoutingFrame } from './types'
 import { summarizeWithT5 } from './ml-t5'
 
 const HIGH_VALUE_DOMAINS = new Set(['coding', 'customer_support', 'sales'])
@@ -39,9 +40,25 @@ export function getCompressionStats(): CompressionStats {
     fallbackRate: total > 0 ? compressionStats.ruleFallbacks / total : 0,
   }
 }
-export function compressHistory(history: Message[], frame: RoutingFrame): CompressionResult {
+export function compressHistory(history: Message[], frame: RoutingFrame, policy?: Partial<ContextPolicy>): CompressionResult {
   const original = [...history]
   const keptReasons: string[] = []
+
+  const policyDecision = evaluateContextPolicy(frame, policy)
+  if (policyDecision.compression === 'block') {
+    const originalTokens = estimateTokens(original)
+    keptReasons.push(`Compression blocked by ${policyDecision.policyVersion}: ${policyDecision.reasons.join(' ')}`)
+    return {
+      original,
+      compressed: original,
+      memoryFrame: buildMemoryFrame(original, frame),
+      keptReasons,
+      droppedCount: 0,
+      originalTokens,
+      compressedTokens: originalTokens,
+      tokensSaved: 0,
+    }
+  }
 
   if (history.length <= 4) {
     const originalTokens = estimateTokens(original)
@@ -595,10 +612,13 @@ function extractHardFacts(history: Message[], domain: string): string[] {
 // Uses T5-small to generate a natural-language memory summary instead of the
 // rule-based pipe-separated format. Falls back to rule compressor on error.
 
-export async function compressHistoryAsync(history: Message[], frame: RoutingFrame): Promise<CompressionResult> {
+export async function compressHistoryAsync(history: Message[], frame: RoutingFrame, policy?: Partial<ContextPolicy>): Promise<CompressionResult> {
+  if (evaluateContextPolicy(frame, policy).compression === 'block') {
+    return compressHistory(history, frame, policy)
+  }
   // Short history: no compression needed
   if (history.length <= 4) {
-    return compressHistory(history, frame)
+    return compressHistory(history, frame, policy)
   }
 
   compressionStats.asyncRequests += 1
@@ -664,12 +684,11 @@ export async function compressHistoryAsync(history: Message[], frame: RoutingFra
     }
   } catch {
     compressionStats.ruleFallbacks += 1
-    const fallback = compressHistory(history, frame)
+    const fallback = compressHistory(history, frame, policy)
     fallback.keptReasons.unshift('T5 unavailable; rule compressor fallback used.')
     return fallback
   }
 }
-
 
 
 

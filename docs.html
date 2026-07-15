@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>EchoRegent API documentation</title></head>
+  <body>
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <main>
+      <p><a href="/">← EchoRegent</a></p>
+      <h1>API documentation</h1>
+      <section id="context-plan" class="doc-section">
+        <h2>Context plan</h2>
+        <p><code>POST /api/context-plan</code> classifies a request and returns its policy decision and context strategy without calling a model.</p>
+      </section>
+      <section id="policy" class="doc-section">
+        <h2>Context policy</h2>
+        <p><code>GET</code> and <code>PUT /api/policy</code> read and update the authenticated workspace policy. Protected domains and risks are always merged with CTS safety floors.</p>
+      </section>
+      <section id="memory" class="doc-section">
+        <h2>Cited memory</h2>
+        <p>Use <code>GET /api/memory/facts?query=…</code> to retrieve current facts with source IDs. Correct or forget a fact with the matching fact endpoint.</p>
+      </section>
+    </main>
+    <script type="module" src="/src/docs.ts"></script>
+  </body>
+</html>

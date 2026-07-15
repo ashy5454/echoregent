@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { logUsage, lookupKey, type UsageSummary } from './db.js'
+import { logUsage, lookupKey, reserveQuota, type UsageSummary } from './db.js'
 
 type ApiKey = Omit<UsageSummary, 'totalCalls' | 'totalTokensSaved' | 'last24hCalls'>
 
@@ -39,6 +39,12 @@ export async function authenticate(
   if (!checkRateLimit(key.id)) {
     res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '60' })
     res.end(JSON.stringify({ error: 'Rate limit exceeded. Max 60 requests/minute per key.' }))
+    return null
+  }
+
+  if (!await reserveQuota(key.id)) {
+    res.writeHead(429, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({ error: 'API quota exceeded. Contact your workspace administrator to increase the quota.' }))
     return null
   }
 

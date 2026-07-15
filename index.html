@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="EchoRegent is a policy-governed context layer for production AI agents." />
+    <title>EchoRegent — Context control for AI agents</title>
+  </head>
+  <body>
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <main>
+      <section class="hero">
+        <p class="eyebrow">ECHOREGENT / CTS</p>
+        <h1>Context control for production AI agents.</h1>
+        <p>Classify, protect, compress, and explain the context your agents use across LLM providers.</p>
+        <p><a href="/docs">Read the API docs</a> · <a href="/use-cases">Explore use cases</a></p>
+      </section>
+
+      <section aria-labelledby="demo-title">
+        <h2 id="demo-title">Live routing demo</h2>
+        <div id="chat-messages" aria-live="polite">
+          <p class="chat-welcome">Try a support or coding question. The demo displays its routing decision.</p>
+        </div>
+        <div class="chat-controls">
+          <input id="chat-input" maxlength="4000" placeholder="Ask a question…" aria-label="Demo message" />
+          <button id="chat-send" type="button">Send</button>
+        </div>
+        <p>
+          <button class="hint" type="button" data-msg="My Stripe webhook returns 401 after a deploy.">Try coding</button>
+          <button class="hint" type="button" data-msg="My order has not arrived and I need a refund.">Try support</button>
+        </p>
+        <aside id="demo-frame" aria-live="polite">Routing analysis will appear here.</aside>
+      </section>
+
+      <section aria-labelledby="access-title">
+        <h2 id="access-title">Request API access</h2>
+        <label>Name <input id="req-name" autocomplete="name" maxlength="120" /></label>
+        <label>Email <input id="req-email" type="email" autocomplete="email" maxlength="254" /></label>
+        <label>Use case <input id="req-use" maxlength="500" /></label>
+        <button id="req-submit" type="button">Join waitlist</button>
+        <p id="req-status" role="status"></p>
+        <p><span id="waitlist-count">—</span> pending access requests</p>
+      </section>
+
+      <section aria-labelledby="usage-title">
+        <h2 id="usage-title">Usage dashboard</h2>
+        <label>CTS API key <input id="dash-key" type="password" autocomplete="off" /></label>
+        <button id="dash-load" type="button">Load usage</button>
+        <div id="dash-stats" class="hidden" aria-live="polite"></div>
+      </section>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

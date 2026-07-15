@@ -1,4 +1,5 @@
-import type { LLMWiki, RoutingFrame, SourceInput, WikiPage, WikiSource } from './types'
+import type { LLMWiki, MemoryFact, RoutingFrame, SourceInput, WikiPage, WikiSource } from './types'
+import { redactSensitiveData } from './privacy'
 
 export type WikiLLMCall = (prompt: string) => Promise<string>
 
@@ -7,6 +8,7 @@ export function createEmptyLLMWiki(): LLMWiki {
   return {
     sources: [],
     pages: [],
+    facts: [],
     indexMarkdown: '# Index\n\nNo pages yet.\n',
     logMarkdown: '# Log\n',
     schemaMarkdown: [
@@ -28,19 +30,25 @@ export async function ingestSourceIntoLLMWiki(
   input: SourceInput,
   frame: RoutingFrame,
   llmCall?: WikiLLMCall,
+  options: { retentionDays?: number } = {},
 ): Promise<LLMWiki> {
   const wiki = cloneWiki(existing ?? createEmptyLLMWiki())
   const now = new Date().toISOString()
+  const redacted = redactSensitiveData(input.content.trim())
+  const expiresAt = expirationFrom(now, options.retentionDays)
   const source: WikiSource = {
     id: `src-${Date.now().toString(36)}`,
     title: input.title.trim() || `Source ${wiki.sources.length + 1}`,
-    content: input.content.trim(),
+    content: redacted.value,
     addedAt: now,
+    expiresAt,
+    redactions: redacted.counts,
   }
 
   if (!source.content) return wiki
 
   wiki.sources.push(source)
+  for (const fact of extractFacts(source.content, source.id, now, expiresAt)) upsertFact(wiki, fact)
 
   let ingestedWithLLM = false
   if (llmCall) {
@@ -91,9 +99,12 @@ export async function ingestSourceIntoLLMWiki(
 }
 
 export function llmWikiToContextString(wiki: LLMWiki | null, message: string, maxPages = 4): string {
-  if (!wiki || wiki.pages.length === 0) return ''
+  if (!wiki || (wiki.pages.length === 0 && (wiki.facts?.length ?? 0) === 0)) return ''
+  const facts = recallMemoryFacts(wiki, message, 6)
   const lower = message.toLowerCase()
+  const activeSourceIds = new Set((wiki.sources ?? []).filter((source) => !isExpired(source.expiresAt)).map((source) => source.id))
   const scored = wiki.pages
+    .filter((page) => page.sourceIds.some((sourceId) => activeSourceIds.has(sourceId)))
     .map((page) => ({
       page,
       score: page.tags.filter((tag) => lower.includes(tag.toLowerCase())).length +
@@ -105,11 +116,93 @@ export function llmWikiToContextString(wiki: LLMWiki | null, message: string, ma
 
   return [
     'LLM Wiki context:',
+    facts.length > 0
+      ? ['## Current cited facts', ...facts.map((fact) => `- ${fact.value} [sources: ${fact.sourceIds.join(', ')}]`)].join('\n')
+      : '',
     ...scored.map(({ page }) => [
       `## ${page.path}`,
-      page.markdown.slice(0, 1200),
+      `${page.markdown.slice(0, 1200)}\nSources: ${page.sourceIds.join(', ')}`,
     ].join('\n')),
-  ].join('\n\n')
+  ].filter(Boolean).join('\n\n')
+}
+
+/** Returns current, source-cited facts using deterministic lexical retrieval. */
+export function recallMemoryFacts(wiki: LLMWiki | null, query: string, limit = 8): MemoryFact[] {
+  if (!wiki) return []
+  const now = Date.now()
+  const queryTokens = new Set(tokenize(query))
+  return (wiki.facts ?? [])
+    .filter((fact) => fact.status === 'current' && (!fact.validUntil || Date.parse(fact.validUntil) > now))
+    .map((fact) => ({
+      fact,
+      score: tokenize(fact.value).filter((token) => queryTokens.has(token)).length + fact.confidence / 10,
+    }))
+    .filter(({ score }) => score > 0)
+    .sort((a, b) => b.score - a.score || b.fact.createdAt.localeCompare(a.fact.createdAt))
+    .slice(0, Math.max(1, Math.min(50, limit)))
+    .map(({ fact }) => ({ ...fact, sourceIds: [...fact.sourceIds] }))
+}
+
+/** Supersedes a fact instead of overwriting history, preserving an audit trail. */
+export function correctMemoryFact(wiki: LLMWiki, factId: string, replacement: string): MemoryFact {
+  wiki.facts ??= []
+  const existing = wiki.facts.find((fact) => fact.id === factId && fact.status === 'current')
+  if (!existing) throw new Error('Current memory fact not found.')
+  const value = compactFact(replacement)
+  if (!value) throw new Error('Replacement fact is required.')
+
+  const now = new Date().toISOString()
+  existing.status = 'superseded'
+  existing.validUntil = now
+  const fact: MemoryFact = {
+    id: `fact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+    value,
+    normalizedValue: normalizeFact(value),
+    sourceIds: [...existing.sourceIds],
+    createdAt: now,
+    validFrom: now,
+    status: 'current',
+    confidence: 1,
+    supersedesId: existing.id,
+  }
+  upsertFact(wiki, fact)
+  wiki.version += 1
+  wiki.lastUpdated = now
+  return fact
+}
+
+/** Soft-deletes a fact so it is never retrieved while keeping a compliance trail. */
+export function forgetMemoryFact(wiki: LLMWiki, factId: string): boolean {
+  wiki.facts ??= []
+  const fact = wiki.facts.find((item) => item.id === factId && item.status === 'current')
+  if (!fact) return false
+  const now = new Date().toISOString()
+  fact.status = 'deleted'
+  fact.validUntil = now
+  wiki.version += 1
+  wiki.lastUpdated = now
+  return true
+}
+
+/** Permanently removes memory whose source or fact retention window elapsed. */
+export function purgeExpiredMemory(wiki: LLMWiki, at = new Date()): { sources: number; pages: number; facts: number } {
+  const beforeSources = wiki.sources.length
+  const beforePages = wiki.pages.length
+  const beforeFacts = (wiki.facts ?? []).length
+  const now = at.getTime()
+  wiki.sources = wiki.sources.filter((source) => !source.expiresAt || Date.parse(source.expiresAt) > now)
+  const sourceIds = new Set(wiki.sources.map((source) => source.id))
+  wiki.pages = wiki.pages
+    .map((page) => ({ ...page, sourceIds: page.sourceIds.filter((sourceId) => sourceIds.has(sourceId)) }))
+    .filter((page) => page.sourceIds.length > 0)
+  wiki.facts = (wiki.facts ?? []).filter((fact) => !fact.validUntil || Date.parse(fact.validUntil) > now)
+  const removed = { sources: beforeSources - wiki.sources.length, pages: beforePages - wiki.pages.length, facts: beforeFacts - wiki.facts.length }
+  if (removed.sources || removed.pages || removed.facts) {
+    wiki.version += 1
+    wiki.lastUpdated = at.toISOString()
+    wiki.indexMarkdown = buildIndex(wiki)
+  }
+  return removed
 }
 
 export function lintLLMWiki(wiki: LLMWiki | null): string[] {
@@ -280,6 +373,16 @@ function upsertPage(wiki: LLMWiki, page: WikiPage): void {
   else wiki.pages.push(page)
 }
 
+function upsertFact(wiki: LLMWiki, next: MemoryFact): void {
+  const existing = wiki.facts.find((fact) => fact.status === 'current' && fact.normalizedValue === next.normalizedValue)
+  if (existing) {
+    existing.sourceIds = unique([...existing.sourceIds, ...next.sourceIds])
+    existing.confidence = Math.max(existing.confidence, next.confidence)
+    return
+  }
+  wiki.facts.push(next)
+}
+
 function mergePage(existing: WikiPage, next: WikiPage): WikiPage {
   return {
     ...next,
@@ -323,6 +426,55 @@ function tokenize(value: string): string[] {
   return value.toLowerCase().match(/\b[a-z][a-z0-9-]{3,}\b/g) ?? []
 }
 
+function extractFacts(content: string, sourceId: string, now: string, validUntil?: string): MemoryFact[] {
+  const sentences = content
+    .replace(/\s+/g, ' ')
+    .split(/(?<=[.!?])\s+/)
+    .map(compactFact)
+    .filter((sentence) => sentence.length >= 16 && sentence.length <= 280)
+    .filter((sentence) => !/^https?:\/\//i.test(sentence))
+    .slice(0, 12)
+
+  return unique(sentences.map(normalizeFact))
+    .map((normalizedValue) => {
+      const value = sentences.find((sentence) => normalizeFact(sentence) === normalizedValue)!
+      return {
+        id: `fact-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+        value,
+        normalizedValue,
+        sourceIds: [sourceId],
+        createdAt: now,
+        validFrom: now,
+        validUntil,
+        status: 'current' as const,
+        confidence: sentenceConfidence(value),
+      }
+    })
+}
+
+function compactFact(value: string): string {
+  return value.replace(/\s+/g, ' ').trim().slice(0, 280)
+}
+
+function normalizeFact(value: string): string {
+  return value.toLowerCase().replace(/\s+/g, ' ').replace(/[.?!]+$/, '').trim()
+}
+
+function sentenceConfidence(value: string): number {
+  const hasConcreteDetail = /\b\d|\b[A-Z][a-z]+\b|`[^`]+`/.test(value)
+  return hasConcreteDetail ? 0.82 : 0.7
+}
+
+function expirationFrom(now: string, retentionDays: number | undefined): string | undefined {
+  if (retentionDays === undefined) return undefined
+  const days = Math.max(1, Math.min(3650, Math.floor(retentionDays)))
+  return new Date(Date.parse(now) + days * 86_400_000).toISOString()
+}
+
+function isExpired(value: string | undefined): boolean {
+  return Boolean(value && Date.parse(value) <= Date.now())
+}
+
 function slug(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'untitled'
 }
@@ -343,6 +495,7 @@ function cloneWiki(wiki: LLMWiki): LLMWiki {
   return {
     sources: wiki.sources.map((source) => ({ ...source })),
     pages: wiki.pages.map((page) => ({ ...page, sourceIds: [...page.sourceIds], tags: [...page.tags] })),
+    facts: (wiki.facts ?? []).map((fact) => ({ ...fact, sourceIds: [...fact.sourceIds] })),
     indexMarkdown: wiki.indexMarkdown,
     logMarkdown: wiki.logMarkdown,
     schemaMarkdown: wiki.schemaMarkdown,
