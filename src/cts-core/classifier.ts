@@ -56,7 +56,12 @@ function detectDomain(
   // Guard: don't fire the sales budget rule when strong coding signals are present
   if (/\b(discount|premium|roi|soc2|discussed discount)\b/.test(contextText)) return 'sales'
   if (/\b(budget)\b/.test(contextText) && !/\b(postgres(?:ql)?|python|gcp|aws|azure|database|api|code|script|deploy|server|instance)\b/.test(contextText)) return 'sales'
-  if (/\b(termination|contract|clause|legal)\b/.test(lower)) return 'legal'
+  // "legal" alone is too weak a signal — it shows up in sales/compliance talk
+  // ("legal signs off", "check with legal") without the conversation actually
+  // being about legal advice. Require it to co-occur with a real legal-advice
+  // term, or require one of the stronger unambiguous terms on its own.
+  if (/\b(termination|contract|clause)\b/.test(lower)) return 'legal'
+  if (/\blegal\b/.test(lower) && /\b(advice|clause|contract|termination|non-compete|indemnity|liable|lawsuit|tenant|rights|counsel)\b/.test(contextText)) return 'legal'
   if (/\b(refund|order|delivery|ticket)\b/.test(lower)) return 'customer_support'
   const scores: Array<{ domain: DomainType; score: number }> = [
     {
@@ -65,7 +70,10 @@ function detectDomain(
     },
     {
       domain: 'customer_support',
-      score: scorePattern(contextText, /\b(order|refund|delivery|arrived|ticket|support|cancel|replacement|tracking|logistics|called|weeks?|process)\b|#\d+/g),
+      // "weeks"/"called"/"process" were dropped as standalone signals — they're
+      // generic enough to appear in any domain (e.g. "started this medication
+      // last week") and were winning false positives against real domain terms.
+      score: scorePattern(contextText, /\b(order|refund|delivery|arrived|ticket|support|cancel|replacement|tracking|logistics)\b|#\d+/g),
     },
     {
       domain: 'sales',
@@ -77,7 +85,10 @@ function detectDomain(
     },
     {
       domain: 'medical',
-      score: scorePattern(contextText, /\b(headache|fever|symptom|doctor|medication|dose|pain|bleeding|bp|blood pressure|lisinopril|cough|dizziness|readings|stop taking)\b/g),
+      // Broadened from a narrow drug/symptom list (which only matched specific
+      // named drugs and exact phrases) to generic clinical vocabulary that
+      // should generalize to symptoms and medications not explicitly listed here.
+      score: scorePattern(contextText, /\b(headache|fever|symptom|symptoms|doctor|medication|prescription|dose|dosage|pain|bleeding|bp|blood pressure|heart rate|resting heart rate|bpm|cough|dizziness|dizzy|lightheaded|light-headed|faint|fainting|nausea|rash|swelling|side effect|side effects|stop taking|since starting|new medication)\b/g),
     },
     {
       domain: 'commerce',
@@ -94,7 +105,16 @@ function detectDomain(
   }
   if (signals.structures.includes('price_constraint')) bump(scores, 'commerce', 2)
 
-  const best = scores.sort((a, b) => b.score - a.score)[0]
+  const ranked = scores.sort((a, b) => b.score - a.score)
+  const best = ranked[0]
+  // Safety-first tie-break: medical is a protected zone (no compression, no
+  // monetization). If it's tied with or one point behind the top score, a
+  // misclassification here means real medical content silently loses its
+  // protection. Prefer medical over an equally-weak alternative signal.
+  const medical = ranked.find((item) => item.domain === 'medical')
+  if (medical && medical.score > 0 && best.score - medical.score <= 1 && best.domain !== 'medical') {
+    return 'medical'
+  }
   return best.score > 0 ? best.domain : 'general'
 }
 
