@@ -557,6 +557,12 @@ Ordered by what unblocks paying customers first — i.e., what would otherwise
 cause a pilot to end in week one, either on legal/safety grounds or because
 the integration simply doesn't work for the customer's actual traffic.
 
+*Note: this is the plan for a team with real runway, fixing the product properly
+across all three providers. If the goal is specifically first revenue in four
+weeks, see Part 9 below, which narrows scope and reorders around cash, not
+correctness — read that version first if $1-2K MRR in 30 days is the actual
+constraint.*
+
 **Week 1 — stop the bleeding (safety + hard breaks).**
 - Implement real protected-zone enforcement: a hard `if (frame.domain === 'medical' || frame.domain === 'legal' || frame.risk.includes('crisis')) return passthroughUnchanged(...)` at the top of both `compressHistory` and `compressHistoryAsync`, before any scoring/selection logic runs — not a scoring adjustment, an actual bypass. Add `crisis` as something the classifier can express as a first-class outcome rather than folding it into `general`.
 - Fix `/v1/chat/completions` to preserve `tool_calls`/`tool_call_id`/`name` fields end-to-end, and to handle `content: null` and array (multimodal) content without crashing (Issue #5).
@@ -577,6 +583,72 @@ the integration simply doesn't work for the customer's actual traffic.
 - Add automated tests to the actual codebase (there are currently zero — `npm test` runs `vitest run` against no test files at all); at minimum, promote the confirmed-bug tests in `audit/tests/` into the main test suite once each underlying bug is fixed, so they become regression guards instead of bug reports.
 - Real load test against the actual `/v1/chat/completions` path (not a claimed number) to get a defensible latency/throughput figure.
 - Write a go/no-go memo to the founder using only numbers produced this way — replacing every number in the current README that Part 1 of this audit could not verify.
+
+---
+
+## 9. Go-to-market addendum — four weeks to first revenue (added after founder review)
+
+The plan in Part 8 optimizes for a technically correct, honestly-marketable
+product across all three providers. This section is a different plan for a
+different constraint: **$1,000-2,000 MRR within four weeks**, added after a
+founder review of this audit. It narrows scope on purpose and reorders
+everything around getting to cash — it does not replace Part 8's underlying
+fix list, it picks the smallest honest slice of it that can be sold this
+month, and defers the rest.
+
+### The pricing decision: flat fee, not % of verified savings — for now
+
+Part 5(d)'s holdout-bypass billing design is still the right long-term model,
+and still the real differentiator (Part 6). But it is structurally slow to
+cash: you cannot invoice a share of savings until you've measured a real
+delta over a real billing cycle, which takes weeks by design. For a four-week
+revenue sprint, charge a **flat monthly fee** (roughly **$49-99/mo**) low
+enough that trying it is an easy yes. Move to savings-based pricing once
+there are paying customers and real testimonials to build trust on.
+
+### The scope decision: OpenAI-only, text-only, no tool calls — for now
+
+Part 8's Week 1 fixes Anthropic, Gemini, and tool/multimodal support all at
+once. That's the right target, but it's too much for a one-week sprint before
+sales has to start. Narrow the sellable surface to the **one path already
+confirmed working** (Part 4 compatibility matrix: "OpenAI chat, no tools,
+non-streaming — Works"): OpenAI, text-only, no tool calling. Anything outside
+that shape should **fail loudly and cleanly**, not crash — the fix here is
+smaller than full tool-calling support (Issue #5's real fix): detect an
+unsupported request shape and return a clear error, don't 500. Document the
+limitation plainly ("tool-calling support coming soon") rather than staying
+silent about it.
+
+### Week-by-week
+
+**Week 1 — make the narrow slice true.**
+- Real OpenAI `usage`-based token accounting (Issue #9), scoped to OpenAI only.
+- Stop the per-turn summary rewrite that defeats OpenAI's own prompt cache (Issue #8) — the dashboard number has to survive contact with a skeptical customer re-checking their own bill.
+- Detect and cleanly reject (not crash on) tool calls / null / array content, per the scope decision above — this is the narrow version of Issue #5's fix, not the full fix.
+- A five-minute onboarding: swap `baseURL`, see a "tokens saved" number within the first hour, labeled honestly as **estimated** until it can be shown against a real before/after invoice.
+
+**Week 2 — free pilots, not customers yet.** Founder-led, personal, not automated. Two channels that are actually fast at seed stage: your own network (anyone running a support bot/copilot on OpenAI), and the communities where this exact pain is voiced constantly and publicly (r/OpenAI, r/LangChain, r/ChatGPTCoding, Indie Hackers, Show HN — the real version of the audience the `echoregent-market-intelligence` repo's fabricated dataset was gesturing at, per the Appendix below). Read real threads, message real people complaining about their bill, offer a free week.
+
+**Week 3 — convert pilots to paid.** Everyone who saw a real, honest savings number in week 2 gets the ask directly: flat monthly fee, cancel anytime, here's what you saved last week. Treat every non-conversion as a signal to fix (broke on their traffic shape, didn't trust the number, price too high) before the next batch, not as a number to shrug off.
+
+**Week 4 — repeat the funnel, faster, on what week 3 taught you.** By now the real conversion rate is known; week 4 is volume of outreach on a patched pitch, not new features.
+
+### The math
+
+At $49-99/mo flat, roughly **15-25 paying customers** clears $1-2K MRR — a
+volume, self-serve motion. The alternative is **2-4 higher-touch deals** at
+$300-500/mo with companies already spending heavily on OpenAI, if warm intros
+to any exist — fewer sales, slower cycles, riskier on a four-week clock
+unless those relationships already exist before week 1 starts.
+
+### What explicitly does not get built this sprint
+
+Anthropic/Gemini support, tool-calling, multimodal, the drift detector, the
+trained supervisor model, semantic caching, cross-provider routing, and the
+% of verified savings billing model are all real roadmap items (Part 6, and
+the founder discussion that produced this section) — none of them belong in
+a four-week revenue sprint. If it's not in the Week 1 list above, it waits
+until there's a paying customer to build it for.
 
 ---
 
