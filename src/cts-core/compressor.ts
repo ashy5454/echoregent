@@ -1,5 +1,6 @@
 import type { CompressionResult, MemoryFrame, Message, RoutingFrame } from './types'
 import { summarizeWithT5 } from './ml-t5'
+import { countChatTokens } from './tokenizer'
 
 const HIGH_VALUE_DOMAINS = new Set(['coding', 'customer_support', 'sales'])
 const GENERIC_DISTRACTOR_PATTERNS = [
@@ -59,7 +60,7 @@ export function compressHistory(history: Message[], frame: RoutingFrame): Compre
   }
 
   const memoryFrame = buildMemoryFrame(original, frame)
-  const summaryMessage: Message = { role: 'assistant', content: serializeMemoryFrame(memoryFrame) }
+  const summaryMessage = getStableSummaryMessage(original, frame)
   const recentMessages = pickRecentMessages(original, frame, memoryFrame)
   const anchorMessages = pickAnchorMessages(original, recentMessages, frame, memoryFrame)
 
@@ -185,6 +186,77 @@ function serializeMemoryFrame(memoryFrame: MemoryFrame): string {
   }
 
   return parts.join(' ')
+}
+
+// ── Stable-prefix summary caching (audit issue #8) ────────────────────────
+// buildMemoryFrame() used to be re-run on the FULL history (including the
+// message currently in flight) on every single call, which bakes the latest
+// user message into `task`/`userGoal` and rewrites the summary text every
+// turn. That destroys the stable prefix provider prompt caching depends on:
+// a cache breakpoint only pays off when everything before it is byte-
+// identical to a previous request (see AUDIT.md Part 6 / the Anthropic
+// prompt-caching docs cited there).
+//
+// Fix: the summary TEXT that becomes compressed[0] is built from a "settled"
+// slice of history — everything except the most-recent `recentCount`
+// messages (which change every turn by design and are sent separately,
+// verbatim, via pickRecentMessages) — and only regenerated once the settled
+// slice grows past the next batch boundary. Between regenerations, the exact
+// same cached string is returned, so the request prefix stays stable across
+// multiple consecutive turns instead of changing on every single one.
+//
+// `memoryFrame` (the fuller, always-fresh version built from the complete
+// history) is untouched by this and still used for anchor/recent-message
+// selection and the must-keep rescue pass below — this only changes what
+// text gets embedded as the cacheable summary message itself.
+const SUMMARY_SNAPSHOT_BATCH = 4
+const MAX_SUMMARY_CACHE_ENTRIES = 200
+const summarySnapshotCache = new Map<string, Message>()
+
+function recentWindowSize(frame: RoutingFrame): number {
+  return HIGH_VALUE_DOMAINS.has(frame.domain) ? 4 : 2
+}
+
+function getStableSummaryMessage(original: Message[], frame: RoutingFrame): Message {
+  const recentCount = recentWindowSize(frame)
+  const settled = original.slice(0, Math.max(0, original.length - recentCount))
+  // Below one full batch there's nothing to round down to without throwing
+  // away all settled content — use it as-is (this window is inherently less
+  // stable, same as a real cache breakpoint moving early in a short
+  // conversation); once settled.length >= SUMMARY_SNAPSHOT_BATCH, round down
+  // to the batch boundary so the snapshot — and therefore the cached summary
+  // text — stays IDENTICAL across every turn inside that batch window.
+  const snapshotLength = settled.length < SUMMARY_SNAPSHOT_BATCH
+    ? settled.length
+    : Math.floor(settled.length / SUMMARY_SNAPSHOT_BATCH) * SUMMARY_SNAPSHOT_BATCH
+  const snapshot = settled.slice(0, snapshotLength)
+
+  const cacheKey = `${frame.domain}:${snapshotLength}:${hashMessages(snapshot)}`
+  const cached = summarySnapshotCache.get(cacheKey)
+  if (cached) return cached
+
+  const snapshotFrame = buildMemoryFrame(snapshot, frame)
+  const message: Message = { role: 'assistant', content: serializeMemoryFrame(snapshotFrame) }
+
+  summarySnapshotCache.set(cacheKey, message)
+  if (summarySnapshotCache.size > MAX_SUMMARY_CACHE_ENTRIES) {
+    const oldest = summarySnapshotCache.keys().next().value
+    if (oldest !== undefined) summarySnapshotCache.delete(oldest)
+  }
+  return message
+}
+
+// Cheap deterministic string hash (FNV-1a) — this only needs to distinguish
+// different settled-history snapshots from each other, not resist collision
+// attacks, so no crypto dependency.
+function hashMessages(messages: Message[]): string {
+  const text = messages.map((m) => `${m.role}:${m.content}`).join('\u0000')
+  let hash = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(36)
 }
 
 function domainLead(memoryFrame: MemoryFrame): string {
@@ -473,9 +545,9 @@ function compactSentence(value: string, limit: number): string {
   return value.replace(/\s+/g, ' ').trim().replace(/[|]/g, '').slice(0, limit)
 }
 
+// Real BPE token count (see tokenizer.ts) — was chars/4 (audit issue #9).
 function estimateTokens(messages: Message[]): number {
-  const chars = messages.reduce((sum, message) => sum + message.content.length, 0)
-  return Math.ceil(chars / 4)
+  return countChatTokens(messages)
 }
 
 function domainPattern(domain: string): RegExp {

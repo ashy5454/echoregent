@@ -118,8 +118,15 @@ describe('Issue #10(a) — x-llm-base-url accepts an arbitrary URL with no allow
   })
 })
 
-describe('Issue #5 — tool_calls/tool_call_id are dropped; null/array content is not handled', () => {
-  it('FAILS: drops tool_calls and tool_call_id when forwarding an assistant tool-call turn to the upstream LLM', async () => {
+// FIXED (AUDIT.md Part 9 — narrowed week-1 scope): the proxy no longer
+// crashes on tool_calls / null / array content. It was not given full
+// tool-calling/multimodal support (that's real work, deferred per the GTM
+// addendum) — instead it now detects that shape up front and rejects it
+// with a clean 400 and a clear message, via findUnsupportedMessageShape()
+// in server.ts. These tests were rewritten from "does this crash" to "does
+// this fail loudly and cleanly" once the fix landed.
+describe('Issue #5 (fixed, narrow scope) — unsupported message shapes are rejected cleanly, not crashed on', () => {
+  it('rejects a tool-call turn with a clean 400, not a 500 or silent corruption', async () => {
     mockReceivedRequests = []
     const messages = [
       { role: 'user', content: 'What is the weather in Paris?' },
@@ -138,19 +145,16 @@ describe('Issue #5 — tool_calls/tool_call_id are dropped; null/array content i
       },
       body: JSON.stringify({ model: 'gpt-4o', messages }),
     })
+    const payload = await res.json() as { error?: string; unsupported?: boolean }
 
-    // Whatever status comes back, check whether the forwarded body preserved the
-    // tool-calling structure a real OpenAI tools conversation depends on.
-    const forwarded = mockReceivedRequests[0]?.body as { messages?: Array<Record<string, unknown>> } | undefined
-    const forwardedHasToolCalls = forwarded?.messages?.some((m) => 'tool_calls' in m) ?? false
-    const forwardedHasToolRole  = forwarded?.messages?.some((m) => m.role === 'tool') ?? false
-
-    expect(res.status).toBe(200)
-    expect(forwardedHasToolCalls).toBe(true)
-    expect(forwardedHasToolRole).toBe(true)
+    expect(res.status).toBe(400)
+    expect(payload.unsupported).toBe(true)
+    expect(payload.error).toMatch(/tool/i)
+    // Nothing should have reached the upstream LLM with a mangled body.
+    expect(mockReceivedRequests.length).toBe(0)
   })
 
-  it('FAILS: a null assistant content field (standard for OpenAI tool-call turns) should not crash the request', async () => {
+  it('rejects null assistant content (standard for OpenAI tool-call turns) with a clean 400, not a 500', async () => {
     const messages = [
       { role: 'user', content: 'Turn on the lights' },
       { role: 'assistant', content: null, tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'lights_on', arguments: '{}' } }] },
@@ -170,12 +174,11 @@ describe('Issue #5 — tool_calls/tool_call_id are dropped; null/array content i
       body: JSON.stringify({ model: 'gpt-4o', messages }),
     })
 
-    // A production-ready proxy should return 200 (or a clean 4xx), never a 500 from
-    // an uncaught exception while estimating tokens / scoring message relevance.
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(400)
+    expect(res.status).not.toBe(500)
   })
 
-  it('FAILS: multimodal array content (image_url parts) should not crash the request', async () => {
+  it('rejects multimodal array content (image_url parts) with a clean 400, not a 500', async () => {
     const messages = [
       { role: 'user', content: 'Describe this image' },
       { role: 'assistant', content: 'It looks like a screenshot of an error dialog.' },
@@ -201,7 +204,31 @@ describe('Issue #5 — tool_calls/tool_call_id are dropped; null/array content i
       body: JSON.stringify({ model: 'gpt-4o', messages }),
     })
 
+    expect(res.status).toBe(400)
+    expect(res.status).not.toBe(500)
+  })
+
+  it('still handles a plain text-only conversation normally (the fix did not overreach)', async () => {
+    mockReceivedRequests = []
+    const messages = [
+      { role: 'user', content: 'Hi' },
+      { role: 'assistant', content: 'Hello, how can I help?' },
+      { role: 'user', content: 'Just checking this endpoint still works for plain text.' },
+    ]
+
+    const res = await fetch(`${CTS_BASE}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${ctsApiKey}`,
+        'x-llm-key': 'sk-test',
+        'x-llm-base-url': `http://127.0.0.1:${MOCK_PORT}`,
+      },
+      body: JSON.stringify({ model: 'gpt-4o', messages }),
+    })
+
     expect(res.status).toBe(200)
+    expect(mockReceivedRequests.length).toBe(1)
   })
 })
 

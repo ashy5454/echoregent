@@ -769,7 +769,19 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   //   x-cts-intent          — detected intent
   //   x-cts-compression-pct — compression percentage (0-100)
   if (req.method === 'POST' && (url.pathname === '/v1/chat/completions' || url.pathname === '/v1/chat/completions/')) {
-    const body      = await readJson(req)
+    const body = await readJson(req)
+
+    // Week-1 scope (AUDIT.md Part 9): this endpoint only supports text-only
+    // messages with no tool calls. Reject cleanly with a clear 400 instead of
+    // crashing downstream — tool_calls/tool_call_id, null content (standard
+    // for OpenAI tool-call turns), and array (multimodal) content all used to
+    // reach estimateTokens()/messageRelevanceScore() and throw a 500.
+    const unsupportedReason = findUnsupportedMessageShape(body.messages)
+    if (unsupportedReason) {
+      sendJson(res, 400, { error: unsupportedReason, unsupported: true })
+      return
+    }
+
     const messages  = (body.messages as Array<{ role: string; content: string }> | undefined) ?? []
     const model     = String(body.model ?? 'gpt-4o')
     const stream    = Boolean(body.stream)
@@ -890,6 +902,13 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
     // Non-stream: return JSON
     const llmPayload = await llmResponse.json() as Record<string, unknown>
+    // Surface the provider's own real usage (what was actually billed) —
+    // x-cts-tokens-saved above is still our pre-call estimate of the
+    // original-vs-compressed delta; this is ground truth for what this
+    // specific compressed request actually cost, straight from OpenAI's
+    // response body. Never overwrite it with a further estimate.
+    const realUsage = llmPayload.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined
+    if (realUsage) res.setHeader('x-cts-actual-usage', JSON.stringify(realUsage))
     res.writeHead(llmResponse.status, { 'content-type': 'application/json' })
     res.end(JSON.stringify(llmPayload))
     return
@@ -1024,6 +1043,24 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
     })
     req.on('error', reject)
   })
+}
+
+// Week-1 scope guard for /v1/chat/completions (AUDIT.md Part 9): this proxy
+// only handles text-only messages with no tool calls. Returns a human-readable
+// reason if `value` isn't that shape, or null if it's fine to proceed.
+function findUnsupportedMessageShape(value: unknown): string | null {
+  if (!Array.isArray(value)) return 'messages must be an array.'
+  for (let i = 0; i < value.length; i++) {
+    const m = value[i] as Record<string, unknown> | null
+    if (!m || typeof m !== 'object') return `messages[${i}] must be an object.`
+    if ('tool_calls' in m || 'tool_call_id' in m || m.role === 'tool') {
+      return `messages[${i}] uses tool calling, which this endpoint does not support yet. Text-only conversations only for now.`
+    }
+    if (typeof m.content !== 'string') {
+      return `messages[${i}].content must be a string. Multimodal (array) content and null content are not supported yet — this endpoint is text-only for now.`
+    }
+  }
+  return null
 }
 
 function asMessages(value: unknown): Message[] {
