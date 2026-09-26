@@ -881,18 +881,6 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       : []
     const currentMessage = lastUser?.content ?? ''
 
-    // Run CTS classify + compress pipeline
-    const frame       = classify(currentMessage, historyMsgs)
-    const currentMsg: Message = { role: 'user', content: currentMessage }
-    const compression = compressHistory([...historyMsgs, currentMsg], frame)
-
-    const tokensSaved  = compression.tokensSaved
-    const comprPct     = compression.originalTokens > 0
-      ? Math.round((tokensSaved / compression.originalTokens) * 100)
-      : 0
-
-    recordUsage(key.id, '/v1/chat/completions', tokensSaved)
-
     // Resolve which LLM to call
     const llmKey      = String(req.headers['x-llm-key'] ?? '')
     const llmProvider = String(req.headers['x-llm-provider'] ?? 'openai')
@@ -902,6 +890,40 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       sendJson(res, 400, { error: 'Missing x-llm-key header. Pass your LLM API key there; use Authorization for your CTS key.' })
       return
     }
+
+    // Run CTS classify + compress pipeline
+    const frame       = classify(currentMessage, historyMsgs)
+    const currentMsg: Message = { role: 'user', content: currentMessage }
+
+    // Prefer real semantic-similarity compression over the hardcoded
+    // per-domain regex scorer — the regex path only matches vocabulary it
+    // was hand-tuned for (Stripe, ThinkPad, Dallas, Lisinopril, ...) and is
+    // effectively blind on anything else (audit issue #3). A real 60-question
+    // LoCoMo comparison measured F1=0.105 (regex) vs F1=0.213 (embeddings) on
+    // the same real conversations. This needs a real Gemini key for the
+    // embedding call, independent of whichever provider serves the actual
+    // completion — x-embedding-key if the customer supplies one, else their
+    // own key when they're already on Gemini. With no key available, or if
+    // the embedding call itself fails, the regex path is the fallback, not
+    // the default.
+    const embeddingKey  = String(req.headers['x-embedding-key'] ?? (llmProvider === 'gemini' ? llmKey : ''))
+    let   compressionMode: 'embeddings' | 'regex' = 'regex'
+    let   compression = compressHistory([...historyMsgs, currentMsg], frame)
+    if (embeddingKey) {
+      try {
+        compression = await compressHistoryWithEmbeddings([...historyMsgs, currentMsg], frame, embeddingKey)
+        compressionMode = 'embeddings'
+      } catch {
+        // fall through to the regex compression already computed above
+      }
+    }
+
+    const tokensSaved  = compression.tokensSaved
+    const comprPct     = compression.originalTokens > 0
+      ? Math.round((tokensSaved / compression.originalTokens) * 100)
+      : 0
+
+    recordUsage(key.id, '/v1/chat/completions', tokensSaved)
 
     // Build the forwarded message array (compressed history + system + current)
     const forwardMessages: Array<{ role: string; content: string }> = []
@@ -960,6 +982,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     res.setHeader('x-cts-intent',          frame.intent)
     res.setHeader('x-cts-compression-pct', String(comprPct))
     res.setHeader('x-cts-risk',            frame.risk.join(','))
+    res.setHeader('x-cts-compression-mode', compressionMode)
 
     if (stream) {
       // Stream passthrough — pipe LLM response directly to client
@@ -971,6 +994,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
         'x-cts-intent':          frame.intent,
         'x-cts-risk':            frame.risk.join(','),
         'x-cts-compression-pct': String(comprPct),
+        'x-cts-compression-mode': compressionMode,
       })
       if (llmResponse.body) {
         const reader = llmResponse.body.getReader()
@@ -1104,12 +1128,12 @@ async function routeAdmin(req: IncomingMessage, res: ServerResponse, url: URL): 
 function setCors(res: ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN)
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret,X-End-User-Id,x-llm-key,x-llm-provider,x-llm-model,x-llm-base-url')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret,X-End-User-Id,x-llm-key,x-llm-provider,x-llm-model,x-llm-base-url,x-embedding-key')
   // Without this, a browser-based caller can't read the x-cts-* signal headers
   // at all (cross-origin fetch() hides response headers by default) — which
   // would make the conversation-awareness signal invisible to exactly the
   // kind of frontend code most likely to want it.
-  res.setHeader('Access-Control-Expose-Headers', 'x-cts-tokens-saved,x-cts-domain,x-cts-intent,x-cts-compression-pct,x-cts-risk,x-cts-actual-usage')
+  res.setHeader('Access-Control-Expose-Headers', 'x-cts-tokens-saved,x-cts-domain,x-cts-intent,x-cts-compression-pct,x-cts-compression-mode,x-cts-risk,x-cts-actual-usage')
   res.setHeader('Vary', 'Origin')
   // Security headers
   res.setHeader('X-Content-Type-Options', 'nosniff')

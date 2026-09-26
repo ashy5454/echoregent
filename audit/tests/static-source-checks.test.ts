@@ -74,9 +74,14 @@ describe('Issue #10 — arbitrary x-llm-base-url (still open), and the Gemini ke
     // file (server.ts, callGemini()) noting Gemini's OpenAI-compat endpoint
     // rejects that form with a 400 now and requires Bearer auth instead.
     expect(serverSrc).not.toMatch(/generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions\?key=/)
+    // Anchored on "else if (...)" specifically — the URL-resolution branch,
+    // not the (now also present, since the embedding-compression fallback
+    // added this session) ternary `llmProvider === 'gemini' ? llmKey : ''`
+    // that reads the same provider check earlier in the route to decide
+    // whether to reuse it as the embedding key.
     const geminiBranch = serverSrc.slice(
-      serverSrc.indexOf("llmProvider === 'gemini'"),
-      serverSrc.indexOf("llmProvider === 'gemini'") + 700,
+      serverSrc.indexOf("else if (llmProvider === 'gemini')"),
+      serverSrc.indexOf("else if (llmProvider === 'gemini')") + 700,
     )
     expect(geminiBranch).toMatch(/authorization:\s*`Bearer \$\{llmKey\}`/)
   })
