@@ -66,6 +66,13 @@ if (existsSync(envFile)) {
 
 type WikiLLMCall = (prompt: string) => Promise<string>
 
+// Every tokensSaved/tokenSavingsPct figure surfaced below is estimated
+// pre-call from real tokenization (src/cts-core/tokenizer.ts) — it is not
+// the provider's actual billed usage. /v1/chat/completions's
+// x-cts-actual-usage header carries the real, provider-reported number once
+// a call is actually made. Label every estimate as one — see AUDIT.md Part 9.
+const TOKENS_SAVED_BASIS = 'estimated from tokenization — not yet verified against your provider\'s actual billed invoice'
+
 // Sanitize user-supplied session IDs used as DB/store keys
 function sanitizeSessionId(raw: string): string {
   return raw.replace(/[^a-zA-Z0-9._:@-]/g, '-').slice(0, 128)
@@ -474,6 +481,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       compressedHistory: compression.compressed,
       intent: frame.intent, domain: frame.domain, state: frame.state,
       tokensSaved: compression.tokensSaved,
+      tokensSavedBasis: TOKENS_SAVED_BASIS,
       frame: { confidence: frame.confidence, risk: frame.risk },
     })
     return
@@ -498,6 +506,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       compressedTokens: compression.compressedTokens,
       tokensSaved: compression.tokensSaved,
       tokenSavingsPct: compression.originalTokens > 0 ? Math.round((compression.tokensSaved / compression.originalTokens) * 1000) / 10 : 0,
+      tokensSavedBasis: TOKENS_SAVED_BASIS,
       droppedCount: compression.droppedCount,
       keptReasons: compression.keptReasons,
       intent: frame.intent, domain: frame.domain, state: frame.state,
@@ -588,6 +597,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       compressedHistory: compression.compressed,
       intent: frame.intent, domain: frame.domain, state: frame.state,
       tokensSaved: compression.tokensSaved,
+      tokensSavedBasis: TOKENS_SAVED_BASIS,
       frame: { confidence: frame.confidence, risk: frame.risk },
       cacheHit: false,
       wikiPageCount: sessionWiki?.pages?.length ?? 0,
@@ -646,6 +656,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       compressedHistory: compression.compressed,
       intent: frame.intent, domain: frame.domain, state: frame.state,
       tokensSaved: compression.tokensSaved,
+      tokensSavedBasis: TOKENS_SAVED_BASIS,
       memoryFrame: compression.memoryFrame ?? null,
       // Conversation-awareness signal, not a compliance boundary: tells the
       // calling agent what kind of turn this is (medical_caution,
@@ -765,7 +776,12 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
   if (req.method === 'GET' && url.pathname === '/api/usage') {
     recordUsage(key.id, '/api/usage')
-    sendJson(res, 200, await getOwnUsage(key.id))
+    const usage = await getOwnUsage(key.id)
+    sendJson(res, 200, {
+      ...usage,
+      basis: 'estimated',
+      note: 'totalTokensSaved is estimated from real tokenization of your compressed vs. original history — it is not yet verified against your provider\'s actual billed invoice. See x-cts-actual-usage on /v1/chat/completions responses for the real per-call usage your provider reported.',
+    })
     return
   }
 
