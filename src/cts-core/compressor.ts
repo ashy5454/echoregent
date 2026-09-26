@@ -125,6 +125,32 @@ export function compressHistory(history: Message[], frame: RoutingFrame): Compre
   }
   // ─────────────────────────────────────────────────────────────────────────
 
+  // ── Minimum-retention floor ────────────────────────────────────────────────
+  // pickRecentMessages/pickAnchorMessages cap out at a handful of messages
+  // (2-4 each) regardless of conversation length. For a short conversation
+  // that's most of it; for a long one it's a sliver — and because that sliver
+  // already satisfies the ratio ceiling above, the compressor never reaches
+  // for the rest of its real token budget. Left unchecked this collapses a
+  // 400+ turn conversation down to single digits and destroys recall (a real
+  // LoCoMo run measured F1 dropping from 0.326 to 0.032 on exactly this
+  // failure mode). This floor guarantees at least a minimum fraction of the
+  // original messages survive no matter how the ratio/vocabulary heuristics
+  // land, prioritizing the most recent ones not already kept.
+  const MIN_RETENTION_RATIO = 0.15
+  const minMessageCount = Math.min(original.length, Math.max(4, Math.ceil(original.length * MIN_RETENTION_RATIO)))
+  const retainedOriginals = new Set(compressed.filter((message) => message !== summaryMessage))
+  if (retainedOriginals.size < minMessageCount) {
+    const needed = minMessageCount - retainedOriginals.size
+    const additional = original.filter((message) => !retainedOriginals.has(message)).slice(-needed)
+    for (const message of additional) retainedOriginals.add(message)
+    const orderedOriginals = original.filter((message) => retainedOriginals.has(message))
+    const hasSummary = compressed.includes(summaryMessage)
+    compressed = hasSummary ? uniqueMessages([summaryMessage, ...orderedOriginals]) : orderedOriginals
+    compressedTokens = estimateTokens(compressed)
+    keptReasons.push(`CTS enforced a minimum retention floor: kept ${orderedOriginals.length} of ${original.length} original messages for a long conversation.`)
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const retainedOriginalCount = compressed.filter((message) => message.role !== 'assistant' || message.content !== summaryMessage.content).length
 
   if (compressed.length === 1) {
