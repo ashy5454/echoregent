@@ -6,7 +6,7 @@ import type { CTSAsyncInput, CTSInput, CTSResult, Message } from './types'
 
 export * from './types'
 export { classify, classifyAsync } from './classifier'
-export { compressHistory, compressHistoryAsync, getCompressionStats } from './compressor'
+export { compressHistory, compressHistoryAsync, compressHistoryWithEmbeddings, getCompressionStats } from './compressor'
 export { routePrompt } from './router'
 export { createEmptyWiki, ingestSession, wikiToContextString } from './wiki'
 export { createEmptyLLMWiki, ingestSourceIntoLLMWiki, lintLLMWiki, llmWikiToContextString } from './llmWiki'

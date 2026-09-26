@@ -1,6 +1,7 @@
 import type { CompressionResult, MemoryFrame, Message, RoutingFrame } from './types'
 import { summarizeWithT5 } from './ml-t5'
 import { countChatTokens } from './tokenizer'
+import { embedText, embedBatch, cosineSimilarity } from './embeddings'
 
 const HIGH_VALUE_DOMAINS = new Set(['coding', 'customer_support', 'sales'])
 const GENERIC_DISTRACTOR_PATTERNS = [
@@ -768,6 +769,107 @@ export async function compressHistoryAsync(history: Message[], frame: RoutingFra
   }
 }
 
+// ── Embedding-based compression ───────────────────────────────────────────────
+// Replaces the hardcoded domain-keyword regex scorer (messageRelevanceScore)
+// with real semantic similarity (Gemini embeddings) between each candidate
+// message and the current query. The regex scorer only ever matches
+// vocabulary it was hand-tuned for (Stripe, ThinkPad, Dallas, Lisinopril,
+// ...) — on real conversations outside that vocabulary it's effectively
+// blind, which is a real contributor to the LoCoMo quality gap (audit issue
+// #3). This asks a general question instead: "is this message about the
+// same thing as what's being asked right now", which needs no per-domain
+// tuning and works on unseen vocabulary.
+//
+// Requires a real Gemini API key (never hardcoded/persisted) since the
+// embedding call goes straight to Gemini's native API, independent of
+// whichever provider the customer's actual completion call uses.
+export async function compressHistoryWithEmbeddings(history: Message[], frame: RoutingFrame, geminiApiKey: string): Promise<CompressionResult> {
+  const original = [...history]
+  const keptReasons: string[] = []
+
+  if (history.length <= 4) {
+    const originalTokens = estimateTokens(original)
+    keptReasons.push('Short history kept in full.')
+    return {
+      original,
+      compressed: original,
+      memoryFrame: buildMemoryFrame(original, frame),
+      keptReasons,
+      droppedCount: 0,
+      originalTokens,
+      compressedTokens: originalTokens,
+      tokensSaved: 0,
+    }
+  }
+
+  const memoryFrame = buildMemoryFrame(original, frame)
+  const summaryMessage = getStableSummaryMessage(original, frame)
+  const query = original.filter((m) => m.role === 'user').at(-1)?.content ?? ''
+
+  // Always keep a small verbatim recent window for conversational continuity
+  // (same window size the rule-based path uses), independent of similarity.
+  const recentCount = recentWindowSize(frame)
+  const recentMessages = original.slice(-recentCount)
+  const recentSet = new Set(recentMessages)
+  const candidates = original.filter((m) => !recentSet.has(m))
+
+  const [queryEmbedding, candidateEmbeddings] = await Promise.all([
+    embedText(query, geminiApiKey, 'RETRIEVAL_QUERY'),
+    embedBatch(candidates.map((m) => m.content), geminiApiKey, 'RETRIEVAL_DOCUMENT'),
+  ])
+
+  const ranked = candidates
+    .map((message, i) => ({ message, score: cosineSimilarity(queryEmbedding, candidateEmbeddings[i]) }))
+    .sort((a, b) => b.score - a.score)
+
+  const originalTokens = estimateTokens(original)
+  const targetMaxRatio = HIGH_VALUE_DOMAINS.has(frame.domain) ? 0.62 : 0.5
+  const budgetTokens = originalTokens * targetMaxRatio
+
+  const picked: Message[] = []
+  let runningTokens = estimateTokens([summaryMessage, ...recentMessages])
+  for (const item of ranked) {
+    const cost = estimateTokens([item.message])
+    if (runningTokens + cost > budgetTokens) continue
+    picked.push(item.message)
+    runningTokens += cost
+  }
+
+  const pickedSet = new Set(picked)
+  const orderedPicked = original.filter((m) => pickedSet.has(m))
+  let compressed = uniqueMessages([summaryMessage, ...orderedPicked, ...recentMessages])
+  let compressedTokens = estimateTokens(compressed)
+
+  // Same minimum-retention floor as the rule-based path, but backfilling by
+  // similarity rank instead of pure recency — consistent with what this
+  // whole path is testing.
+  const MIN_RETENTION_RATIO = 0.15
+  const minMessageCount = Math.min(original.length, Math.max(4, Math.ceil(original.length * MIN_RETENTION_RATIO)))
+  const retainedOriginals = new Set(compressed.filter((m) => m !== summaryMessage))
+  if (retainedOriginals.size < minMessageCount) {
+    const needed = minMessageCount - retainedOriginals.size
+    const additional = ranked.filter((item) => !retainedOriginals.has(item.message)).slice(0, needed).map((item) => item.message)
+    for (const message of additional) retainedOriginals.add(message)
+    const orderedOriginals = original.filter((m) => retainedOriginals.has(m))
+    compressed = uniqueMessages([summaryMessage, ...orderedOriginals])
+    compressedTokens = estimateTokens(compressed)
+    keptReasons.push(`CTS (embeddings) enforced a minimum retention floor: kept ${orderedOriginals.length} of ${original.length} original messages.`)
+  }
+
+  keptReasons.push('CTS selected messages by semantic similarity (Gemini embeddings) to the current query, not keyword/domain regex.')
+
+  const retainedOriginalCount = compressed.filter((m) => m !== summaryMessage).length
+  return {
+    original,
+    compressed,
+    memoryFrame,
+    keptReasons,
+    droppedCount: Math.max(0, original.length - retainedOriginalCount),
+    originalTokens,
+    compressedTokens,
+    tokensSaved: Math.max(0, originalTokens - compressedTokens),
+  }
+}
 
 
 

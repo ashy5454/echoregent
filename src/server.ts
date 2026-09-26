@@ -8,6 +8,7 @@ import {
   classifyAsync,
   compressHistory,
   compressHistoryAsync,
+  compressHistoryWithEmbeddings,
   createEmptyLLMWiki,
   ctsAsync,
   ingestSession,
@@ -512,6 +513,45 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       intent: frame.intent, domain: frame.domain, state: frame.state,
       frame: { confidence: frame.confidence, risk: frame.risk, signals: frame.signals },
     })
+    return
+  }
+
+  if (req.method === 'POST' && url.pathname === '/demo/compress-embeddings') {
+    const ip = getClientIp(req)
+    if (!checkDemoRateLimit(ip)) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '60' })
+      res.end(JSON.stringify({ error: 'Demo rate limit: 20 requests/minute.' }))
+      return
+    }
+    // Semantic-similarity compression needs its own Gemini key for the
+    // embedding call, independent of whatever provider a real completion
+    // request would use — pass it as x-embedding-key, same convention as
+    // x-llm-key elsewhere in this file.
+    const embeddingKey = String(req.headers['x-embedding-key'] ?? '')
+    if (!embeddingKey) {
+      sendJson(res, 400, { error: 'Missing x-embedding-key header (a Gemini API key for the embedding call).' })
+      return
+    }
+    const body    = await readJson(req)
+    const message = String(body.message ?? '')
+    const history = asMessages(body.history)
+    const frame   = classify(message, history)
+    try {
+      const compression = await compressHistoryWithEmbeddings([...history, { role: 'user' as const, content: message }], frame, embeddingKey)
+      sendJson(res, 200, {
+        compressedHistory: compression.compressed,
+        originalTokens: compression.originalTokens,
+        compressedTokens: compression.compressedTokens,
+        tokensSaved: compression.tokensSaved,
+        tokensSavedBasis: TOKENS_SAVED_BASIS,
+        droppedCount: compression.droppedCount,
+        keptReasons: compression.keptReasons,
+        intent: frame.intent, domain: frame.domain, state: frame.state,
+        frame: { confidence: frame.confidence, risk: frame.risk },
+      })
+    } catch (err) {
+      sendJson(res, 502, { error: `Embedding upstream error: ${(err as Error).message}` })
+    }
     return
   }
 
