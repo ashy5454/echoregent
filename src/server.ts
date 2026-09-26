@@ -882,8 +882,13 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       llmUrl     = 'https://api.anthropic.com/v1/messages'
       llmHeaders = { 'x-api-key': llmKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
     } else if (llmProvider === 'gemini') {
-      llmUrl     = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${llmKey}`
-      llmHeaders = { 'content-type': 'application/json' }
+      // Was `?key=${llmKey}` in the URL — Gemini's OpenAI-compat endpoint now
+      // requires Authorization: Bearer and rejects the old query-param form
+      // with a 400 (see callGemini() below, which already used Bearer
+      // correctly). Also fixes the second half of audit issue #10: an API
+      // key belongs in a header, never in a URL that proxies/logs can capture.
+      llmUrl     = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+      llmHeaders = { authorization: `Bearer ${llmKey}`, 'content-type': 'application/json' }
     } else {
       // Default: OpenAI-compatible (openai, groq, together, etc.)
       const baseUrl = String(req.headers['x-llm-base-url'] ?? 'https://api.openai.com')

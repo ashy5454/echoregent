@@ -64,12 +64,20 @@ describe('Issue #6 — provider=anthropic forwards an OpenAI-shaped body to /v1/
   })
 })
 
-describe('Issue #10 — arbitrary x-llm-base-url, and the Gemini key travels in the URL', () => {
-  it('confirms x-llm-base-url is read directly from the request with no allowlist', () => {
+describe('Issue #10 — arbitrary x-llm-base-url (still open), and the Gemini key travels in the URL (FIXED)', () => {
+  it('confirms x-llm-base-url is read directly from the request with no allowlist — still open, not part of this pass', () => {
     expect(serverSrc).toMatch(/x-llm-base-url['"]\]\s*\?\?\s*['"]https:\/\/api\.openai\.com['"]/)
   })
 
-  it('confirms the Gemini key is interpolated directly into the request URL query string', () => {
-    expect(serverSrc).toMatch(/generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions\?key=\$\{llmKey\}/)
+  it('FIXED: the Gemini key now travels in an Authorization header, not the request URL', () => {
+    // Was `?key=${llmKey}` in the URL — also matched a comment already in this
+    // file (server.ts, callGemini()) noting Gemini's OpenAI-compat endpoint
+    // rejects that form with a 400 now and requires Bearer auth instead.
+    expect(serverSrc).not.toMatch(/generativelanguage\.googleapis\.com\/v1beta\/openai\/chat\/completions\?key=/)
+    const geminiBranch = serverSrc.slice(
+      serverSrc.indexOf("llmProvider === 'gemini'"),
+      serverSrc.indexOf("llmProvider === 'gemini'") + 700,
+    )
+    expect(geminiBranch).toMatch(/authorization:\s*`Bearer \$\{llmKey\}`/)
   })
 })
