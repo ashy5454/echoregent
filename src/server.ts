@@ -615,7 +615,16 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const key = await authenticate(req, res)
   if (!key) return
 
-  const userId = key.id
+  // Scope wiki/memory storage by (API key, end-user id) instead of API key
+  // alone, so a customer's different end users don't share one merged
+  // memory (audit issue #7). Optional and backward compatible: a caller
+  // that doesn't pass x-end-user-id gets the old key-only behavior, same as
+  // before this fix — but now that's an explicit choice, not an unfixable bug.
+  const rawEndUserId = req.headers['x-end-user-id']
+  const endUserId = typeof rawEndUserId === 'string' && rawEndUserId.trim()
+    ? sanitizeSessionId(rawEndUserId)
+    : null
+  const userId = endUserId ? `${key.id}:${endUserId}` : key.id
 
   if (req.method === 'POST' && url.pathname === '/api/classify') {
     const body  = await readJson(req)
@@ -638,6 +647,13 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       intent: frame.intent, domain: frame.domain, state: frame.state,
       tokensSaved: compression.tokensSaved,
       memoryFrame: compression.memoryFrame ?? null,
+      // Conversation-awareness signal, not a compliance boundary: tells the
+      // calling agent what kind of turn this is (medical_caution,
+      // legal_caution, crisis, protected_context, unsafe_request,
+      // financial_caution) so it can choose its own handling. See
+      // AUDIT.md Part 9 — this replaces the "architecturally enforced
+      // protected zones" claim, which was not true, with an honest one.
+      risk: frame.risk,
     })
     return
   }
@@ -768,6 +784,14 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   //   x-cts-domain          — detected domain
   //   x-cts-intent          — detected intent
   //   x-cts-compression-pct — compression percentage (0-100)
+  //   x-cts-risk            — comma-separated risk signals (medical_caution,
+  //                           legal_caution, crisis, protected_context,
+  //                           unsafe_request, financial_caution), or empty.
+  //                           This is a conversation-awareness SIGNAL for the
+  //                           calling agent to act on — not a compliance
+  //                           boundary. It does not change how this endpoint
+  //                           compresses; it tells the caller what kind of
+  //                           turn this was so THEY can decide what to do.
   if (req.method === 'POST' && (url.pathname === '/v1/chat/completions' || url.pathname === '/v1/chat/completions/')) {
     const body = await readJson(req)
 
@@ -874,6 +898,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     res.setHeader('x-cts-domain',          frame.domain)
     res.setHeader('x-cts-intent',          frame.intent)
     res.setHeader('x-cts-compression-pct', String(comprPct))
+    res.setHeader('x-cts-risk',            frame.risk.join(','))
 
     if (stream) {
       // Stream passthrough — pipe LLM response directly to client
@@ -883,6 +908,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
         'x-cts-tokens-saved':    String(tokensSaved),
         'x-cts-domain':          frame.domain,
         'x-cts-intent':          frame.intent,
+        'x-cts-risk':            frame.risk.join(','),
         'x-cts-compression-pct': String(comprPct),
       })
       if (llmResponse.body) {
@@ -1017,7 +1043,12 @@ async function routeAdmin(req: IncomingMessage, res: ServerResponse, url: URL): 
 function setCors(res: ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN)
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret,X-End-User-Id,x-llm-key,x-llm-provider,x-llm-model,x-llm-base-url')
+  // Without this, a browser-based caller can't read the x-cts-* signal headers
+  // at all (cross-origin fetch() hides response headers by default) — which
+  // would make the conversation-awareness signal invisible to exactly the
+  // kind of frontend code most likely to want it.
+  res.setHeader('Access-Control-Expose-Headers', 'x-cts-tokens-saved,x-cts-domain,x-cts-intent,x-cts-compression-pct,x-cts-risk,x-cts-actual-usage')
   res.setHeader('Vary', 'Origin')
   // Security headers
   res.setHeader('X-Content-Type-Options', 'nosniff')

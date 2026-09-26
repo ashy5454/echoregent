@@ -232,12 +232,17 @@ describe('Issue #5 (fixed, narrow scope) — unsupported message shapes are reje
   })
 })
 
-describe('Issue #7 — /api/chat and /api/wiki memory is keyed by API key only', () => {
-  it('FAILS: two different end users of the same customer key share one merged memory, with no end-user identifier anywhere in the request', async () => {
-    // End "user A" ingests a session under this API key.
+// FIXED (AUDIT.md Part 9): /api/chat and /api/wiki* now accept an optional
+// `x-end-user-id` header and scope the wiki store by (API key, end-user id)
+// instead of API key alone (server.ts: `userId = endUserId ? \`${key.id}:${endUserId}\` : key.id`).
+// Backward compatible on purpose: a caller that never sends the header keeps
+// getting the old key-only behavior — that's now an explicit, documented
+// choice a customer can opt out of, not an unfixable cross-user leak.
+describe('Issue #7 (fixed) — wiki memory can now be scoped per end user, not just per API key', () => {
+  it('FIXED: two end users with different x-end-user-id values get isolated memory under the same API key', async () => {
     await fetch(`${CTS_BASE}/api/wiki/ingest-chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctsApiKey}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctsApiKey}`, 'x-end-user-id': 'user-a' },
       body: JSON.stringify({
         session: [
           { role: 'user', content: 'I study at Stanford and I am building a fintech app.' },
@@ -247,13 +252,9 @@ describe('Issue #7 — /api/chat and /api/wiki memory is keyed by API key only',
       }),
     })
 
-    // End "user B" — a completely different person — ingests a session under the
-    // SAME API key (this is exactly what happens today: the API key belongs to the
-    // customer's backend, not to any individual end user, and the endpoint accepts
-    // no end-user id parameter at all).
     await fetch(`${CTS_BASE}/api/wiki/ingest-chat`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctsApiKey}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctsApiKey}`, 'x-end-user-id': 'user-b' },
       body: JSON.stringify({
         session: [
           { role: 'user', content: 'I study at MIT and I am building a healthcare app.' },
@@ -263,16 +264,28 @@ describe('Issue #7 — /api/chat and /api/wiki memory is keyed by API key only',
       }),
     })
 
+    const wikiARes = await fetch(`${CTS_BASE}/api/wiki`, { headers: { Authorization: `Bearer ${ctsApiKey}`, 'x-end-user-id': 'user-a' } })
+    const wikiBRes = await fetch(`${CTS_BASE}/api/wiki`, { headers: { Authorization: `Bearer ${ctsApiKey}`, 'x-end-user-id': 'user-b' } })
+    const wikiA = await wikiARes.json() as { userWiki: { profile: string[] } }
+    const wikiB = await wikiBRes.json() as { userWiki: { profile: string[] } }
+
+    expect(wikiA.userWiki.profile.some((p) => p.includes('Stanford'))).toBe(true)
+    expect(wikiA.userWiki.profile.some((p) => p.includes('MIT'))).toBe(false)
+    expect(wikiB.userWiki.profile.some((p) => p.includes('MIT'))).toBe(true)
+    expect(wikiB.userWiki.profile.some((p) => p.includes('Stanford'))).toBe(false)
+  })
+
+  it('documents the intentional backward-compatible default: no x-end-user-id still pools memory under the bare API key', async () => {
+    await fetch(`${CTS_BASE}/api/wiki/ingest-chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${ctsApiKey}` },
+      body: JSON.stringify({
+        session: [{ role: 'user', content: 'I study at Cornell and I am building a logistics app.' }],
+        frame: { intent: 'information_seeking', state: 'opening', domain: 'general', signals: { keywords: [], structures: [], urgency: 'low' }, confidence: { intent: 0.7, state: 0.9, domain: 0.6, risk: 1 } },
+      }),
+    })
     const wikiRes = await fetch(`${CTS_BASE}/api/wiki`, { headers: { Authorization: `Bearer ${ctsApiKey}` } })
     const wiki = await wikiRes.json() as { userWiki: { profile: string[] } }
-
-    const mentionsStanford = wiki.userWiki.profile.some((p) => p.includes('Stanford'))
-    const mentionsMIT      = wiki.userWiki.profile.some((p) => p.includes('MIT'))
-
-    // Expected if end users were isolated: fetching "the wiki" for this key should
-    // not silently contain both unrelated people's profile facts merged together.
-    // (There is no per-end-user id in the request at all, so there is no way to
-    // even ask for just one of them.)
-    expect(mentionsStanford && mentionsMIT).toBe(false)
+    expect(wiki.userWiki.profile.some((p) => p.includes('Cornell'))).toBe(true)
   })
 })
