@@ -925,24 +925,35 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
     recordUsage(key.id, '/v1/chat/completions', tokensSaved)
 
-    // Build the forwarded message array (compressed history + system + current)
-    const forwardMessages: Array<{ role: string; content: string }> = []
-    if (systemMsg) forwardMessages.push(systemMsg)
-    forwardMessages.push(...compression.compressed.map((m) => ({ role: m.role, content: m.content })))
-    // If currentMessage is not already in compressed (it may be), append it
+    // Build the forwarded history + current message, without any system entry —
+    // system is handled per-provider below, since Anthropic's Messages API takes
+    // it as a top-level `system` string and rejects a `role: "system"` message.
+    const forwardHistory: Array<{ role: string; content: string }> = compression.compressed.map((m) => ({ role: m.role, content: m.content }))
     const alreadyHasCurrent = compression.compressed.some(
       (m) => m.role === 'user' && m.content === currentMessage
     )
     if (!alreadyHasCurrent && currentMessage) {
-      forwardMessages.push({ role: 'user', content: currentMessage })
+      forwardHistory.push({ role: 'user', content: currentMessage })
     }
 
-    // Determine LLM endpoint
+    // Determine LLM endpoint + provider-shaped request body
     let llmUrl: string
     let llmHeaders: Record<string, string>
+    let llmBody: Record<string, unknown>
     if (llmProvider === 'anthropic') {
+      // Anthropic's Messages API needs a top-level `system` string (not a
+      // `role: "system"` message) and a required `max_tokens` — sending the
+      // OpenAI body shape here gets rejected outright. Also strip any
+      // OpenAI-only fields (`{...body}` used to forward these verbatim).
       llmUrl     = 'https://api.anthropic.com/v1/messages'
       llmHeaders = { 'x-api-key': llmKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
+      llmBody    = {
+        model: llmModel,
+        max_tokens: typeof body.max_tokens === 'number' ? body.max_tokens : 4096,
+        ...(systemMsg ? { system: systemMsg.content } : {}),
+        messages: forwardHistory,
+        stream,
+      }
     } else if (llmProvider === 'gemini') {
       // Was `?key=${llmKey}` in the URL — Gemini's OpenAI-compat endpoint now
       // requires Authorization: Bearer and rejects the old query-param form
@@ -951,11 +962,13 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       // key belongs in a header, never in a URL that proxies/logs can capture.
       llmUrl     = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
       llmHeaders = { authorization: `Bearer ${llmKey}`, 'content-type': 'application/json' }
+      llmBody    = { ...body, messages: [...(systemMsg ? [systemMsg] : []), ...forwardHistory], model: llmModel, stream }
     } else {
       // Default: OpenAI-compatible (openai, groq, together, etc.)
       const baseUrl = String(req.headers['x-llm-base-url'] ?? 'https://api.openai.com')
       llmUrl     = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`
       llmHeaders = { authorization: `Bearer ${llmKey}`, 'content-type': 'application/json' }
+      llmBody    = { ...body, messages: [...(systemMsg ? [systemMsg] : []), ...forwardHistory], model: llmModel, stream }
     }
 
     const controller = new AbortController()
@@ -967,7 +980,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
         signal:  controller.signal,
         method:  'POST',
         headers: llmHeaders,
-        body:    JSON.stringify({ ...body, messages: forwardMessages, model: llmModel, stream }),
+        body:    JSON.stringify(llmBody),
       })
     } catch (err) {
       clearTimeout(timeout)

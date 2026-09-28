@@ -45,22 +45,18 @@ describe('Issue #4 — compressHistoryAsync truncates T5 input to ~1500 characte
   })
 })
 
-describe('Issue #6 — provider=anthropic forwards an OpenAI-shaped body to /v1/messages', () => {
-  it('FAILS: the anthropic branch of /v1/chat/completions should build an Anthropic-shaped body (top-level "system", no "system" role in messages) but instead reuses the OpenAI body shape', () => {
+describe('Issue #6 — provider=anthropic forwards an OpenAI-shaped body to /v1/messages (FIXED)', () => {
+  it('confirms the anthropic branch builds an Anthropic-shaped body: top-level "system", no "system" role in messages, required max_tokens', () => {
     const anthropicBranchStart = serverSrc.indexOf("llmProvider === 'anthropic'")
-    const anthropicBranchBlock = serverSrc.slice(anthropicBranchStart, anthropicBranchStart + 400)
-    // Actual code: sets the URL/headers for Anthropic but sends `{ ...body, messages:
-    // forwardMessages, model: llmModel, stream }` — the same OpenAI-shaped payload used
-    // for every other provider (server.ts:847-851), which still contains a `role:"system"`
-    // message pushed earlier (server.ts:816) instead of Anthropic's required top-level
-    // `system` string field. Anthropic's Messages API rejects `system` as a message role.
-    const fetchCallBlock = serverSrc.slice(
-      serverSrc.indexOf('llmResponse = await fetch(llmUrl'),
-      serverSrc.indexOf('llmResponse = await fetch(llmUrl') + 300,
-    )
+    const anthropicBranchEnd   = serverSrc.indexOf("else if (llmProvider === 'gemini')", anthropicBranchStart)
+    const anthropicBranchBlock = serverSrc.slice(anthropicBranchStart, anthropicBranchEnd)
     expect(anthropicBranchBlock).toMatch(/api\.anthropic\.com\/v1\/messages/)
-    // This is what SHOULD be true for a correct Anthropic translation and is NOT:
-    expect(fetchCallBlock).toMatch(/system:\s*systemMsg/)
+    // The fix: llmBody for the anthropic branch carries system as a top-level field
+    // (from systemMsg.content, not a role:"system" message) and always sets max_tokens,
+    // which Anthropic's Messages API requires and OpenAI-style bodies don't.
+    expect(anthropicBranchBlock).toMatch(/system:\s*systemMsg\.content/)
+    expect(anthropicBranchBlock).toMatch(/max_tokens:/)
+    expect(anthropicBranchBlock).toMatch(/messages:\s*forwardHistory/)
   })
 })
 
