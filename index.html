@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EchoRegent — Conversation Intelligence Middleware</title>
+  <meta name="description" content="Classifies every conversation turn for domain, intent, and risk. Compresses history for OpenAI-compatible APIs without losing meaning — and gives your agent a conversation-awareness signal it can act on.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<nav>
+  <div class="nav-logo">Echo<span style="opacity:0.5">Regent</span></div>
+  <div class="nav-links">
+    <a href="#demo">Demo</a>
+    <a href="#quickstart">Quickstart</a>
+    <a href="#results">Results</a>
+    <a href="#waitlist">Get Access</a>
+    <a href="https://github.com/ashy5454/echoregent">GitHub</a>
+    <a href="/memory">Your Memory</a>
+    <a class="btn-nav" href="#waitlist">JOIN WAITLIST</a>
+  </div>
+</nav>
+
+<section class="hero">
+  <div class="hero-eyebrow">CONVERSATION INTELLIGENCE MIDDLEWARE</div>
+  <h1 class="hero-title">EchoRegent</h1>
+  <p class="hero-desc">
+    Classifies every conversation turn for domain, intent, and risk. Compresses history
+    for OpenAI-compatible APIs without losing meaning — and gives your agent a
+    conversation-awareness signal it can act on.
+  </p>
+  <div class="hero-btns">
+    <a href="#demo" class="btn-light">TRY THE LIVE DEMO</a>
+    <a href="#quickstart" class="btn-dark">VIEW THE API</a>
+  </div>
+  <div class="hero-waitlist-count"><span id="waitlist-count">Be the first on the waitlist</span></div>
+</section>
+
+<section class="demo-section section" id="demo">
+  <h2 class="section-title">See it classify, live</h2>
+  <p class="section-sub">Every message below goes through the real classifier — no scripted demo replies.</p>
+
+  <div class="demo-container">
+    <div class="demo-chat">
+      <div class="chat-messages" id="chat-messages">
+        <div class="chat-welcome">
+          Try one of these, or type your own —<br><br>
+          <span class="hint" data-msg="Why is my API returning a 500 error intermittently, only under load?">Why is my API returning a 500 error under load?</span><br><br>
+          <span class="hint" data-msg="My order still hasn't arrived after 3 weeks and support keeps ignoring my emails.">My order hasn't arrived in 3 weeks and support is ignoring me.</span><br><br>
+          <span class="hint" data-msg="Your pricing seems expensive compared to competitors — why should I pick you?">Your pricing seems expensive compared to competitors.</span><br><br>
+          <span class="hint" data-msg="Should I get a second opinion before agreeing to this surgery?">Should I get a second opinion before this surgery?</span><br><br>
+          <span class="hint" data-msg="Can you explain how gradient descent actually works, step by step?">Can you explain how gradient descent works?</span>
+        </div>
+      </div>
+      <div class="chat-input-row">
+        <input type="text" id="chat-input" placeholder="Type a message…" autocomplete="off">
+        <button class="btn-dark" id="chat-send">SEND</button>
+      </div>
+    </div>
+
+    <div class="demo-frame" id="demo-frame">
+      <div class="frame-placeholder">
+        <div class="frame-icon">◇</div>
+        <p>Send a message to see live<br>domain, intent, and risk analysis.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="quickstart-section section" id="quickstart">
+  <h2 class="section-title">Drop-in integration</h2>
+  <p class="section-sub">One-line change: point your OpenAI-compatible baseURL at EchoRegent.</p>
+
+  <div class="api-container">
+    <div class="api-info">
+      <div class="api-info-item">
+        <span class="api-info-icon">🔌</span>
+        <div>
+          <strong>One-line integration</strong>
+          <p>Swap your OpenAI-compatible <code>baseURL</code> to EchoRegent's <code>/v1</code> endpoint. No other code changes.</p>
+        </div>
+      </div>
+      <div class="api-info-item">
+        <span class="api-info-icon">🔑</span>
+        <div>
+          <strong>Bring your own provider key</strong>
+          <p>Your OpenAI, Anthropic, or Gemini key travels in the <code>x-llm-key</code> header on each request — never stored server-side.</p>
+        </div>
+      </div>
+      <div class="api-info-item">
+        <span class="api-info-icon">📊</span>
+        <div>
+          <strong>Real usage headers on every response</strong>
+          <p><code>x-cts-tokens-saved</code>, <code>x-cts-domain</code>, <code>x-cts-intent</code>, <code>x-cts-risk</code>, and <code>x-cts-compression-mode</code> come back on every call.</p>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="qs-tabs">
+        <button class="qs-tab active" data-lang="curl">CURL</button>
+        <button class="qs-tab" data-lang="js">JAVASCRIPT</button>
+        <button class="qs-tab" data-lang="python">PYTHON</button>
+      </div>
+
+      <div class="qs-panel active" data-lang="curl">
+        <div class="code-block">
+          <div class="code-lang">bash</div>
+          <pre><code><span class="c"># provider = openai, anthropic, or gemini</span>
+curl https://your-echoregent-url/v1/chat/completions \
+  -H <span class="str">"Authorization: Bearer YOUR_ECHOREGENT_KEY"</span> \
+  -H <span class="str">"Content-Type: application/json"</span> \
+  -H <span class="str">"x-llm-key: YOUR_OPENAI_KEY"</span> \
+  -H <span class="str">"x-llm-provider: openai"</span> \
+  -d <span class="str">'{"model":"gpt-4o","messages":[{"role":"user","content":"Hello"}]}'</span></code></pre>
+        </div>
+      </div>
+
+      <div class="qs-panel" data-lang="js">
+        <div class="code-block">
+          <div class="code-lang">javascript</div>
+          <pre><code><span class="kw">import</span> OpenAI <span class="kw">from</span> <span class="str">'openai'</span>
+
+<span class="kw">const</span> client = <span class="kw">new</span> OpenAI({
+  apiKey: <span class="str">'YOUR_ECHOREGENT_KEY'</span>,
+  baseURL: <span class="str">'https://your-echoregent-url/v1'</span>,
+  defaultHeaders: {
+    <span class="str">'x-llm-key'</span>: <span class="str">'YOUR_OPENAI_KEY'</span>,
+    <span class="str">'x-llm-provider'</span>: <span class="str">'openai'</span>,
+  },
+})
+
+<span class="kw">const</span> res = <span class="kw">await</span> client.chat.completions.create({
+  model: <span class="str">'gpt-4o'</span>,
+  messages: [{ role: <span class="str">'user'</span>, content: <span class="str">'Hello'</span> }],
+})</code></pre>
+        </div>
+      </div>
+
+      <div class="qs-panel" data-lang="python">
+        <div class="code-block">
+          <div class="code-lang">python</div>
+          <pre><code><span class="kw">import</span> requests
+
+res = requests.post(
+    <span class="str">"https://your-echoregent-url/v1/chat/completions"</span>,
+    headers={
+        <span class="str">"Authorization"</span>: <span class="str">"Bearer YOUR_ECHOREGENT_KEY"</span>,
+        <span class="str">"x-llm-key"</span>: <span class="str">"YOUR_OPENAI_KEY"</span>,
+        <span class="str">"x-llm-provider"</span>: <span class="str">"openai"</span>,
+    },
+    json={
+        <span class="str">"model"</span>: <span class="str">"gpt-4o"</span>,
+        <span class="str">"messages"</span>: [{<span class="str">"role"</span>: <span class="str">"user"</span>, <span class="str">"content"</span>: <span class="str">"Hello"</span>}],
+    },
+)
+<span class="kw">print</span>(res.json())</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="results">
+  <h2 class="section-title">Measured, not asserted</h2>
+  <p class="section-sub">Real numbers from real API calls — see the methodology note below each one.</p>
+
+  <div class="bench-metric-cards" style="grid-template-columns: repeat(2, 1fr); max-width: 700px; margin-left: auto; margin-right: auto;">
+    <div class="bench-metric-card">
+      <div class="bench-metric-num">29.4%</div>
+      <div class="bench-metric-label">Token reduction</div>
+      <div class="bench-metric-sub">Paired A/B benchmark on realistic conversations, both arms making real Gemini API calls and reading real <code>total_tokens</code> from real responses.</div>
+    </div>
+    <div class="bench-metric-card">
+      <div class="bench-metric-num">0.213 <span style="opacity:0.4;font-size:16px">vs 0.105</span></div>
+      <div class="bench-metric-label">LoCoMo answer-quality F1</div>
+      <div class="bench-metric-sub">Embedding-based compression roughly doubles answer quality vs. the older regex-only scorer on long, realistic conversations.</div>
+    </div>
+  </div>
+
+  <p class="bench-quality-note" style="text-align:center;max-width:640px;margin-left:auto;margin-right:auto;">
+    LoCoMo is a stress test on very long conversations, not a savings number — it's here to show the honest
+    quality/compression tradeoff at that extreme, not to be read as a typical-case result. Both benchmarks are
+    real scripts in this repo (<code>audit/notes/live_paired_bench.ts</code>,
+    <code>audit/notes/locomo_eval_embeddings.ts</code>) — clone the repo and rerun them yourself with your own
+    provider key.
+  </p>
+</section>
+
+<section class="api-section section" id="waitlist">
+  <h2 class="section-title">Get API access</h2>
+  <p class="section-sub">We're onboarding developers in small batches during early access.</p>
+
+  <div class="api-key-form" style="max-width: 480px; margin: 0 auto;">
+    <h3>Request an API key</h3>
+    <p class="form-sub">Tell us a bit about your use case — most requests are approved within 24 hours.</p>
+    <input type="text" id="req-name" placeholder="Your name" autocomplete="off">
+    <input type="email" id="req-email" placeholder="Work email" autocomplete="off">
+    <input type="text" id="req-use" placeholder="What are you building? (optional)" autocomplete="off">
+    <button class="btn-dark" id="req-submit">JOIN WAITLIST →</button>
+    <div class="req-status" id="req-status"></div>
+  </div>
+</section>
+
+<section class="dashboard-section section">
+  <h2 class="section-title">Check your usage</h2>
+  <p class="section-sub">Paste your API key to see your real call and token-savings totals.</p>
+
+  <div class="dashboard-container">
+    <div class="key-input-row">
+      <input type="password" id="dash-key" placeholder="Your EchoRegent API key" autocomplete="off">
+      <button class="btn-dark" id="dash-load">LOAD →</button>
+    </div>
+    <div class="dash-stats hidden" id="dash-stats"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">Echo<span style="opacity:0.5">Regent</span></div>
+  <div class="footer-sub">Conversation Intelligence Middleware</div>
+  <div class="footer-links">
+    <a href="#demo">Demo</a>
+    <a href="#quickstart">Quickstart</a>
+    <a href="/memory">Your Memory</a>
+    <a href="https://github.com/ashy5454/echoregent">GitHub</a>
+  </div>
+  <div class="footer-copy">© 2026 EchoRegent, a <a href="https://yudi.co.in">Yudi Labs</a> project. MIT licensed.</div>
+</footer>
+
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
