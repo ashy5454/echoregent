@@ -53,6 +53,7 @@ import {
 } from './saas/db.js'
 import { initDb, getDb } from './saas/database.js'
 import { getAdminDashboardHtml } from './admin-ui.js'
+import { getMemoryViewHtml } from './memory-ui.js'
 
 // Load .env for local dev (no extra dependencies needed)
 const envFile = join(process.cwd(), '.env')
@@ -378,6 +379,14 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const origin = `${req.headers['x-forwarded-proto'] ?? 'http'}://${req.headers.host ?? `localhost:${PORT}`}`
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
     res.end(getAdminDashboardHtml(origin))
+    return
+  }
+
+  // ── Customer-facing "what's been memorized about me" page ────────────────
+  if (req.method === 'GET' && url.pathname === '/memory') {
+    const origin = `${req.headers['x-forwarded-proto'] ?? 'http'}://${req.headers.host ?? `localhost:${PORT}`}`
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end(getMemoryViewHtml(origin))
     return
   }
 
