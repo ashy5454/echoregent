@@ -60,6 +60,16 @@ export async function initDb(): Promise<void> {
     )
   `)
 
+  // Added after initial launch — IF NOT EXISTS so this is a no-op on a DB that
+  // already has these columns, and safe to run on every startup like the rest
+  // of this function.
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS domain TEXT`)
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS provider TEXT`)
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS model TEXT`)
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS actual_prompt_tokens INTEGER`)
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS actual_completion_tokens INTEGER`)
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS actual_total_tokens INTEGER`)
+
   await db.query(`
     CREATE TABLE IF NOT EXISTS wiki_store (
       key_id      TEXT PRIMARY KEY,

@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { logUsage, lookupKey, type UsageSummary } from './db.js'
+import { logUsage, lookupKey, type UsageSummary, type UsageMeta } from './db.js'
 
 type ApiKey = Omit<UsageSummary, 'totalCalls' | 'totalTokensSaved' | 'last24hCalls'>
 
@@ -45,8 +45,8 @@ export async function authenticate(
   return key
 }
 
-export function recordUsage(keyId: string, endpoint: string, tokensSaved = 0): void {
-  logUsage(keyId, endpoint, tokensSaved)
+export function recordUsage(keyId: string, endpoint: string, tokensSaved = 0, meta?: UsageMeta): void {
+  logUsage(keyId, endpoint, tokensSaved, meta)
 }
 
 function checkRateLimit(keyId: string): boolean {

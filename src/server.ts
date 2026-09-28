@@ -818,7 +818,9 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
   if (req.method === 'GET' && url.pathname === '/api/usage') {
     recordUsage(key.id, '/api/usage')
-    const usage = await getOwnUsage(key.id)
+    const since = url.searchParams.get('since') ?? undefined
+    const until = url.searchParams.get('until') ?? undefined
+    const usage = await getOwnUsage(key.id, { since, until })
     sendJson(res, 200, {
       ...usage,
       basis: 'estimated',
@@ -925,8 +927,6 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       ? Math.round((tokensSaved / compression.originalTokens) * 100)
       : 0
 
-    recordUsage(key.id, '/v1/chat/completions', tokensSaved)
-
     // Build the forwarded history + current message, without any system entry —
     // system is handled per-provider below, since Anthropic's Messages API takes
     // it as a top-level `system` string and rejects a `role: "system"` message.
@@ -991,6 +991,12 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       })
     } catch (err) {
       clearTimeout(timeout)
+      // Still log the attempt (domain/provider/model, no actual usage since
+      // nothing was billed) so quota accounting and the usage log don't
+      // silently drop failed upstream calls.
+      recordUsage(key.id, '/v1/chat/completions', tokensSaved, {
+        domain: frame.domain, provider: llmProvider, model: llmModel,
+      })
       sendJson(res, 502, { error: `LLM upstream error: ${(err as Error).message}` })
       return
     }
@@ -1005,6 +1011,13 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     res.setHeader('x-cts-compression-mode', compressionMode)
 
     if (stream) {
+      // Real per-call usage isn't available for a streamed response without
+      // buffering the whole SSE body (providers only send the usage object
+      // in the final chunk, if at all) — log the pre-call estimate + routing
+      // metadata now rather than not logging the call at all.
+      recordUsage(key.id, '/v1/chat/completions', tokensSaved, {
+        domain: frame.domain, provider: llmProvider, model: llmModel,
+      })
       // Stream passthrough — pipe LLM response directly to client
       res.writeHead(llmResponse.status, {
         'content-type':          'text/event-stream',
@@ -1040,6 +1053,16 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     // response body. Never overwrite it with a further estimate.
     const realUsage = llmPayload.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined
     if (realUsage) res.setHeader('x-cts-actual-usage', JSON.stringify(realUsage))
+    recordUsage(key.id, '/v1/chat/completions', tokensSaved, {
+      domain: frame.domain, provider: llmProvider, model: llmModel,
+      ...(realUsage ? {
+        actualUsage: {
+          promptTokens: realUsage.prompt_tokens,
+          completionTokens: realUsage.completion_tokens,
+          totalTokens: realUsage.total_tokens,
+        },
+      } : {}),
+    })
     res.writeHead(llmResponse.status, { 'content-type': 'application/json' })
     res.end(JSON.stringify(llmPayload))
     return
@@ -1075,7 +1098,9 @@ async function routeAdmin(req: IncomingMessage, res: ServerResponse, url: URL): 
   if (req.method === 'GET' && /^\/admin\/keys\/[^/]+\/usage$/.test(url.pathname)) {
     const keyId = url.pathname.split('/')[3]
     const limit = Number(url.searchParams.get('limit') || 100)
-    sendJson(res, 200, { usage: await getKeyUsage(keyId, limit) })
+    const since = url.searchParams.get('since') ?? undefined
+    const until = url.searchParams.get('until') ?? undefined
+    sendJson(res, 200, { usage: await getKeyUsage(keyId, limit, { since, until }) })
     return
   }
 

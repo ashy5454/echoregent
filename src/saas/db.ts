@@ -22,7 +22,22 @@ export type UsageEntry = {
   endpoint: string
   tokensSaved: number
   calledAt: string
+  domain?: string
+  provider?: string
+  model?: string
+  actualPromptTokens?: number
+  actualCompletionTokens?: number
+  actualTotalTokens?: number
 }
+
+export type UsageMeta = {
+  domain?: string
+  provider?: string
+  model?: string
+  actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number }
+}
+
+export type UsageTimeRange = { since?: string; until?: string }
 
 export type UsageSummary = Omit<ApiKey, 'keyHash'> & {
   totalCalls: number
@@ -176,14 +191,23 @@ export async function updateKeyQuota(keyId: string, limit: number, used: number)
 
 // ── Usage tracking ────────────────────────────────────────────────────────────
 
-export function logUsage(keyId: string, endpoint: string, tokensSaved: number): void {
+export function logUsage(keyId: string, endpoint: string, tokensSaved: number, meta: UsageMeta = {}): void {
   const db = getDb()
 
   if (db) {
     // Fire-and-forget — usage logging must never block a response
     db.query(
-      `INSERT INTO usage_log (key_id, endpoint, tokens_saved) VALUES ($1, $2, $3)`,
-      [keyId, endpoint, tokensSaved],
+      `INSERT INTO usage_log
+         (key_id, endpoint, tokens_saved, domain, provider, model,
+          actual_prompt_tokens, actual_completion_tokens, actual_total_tokens)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+      [
+        keyId, endpoint, tokensSaved,
+        meta.domain ?? null, meta.provider ?? null, meta.model ?? null,
+        meta.actualUsage?.promptTokens ?? null,
+        meta.actualUsage?.completionTokens ?? null,
+        meta.actualUsage?.totalTokens ?? null,
+      ],
     ).catch((err) => console.error('[db] logUsage error:', err))
 
     // Increment quota_used
@@ -195,7 +219,17 @@ export function logUsage(keyId: string, endpoint: string, tokensSaved: number): 
     // Defer to next tick so the HTTP response is not blocked by a synchronous file write
     setImmediate(() => {
       const usage = loadUsage()
-      usage.push({ keyId, endpoint, tokensSaved, calledAt: new Date().toISOString() })
+      usage.push({
+        keyId, endpoint, tokensSaved, calledAt: new Date().toISOString(),
+        ...(meta.domain ? { domain: meta.domain } : {}),
+        ...(meta.provider ? { provider: meta.provider } : {}),
+        ...(meta.model ? { model: meta.model } : {}),
+        ...(meta.actualUsage ? {
+          actualPromptTokens: meta.actualUsage.promptTokens,
+          actualCompletionTokens: meta.actualUsage.completionTokens,
+          actualTotalTokens: meta.actualUsage.totalTokens,
+        } : {}),
+      })
       if (usage.length > 10_000) usage.splice(0, usage.length - 10_000)
       saveUsage(usage)
     })
@@ -253,30 +287,61 @@ export async function getDashboard(): Promise<UsageSummary[]> {
   }
 }
 
-export async function getKeyUsage(keyId: string, limit = 100): Promise<UsageEntry[]> {
+export async function getKeyUsage(keyId: string, limit = 100, range: UsageTimeRange = {}): Promise<UsageEntry[]> {
   const db = getDb()
 
   if (db) {
-    const { rows } = await db.query<{ key_id: string; endpoint: string; tokens_saved: number; called_at: string }>(
-      `SELECT key_id, endpoint, tokens_saved, called_at
-       FROM usage_log WHERE key_id = $1
-       ORDER BY called_at DESC LIMIT $2`,
-      [keyId, limit],
+    const conditions: string[] = ['key_id = $1']
+    const params: unknown[]    = [keyId]
+    if (range.since) { params.push(range.since); conditions.push(`called_at >= $${params.length}`) }
+    if (range.until) { params.push(range.until); conditions.push(`called_at <= $${params.length}`) }
+    params.push(limit)
+
+    const { rows } = await db.query<{
+      key_id: string; endpoint: string; tokens_saved: number; called_at: string
+      domain: string | null; provider: string | null; model: string | null
+      actual_prompt_tokens: number | null; actual_completion_tokens: number | null; actual_total_tokens: number | null
+    }>(
+      `SELECT key_id, endpoint, tokens_saved, called_at, domain, provider, model,
+              actual_prompt_tokens, actual_completion_tokens, actual_total_tokens
+       FROM usage_log WHERE ${conditions.join(' AND ')}
+       ORDER BY called_at DESC LIMIT $${params.length}`,
+      params,
     )
     return rows.map((r) => ({
       keyId: r.key_id, endpoint: r.endpoint,
       tokensSaved: r.tokens_saved, calledAt: r.called_at,
+      ...(r.domain ? { domain: r.domain } : {}),
+      ...(r.provider ? { provider: r.provider } : {}),
+      ...(r.model ? { model: r.model } : {}),
+      ...(r.actual_prompt_tokens != null ? { actualPromptTokens: r.actual_prompt_tokens } : {}),
+      ...(r.actual_completion_tokens != null ? { actualCompletionTokens: r.actual_completion_tokens } : {}),
+      ...(r.actual_total_tokens != null ? { actualTotalTokens: r.actual_total_tokens } : {}),
     }))
   } else {
-    return loadUsage().filter((u) => u.keyId === keyId).slice(-limit).reverse()
+    return loadUsage()
+      .filter((u) => u.keyId === keyId)
+      .filter((u) => (range.since ? u.calledAt >= range.since : true))
+      .filter((u) => (range.until ? u.calledAt <= range.until : true))
+      .slice(-limit)
+      .reverse()
   }
 }
 
-export async function getOwnUsage(keyId: string): Promise<{ totalCalls: number; totalTokensSaved: number; last24hCalls: number }> {
+export async function getOwnUsage(
+  keyId: string,
+  range: UsageTimeRange = {},
+): Promise<{ totalCalls: number; totalTokensSaved: number; last24hCalls: number; rangeCalls?: number; rangeTokensSaved?: number }> {
   const db     = getDb()
   const cutoff = new Date(Date.now() - 86_400_000).toISOString()
 
   if (db) {
+    const rangeConditions: string[] = ['key_id = $1']
+    const rangeParams: unknown[]    = [keyId]
+    if (range.since) { rangeParams.push(range.since); rangeConditions.push(`called_at >= $${rangeParams.length}`) }
+    if (range.until) { rangeParams.push(range.until); rangeConditions.push(`called_at <= $${rangeParams.length}`) }
+    const hasRange = Boolean(range.since || range.until)
+
     const { rows } = await db.query<{ total_calls: string; total_tokens: string; last24h: string }>(
       `SELECT
          COUNT(*)::text                                        AS total_calls,
@@ -286,17 +351,40 @@ export async function getOwnUsage(keyId: string): Promise<{ totalCalls: number; 
       [keyId, cutoff],
     )
     const r = rows[0]
-    return {
+    const result = {
       totalCalls: Number(r?.total_calls ?? 0),
       totalTokensSaved: Number(r?.total_tokens ?? 0),
       last24hCalls: Number(r?.last24h ?? 0),
     }
+    if (!hasRange) return result
+
+    const rangeRes = await db.query<{ range_calls: string; range_tokens: string }>(
+      `SELECT COUNT(*)::text AS range_calls, COALESCE(SUM(tokens_saved), 0)::text AS range_tokens
+       FROM usage_log WHERE ${rangeConditions.join(' AND ')}`,
+      rangeParams,
+    )
+    return {
+      ...result,
+      rangeCalls: Number(rangeRes.rows[0]?.range_calls ?? 0),
+      rangeTokensSaved: Number(rangeRes.rows[0]?.range_tokens ?? 0),
+    }
   } else {
     const ku = loadUsage().filter((u) => u.keyId === keyId)
-    return {
+    const result = {
       totalCalls: ku.length,
       totalTokensSaved: ku.reduce((s, u) => s + u.tokensSaved, 0),
       last24hCalls: ku.filter((u) => u.calledAt >= cutoff).length,
+    }
+    const hasRange = Boolean(range.since || range.until)
+    if (!hasRange) return result
+
+    const ranged = ku
+      .filter((u) => (range.since ? u.calledAt >= range.since : true))
+      .filter((u) => (range.until ? u.calledAt <= range.until : true))
+    return {
+      ...result,
+      rangeCalls: ranged.length,
+      rangeTokensSaved: ranged.reduce((s, u) => s + u.tokensSaved, 0),
     }
   }
 }
