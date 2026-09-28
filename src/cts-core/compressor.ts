@@ -4,21 +4,18 @@ import { countChatTokens } from './tokenizer'
 import { embedText, embedBatch, cosineSimilarity } from './embeddings'
 
 const HIGH_VALUE_DOMAINS = new Set(['coding', 'customer_support', 'sales'])
+// Multi-word phrases only — a bare single word ("Tokyo", "cat", "lunch") is too likely to be
+// the actual substance of an on-topic message (a timezone bug that reproduces "in Tokyo," a
+// medical detail about "cat" allergies, a delivery window scheduled "during lunch") to use as
+// a small-talk signal on its own. A multi-word phrase like "dark mode" or "favorite color" is
+// specific enough to small talk that it doesn't carry this same false-positive risk.
 const GENERIC_DISTRACTOR_PATTERNS = [
   /\bdark mode\b/i,
   /\blight mode\b/i,
-  /\bMarvel\b/i,
-  /\bmovie\b/i,
-  /\bweather\b/i,
-  /\bTokyo\b/i,
-  /\bcat\b/i,
-  /\blunch\b/i,
   /\bspace travel\b/i,
   /\bfavorite color\b/i,
   /\bstanding desk\b/i,
   /\bfitness routine\b/i,
-  /\bsushi\b/i,
-  /\bburger\b/i,
 ]
 
 export interface CompressionStats {
@@ -473,7 +470,12 @@ function inferUnresolved(text: string, domain: string, intent: string): string[]
   if (domain === 'coding') {
     if (/\b403|401|500|failed|timeout|signature|schema|bio|requests\b/.test(lowered)) addMatches(collector, text, /\b403|401|500|signature|timeout|failed payment|card_declined|retry_count|rate limiting|latency|schema|bio|requests\b/gi)
   } else if (domain === 'customer_support') {
-    if (/\brefund|arrived|tracking|escalate|process\b/.test(lowered)) addMatches(collector, text, /\brefund|arrived|tracking|Dallas|Chicago|escalated?|process\b/gi)
+    if (/\brefund|arrived|tracking|escalate|process\b/.test(lowered)) {
+      addMatches(collector, text, /\brefund|arrived|tracking|escalated?|process\b/gi)
+      // A location following "in" — generalizes what used to be a hardcoded
+      // Dallas|Chicago alternation, which silently dropped every other city.
+      addMatches(collector, text, /(?<=\bin )[A-Z][a-z]{2,15}\b/g)
+    }
   } else if (domain === 'sales') {
     if (/\bprice|budget|security|discount|contract\b/.test(lowered)) addMatches(collector, text, /\bprice|budget|security|discount|ROI|SSO|audit logs|contract\b/gi)
   } else if (domain === 'legal') {
@@ -558,7 +560,7 @@ function factImportance(fact: string, domain: string): number {
   if (/\d/.test(fact)) score += 2
   if (fact.includes(' ')) score += 1
   if (domain === 'coding' && /\b(403|401|500|Stripe|TypeScript|Python|Redis|Postgres|signature|webhook|dead-letter|card_declined|retry_count|rate limiting|latency|concurrency|100 requests|API key|exponential backoff|nullable|backfill|constraints|migration|queue|retry|worker|database|schema|scrape|pagination|script|requests|bio|BeautifulSoup|CSV)\b/i.test(fact)) score += 4
-  if (domain === 'customer_support' && /\b(Dallas|Chicago|refund|delivery|express shipping|damaged monitor|replacement|escalated?|tracking|order|Friday|Monday|deadline|process)\b/i.test(fact)) score += 4
+  if (domain === 'customer_support' && /\b(refund|delivery|express shipping|damaged monitor|replacement|escalated?|tracking|order|Friday|Monday|deadline|process)\b/i.test(fact)) score += 4
   if (domain === 'sales' && /\b(ROI|SOC2|SSO|audit logs|discount|security|premium|startups|contract|budget)\b/i.test(fact)) score += 4
   if (domain === 'legal' && /\b(indemnity clause|third-party claims|non-compete|California law|California|whistleblower|contract|18 months|termination|India|retaliation|documentation|performance)\b/i.test(fact)) score += 4
   if (domain === 'medical' && /\b(chest tightness|shortness of breath|ibuprofen|stomach discomfort|two days|three weeks|daily|knee pain|blood pressure|doctor|Lisinopril|cough|side effects|140\/90)\b/i.test(fact)) score += 4
@@ -607,6 +609,15 @@ function scoreContent(content: string, pattern: RegExp): number {
 
 function uniqueMessages(messages: Message[]): Message[] {
   return messages.filter((message, index) => messages.findIndex((other) => other.content === message.content && other.role === message.role) === index)
+}
+
+// No real English word runs past ~40 characters — a whitespace-free chunk
+// longer than that means word boundaries were lost during generation, not
+// that the model produced one very long real word.
+function isDegenerateSummary(text: string): boolean {
+  if (text.length < 30) return false
+  const longestRun = text.split(/\s+/).reduce((max, word) => Math.max(max, word.length), 0)
+  return longestRun > 40
 }
 
 function createCollector(): Map<string, string> {
@@ -719,6 +730,17 @@ export async function compressHistoryAsync(history: Message[], frame: RoutingFra
 
     // Generate natural-language summary
     const summary = await summarizeWithT5(t5Input)
+
+    // Sanity-check the output before trusting it. A broken export can return
+    // successfully (no exception) while producing degenerate text — confirmed
+    // live this session: the checked-in T5 export generates run-together
+    // text with no word boundaries at all ("Thelistindexisoutofrangethere").
+    // That has no real English word anywhere near this length, so treat it
+    // as a T5 failure and let the existing catch block below fall back to
+    // the rule-based compressor, instead of silently shipping broken text.
+    if (isDegenerateSummary(summary)) {
+      throw new Error('T5 output failed sanity check (no word boundaries — degenerate generation)')
+    }
 
     // Extract hard facts from full history BEFORE T5 can lose them.
     // These are concrete values (dates, names, numbers, IDs) that abstractive
