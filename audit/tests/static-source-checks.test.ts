@@ -60,9 +60,17 @@ describe('Issue #6 — provider=anthropic forwards an OpenAI-shaped body to /v1/
   })
 })
 
-describe('Issue #10 — arbitrary x-llm-base-url (still open), and the Gemini key travels in the URL (FIXED)', () => {
-  it('confirms x-llm-base-url is read directly from the request with no allowlist — still open, not part of this pass', () => {
-    expect(serverSrc).toMatch(/x-llm-base-url['"]\]\s*\?\?\s*['"]https:\/\/api\.openai\.com['"]/)
+describe('Issue #10 — arbitrary x-llm-base-url (FIXED), and the Gemini key travels in the URL (FIXED)', () => {
+  it('confirms x-llm-base-url is validated (protocol + resolved-hostname check) before being used, not read straight into a fetch URL', () => {
+    // validateLlmBaseUrl() rejects non-https URLs and hostnames that resolve to a
+    // private/loopback/link-local address (the SSRF vector: pointing this server's
+    // own outbound fetch at an internal address and relaying the response back).
+    expect(serverSrc).toMatch(/function validateLlmBaseUrl/)
+    expect(serverSrc).toMatch(/isPrivateOrUnresolvableHost/)
+    const openAiBranchStart = serverSrc.indexOf('Default: OpenAI-compatible')
+    const openAiBranchBlock = serverSrc.slice(openAiBranchStart, openAiBranchStart + 400)
+    expect(openAiBranchBlock).toMatch(/await validateLlmBaseUrl\(baseUrl\)/)
+    expect(openAiBranchBlock).toMatch(/sendJson\(res, 400,/)
   })
 
   it('FIXED: the Gemini key now travels in an Authorization header, not the request URL', () => {

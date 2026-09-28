@@ -3,6 +3,8 @@ import { Resend } from 'resend'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, extname, join } from 'node:path'
+import { lookup as dnsLookup } from 'node:dns/promises'
+import { isIP } from 'node:net'
 import {
   classify,
   classifyAsync,
@@ -966,6 +968,11 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     } else {
       // Default: OpenAI-compatible (openai, groq, together, etc.)
       const baseUrl = String(req.headers['x-llm-base-url'] ?? 'https://api.openai.com')
+      const baseUrlError = await validateLlmBaseUrl(baseUrl)
+      if (baseUrlError) {
+        sendJson(res, 400, { error: baseUrlError })
+        return
+      }
       llmUrl     = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`
       llmHeaders = { authorization: `Bearer ${llmKey}`, 'content-type': 'application/json' }
       llmBody    = { ...body, messages: [...(systemMsg ? [systemMsg] : []), ...forwardHistory], model: llmModel, stream }
@@ -1137,6 +1144,56 @@ async function routeAdmin(req: IncomingMessage, res: ServerResponse, url: URL): 
 }
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+// audit issue #10 (second half): x-llm-base-url used to be read straight into a
+// fetch() URL with no validation — a customer could point this server at an internal
+// address (a cloud metadata endpoint, a private-network service) and use it as an SSRF
+// proxy, with the response relayed back through this server's own reply. Resolves the
+// hostname (not just checks a literal IP) so a public hostname that resolves to a
+// private address is caught too, not just an IP typed in directly.
+const PRIVATE_IP_PATTERNS = [
+  /^127\./, /^10\./, /^192\.168\./, /^169\.254\./, /^0\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+  /^::1$/, /^::$/, /^fe80:/i, /^fc[0-9a-f]{2}:/i, /^fd[0-9a-f]{2}:/i,
+]
+
+async function isPrivateOrUnresolvableHost(hostname: string): Promise<boolean> {
+  if (hostname === 'localhost') return true
+  if (isIP(hostname)) return PRIVATE_IP_PATTERNS.some((p) => p.test(hostname))
+  try {
+    const results = await dnsLookup(hostname, { all: true })
+    return results.some((r) => PRIVATE_IP_PATTERNS.some((p) => p.test(r.address)))
+  } catch {
+    return true // can't resolve it â†’ treat as unsafe rather than proceeding blind
+  }
+}
+
+// Test-only escape hatch: audit/tests/integration.test.ts spawns a real HTTP server
+// and needs to point x-llm-base-url at a local mock upstream it controls, which is
+// exactly the shape this check exists to block. Rather than weaken the check for every
+// private address, it exempts only the one exact host:port the test harness names via
+// this env var (unset in every real deployment, so production behavior is unaffected).
+const TEST_TRUSTED_LLM_HOST = process.env.CTS_TEST_TRUSTED_LLM_HOST
+
+async function validateLlmBaseUrl(rawUrl: string): Promise<string | null> {
+  let parsed: URL
+  try {
+    parsed = new URL(rawUrl)
+  } catch {
+    return 'x-llm-base-url is not a valid URL.'
+  }
+  if (TEST_TRUSTED_LLM_HOST && parsed.host === TEST_TRUSTED_LLM_HOST) {
+    return null
+  }
+  if (parsed.protocol !== 'https:') {
+    return 'x-llm-base-url must use https.'
+  }
+  if (await isPrivateOrUnresolvableHost(parsed.hostname)) {
+    return 'x-llm-base-url resolves to a private/internal address, which is not allowed.'
+  }
+  return null
+}
+
 
 function setCors(res: ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN)

@@ -70,6 +70,11 @@ beforeAll(async () => {
       PORT: String(CTS_PORT),
       CTS_ADMIN_SECRET: ADMIN_SECRET,
       NODE_ENV: 'test',
+      // Exempts only this test run's own local mock upstream from the SSRF
+      // host check (src/server.ts validateLlmBaseUrl) so the tests below can
+      // point x-llm-base-url at it. Every other private/loopback/non-https
+      // target is still rejected — proven by the first test in Issue #10(a) below.
+      CTS_TEST_TRUSTED_LLM_HOST: `127.0.0.1:${MOCK_PORT}`,
     },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
@@ -93,8 +98,8 @@ afterAll(async () => {
   try { rmSync(tempCwd, { recursive: true, force: true }) } catch { /* best effort */ }
 })
 
-describe('Issue #10(a) — x-llm-base-url accepts an arbitrary URL with no allowlist', () => {
-  it('forwards the compressed conversation and the "LLM key" to whatever host the caller names via x-llm-base-url', async () => {
+describe('Issue #10(a) — x-llm-base-url is now validated against SSRF targets (FIXED)', () => {
+  it('rejects a base URL pointing at a private/link-local address (e.g. the AWS/GCP cloud-metadata IP) with a clean 400, forwarding nothing', async () => {
     mockReceivedRequests = []
     const res = await fetch(`${CTS_BASE}/v1/chat/completions`, {
       method: 'POST',
@@ -102,7 +107,33 @@ describe('Issue #10(a) — x-llm-base-url accepts an arbitrary URL with no allow
         'Content-Type': 'application/json',
         Authorization: `Bearer ${ctsApiKey}`,
         'x-llm-key': 'sk-should-not-leave-this-test',
-        'x-llm-base-url': `http://127.0.0.1:${MOCK_PORT}`, // NOT api.openai.com
+        // A real SSRF target, not the test's own mock — proves the check still
+        // blocks arbitrary private/internal hosts even though the mock host
+        // below is allowlisted for this test run (via CTS_TEST_TRUSTED_LLM_HOST).
+        'x-llm-base-url': 'http://169.254.169.254/latest/meta-data/',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o',
+        messages: [{ role: 'user', content: 'Hello, does this get forwarded anywhere the caller names?' }],
+      }),
+    })
+    const payload = await res.json() as { error?: string }
+
+    expect(res.status).toBe(400)
+    expect(payload.error).toMatch(/private|internal|https/i)
+    // Nothing should have reached any upstream with the "LLM key".
+    expect(mockReceivedRequests.length).toBe(0)
+  })
+
+  it('still allows the test harness\'s own local mock upstream (explicitly allowlisted for this test run only)', async () => {
+    mockReceivedRequests = []
+    const res = await fetch(`${CTS_BASE}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${ctsApiKey}`,
+        'x-llm-key': 'sk-should-not-leave-this-test',
+        'x-llm-base-url': `http://127.0.0.1:${MOCK_PORT}`,
       },
       body: JSON.stringify({
         model: 'gpt-4o',
@@ -112,8 +143,6 @@ describe('Issue #10(a) — x-llm-base-url accepts an arbitrary URL with no allow
 
     expect(res.status).toBe(200)
     expect(mockReceivedRequests.length).toBe(1)
-    // The real bug: nothing validated that x-llm-base-url was api.openai.com (or any
-    // known provider) before sending the user's conversation + "LLM key" there.
     expect(mockReceivedRequests[0].headers.authorization).toBe('Bearer sk-should-not-leave-this-test')
   })
 })
