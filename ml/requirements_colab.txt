@@ -1,0 +1,8 @@
+transformers==4.40.0
+datasets==2.19.0
+torch
+scikit-learn
+optimum[onnxruntime]==1.19.0
+onnxruntime==1.18.0
+pandas
+numpy

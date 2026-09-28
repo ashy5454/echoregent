@@ -8,8 +8,9 @@ data/
 .env.local
 .env*.local
 
-# ML models (too large for git — download via ml/download_*.py scripts)
-ml/
+# ML models
+# ml/
+
 
 # Training datasets (large — not part of source)
 coding.json

@@ -1,0 +1,9 @@
+{
+  "customer_support": 0,
+  "coding": 1,
+  "medical": 2,
+  "education": 3,
+  "sales": 4,
+  "commerce": 5,
+  "general": 6
+}
