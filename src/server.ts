@@ -838,6 +838,19 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     return
   }
 
+  // GET /api/usage/calls — per-call "what was compressed" breakdown for the
+  // calling key. Metadata only (domain, provider, model, compression mode,
+  // message counts, token counts) — never the message content itself.
+  if (req.method === 'GET' && url.pathname === '/api/usage/calls') {
+    recordUsage(key.id, '/api/usage/calls')
+    const since = url.searchParams.get('since') ?? undefined
+    const until = url.searchParams.get('until') ?? undefined
+    const limit = Number(url.searchParams.get('limit') || 50)
+    const calls = await getKeyUsage(key.id, limit, { since, until })
+    sendJson(res, 200, { calls })
+    return
+  }
+
   // ── OpenAI-compatible proxy: POST /v1/chat/completions ────────────────────
   // One-line integration: just change baseURL to this server's URL.
   // CTS classifies + compresses the messages before forwarding to the LLM,
@@ -936,6 +949,15 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       ? Math.round((tokensSaved / compression.originalTokens) * 100)
       : 0
 
+    // Shape-only metadata for the customer-facing "what was compressed" view —
+    // counts and a mode label, never the message content itself.
+    const compressionMeta = {
+      mode:             compressionMode,
+      messagesOriginal: compression.original.length,
+      messagesKept:     compression.compressed.length,
+      compressionPct:   comprPct,
+    }
+
     // Build the forwarded history + current message, without any system entry —
     // system is handled per-provider below, since Anthropic's Messages API takes
     // it as a top-level `system` string and rejects a `role: "system"` message.
@@ -1004,7 +1026,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       // nothing was billed) so quota accounting and the usage log don't
       // silently drop failed upstream calls.
       recordUsage(key.id, '/v1/chat/completions', tokensSaved, {
-        domain: frame.domain, provider: llmProvider, model: llmModel,
+        domain: frame.domain, provider: llmProvider, model: llmModel, compression: compressionMeta,
       })
       sendJson(res, 502, { error: `LLM upstream error: ${(err as Error).message}` })
       return
@@ -1025,7 +1047,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       // in the final chunk, if at all) — log the pre-call estimate + routing
       // metadata now rather than not logging the call at all.
       recordUsage(key.id, '/v1/chat/completions', tokensSaved, {
-        domain: frame.domain, provider: llmProvider, model: llmModel,
+        domain: frame.domain, provider: llmProvider, model: llmModel, compression: compressionMeta,
       })
       // Stream passthrough — pipe LLM response directly to client
       res.writeHead(llmResponse.status, {
@@ -1063,7 +1085,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     const realUsage = llmPayload.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined
     if (realUsage) res.setHeader('x-cts-actual-usage', JSON.stringify(realUsage))
     recordUsage(key.id, '/v1/chat/completions', tokensSaved, {
-      domain: frame.domain, provider: llmProvider, model: llmModel,
+      domain: frame.domain, provider: llmProvider, model: llmModel, compression: compressionMeta,
       ...(realUsage ? {
         actualUsage: {
           promptTokens: realUsage.prompt_tokens,

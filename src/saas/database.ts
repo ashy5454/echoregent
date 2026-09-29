@@ -69,6 +69,10 @@ export async function initDb(): Promise<void> {
   await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS actual_prompt_tokens INTEGER`)
   await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS actual_completion_tokens INTEGER`)
   await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS actual_total_tokens INTEGER`)
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS compression_mode TEXT`)
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS messages_original INTEGER`)
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS messages_kept INTEGER`)
+  await db.query(`ALTER TABLE usage_log ADD COLUMN IF NOT EXISTS compression_pct INTEGER`)
 
   await db.query(`
     CREATE TABLE IF NOT EXISTS wiki_store (

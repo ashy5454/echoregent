@@ -75,6 +75,18 @@ export function getMemoryViewHtml(baseUrl: string): string {
   .danger-zone p { color: var(--text2); font-size: 13px; margin-bottom: 14px; line-height: 1.5; }
 
   #confirm-clear { display: none; margin-top: 10px; gap: 10px; }
+
+  .activity-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .activity-table th {
+    text-align: left; color: var(--text2); font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; font-size: 10px; padding: 0 10px 8px 0; border-bottom: 1px solid var(--border);
+  }
+  .activity-table td { padding: 8px 10px 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); color: var(--text); }
+  .activity-table tr:last-child td { border-bottom: none; }
+  .mode-pill {
+    display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px;
+    background: var(--surface2); border: 1px solid var(--border);
+  }
 </style>
 </head>
 <body>
@@ -129,6 +141,15 @@ export function getMemoryViewHtml(baseUrl: string): string {
       <div id="wiki-sources"></div>
     </div>
 
+    <div class="card">
+      <h2>Recent activity — what was compressed</h2>
+      <p class="meta-row" style="margin-top:0;margin-bottom:12px;">
+        Structure only — call time, domain, compression mode, and message/token counts.
+        Never the actual conversation content. Scoped to this whole API key, not just an end-user ID.
+      </p>
+      <div id="activity-table"></div>
+    </div>
+
     <div class="card danger-zone">
       <h2>Clear my memory</h2>
       <p>This permanently deletes everything EchoRegent has learned about you (or this end user) from this key's conversations. It does not affect other end users under the same key. This cannot be undone.</p>
@@ -169,6 +190,7 @@ export function getMemoryViewHtml(baseUrl: string): string {
     if (eu) localStorage.setItem('echoregent_memory_enduser', eu); else localStorage.removeItem('echoregent_memory_enduser')
     const data = await res.json()
     showMemory(data)
+    loadActivity()
   }
 
   function logout() {
@@ -190,6 +212,7 @@ export function getMemoryViewHtml(baseUrl: string): string {
     if (!res.ok) { apiKey = ''; return }
     const data = await res.json()
     showMemory(data)
+    loadActivity()
   })
 
   function showMemory(data) {
@@ -210,6 +233,42 @@ export function getMemoryViewHtml(baseUrl: string): string {
       sourcesEl.innerHTML = '<div class="empty-note">No knowledge sources ingested.</div>'
     } else {
       sourcesEl.innerHTML = '<div class="tag-list">' + sources.map(s => '<span class="tag">' + esc(s.title) + '</span>').join('') + '</div>'
+    }
+  }
+
+  async function loadActivity() {
+    const el = document.getElementById('activity-table')
+    try {
+      const res = await fetch(BASE + '/api/usage/calls?limit=25', { headers: { Authorization: 'Bearer ' + apiKey } })
+      if (!res.ok) { el.innerHTML = '<div class="empty-note">Could not load activity.</div>'; return }
+      const data = await res.json()
+      const calls = (data.calls || []).filter(c => c.endpoint === '/v1/chat/completions')
+      if (!calls.length) {
+        el.innerHTML = '<div class="empty-note">No compressed calls yet.</div>'
+        return
+      }
+      const rows = calls.map(c => {
+        const time = new Date(c.calledAt).toLocaleString()
+        const modelLabel = [c.provider, c.model].filter(Boolean).join(' / ') || '—'
+        const kept = (c.messagesKept != null && c.messagesOriginal != null)
+          ? c.messagesKept + ' / ' + c.messagesOriginal
+          : '—'
+        const pct = c.compressionPct != null ? c.compressionPct + '%' : '—'
+        return '<tr>' +
+          '<td>' + esc(time) + '</td>' +
+          '<td>' + esc(c.domain || '—') + '</td>' +
+          '<td>' + esc(modelLabel) + '</td>' +
+          '<td><span class="mode-pill">' + esc(c.compressionMode || '—') + '</span></td>' +
+          '<td>' + esc(kept) + '</td>' +
+          '<td>' + esc(pct) + '</td>' +
+          '<td>' + esc(String(c.tokensSaved ?? 0)) + '</td>' +
+          '</tr>'
+      }).join('')
+      el.innerHTML = '<table class="activity-table"><thead><tr>' +
+        '<th>Time</th><th>Domain</th><th>Provider / Model</th><th>Mode</th><th>Kept / Original</th><th>Compression</th><th>Tokens saved</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>'
+    } catch {
+      el.innerHTML = '<div class="empty-note">Could not load activity.</div>'
     }
   }
 

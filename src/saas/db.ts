@@ -28,6 +28,10 @@ export type UsageEntry = {
   actualPromptTokens?: number
   actualCompletionTokens?: number
   actualTotalTokens?: number
+  compressionMode?: string
+  messagesOriginal?: number
+  messagesKept?: number
+  compressionPct?: number
 }
 
 export type UsageMeta = {
@@ -35,6 +39,9 @@ export type UsageMeta = {
   provider?: string
   model?: string
   actualUsage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number }
+  // Shape-only compression metadata for the customer-facing "what was
+  // compressed" view — counts and a mode label, never message content.
+  compression?: { mode?: string; messagesOriginal?: number; messagesKept?: number; compressionPct?: number }
 }
 
 export type UsageTimeRange = { since?: string; until?: string }
@@ -199,14 +206,19 @@ export function logUsage(keyId: string, endpoint: string, tokensSaved: number, m
     db.query(
       `INSERT INTO usage_log
          (key_id, endpoint, tokens_saved, domain, provider, model,
-          actual_prompt_tokens, actual_completion_tokens, actual_total_tokens)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+          actual_prompt_tokens, actual_completion_tokens, actual_total_tokens,
+          compression_mode, messages_original, messages_kept, compression_pct)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
       [
         keyId, endpoint, tokensSaved,
         meta.domain ?? null, meta.provider ?? null, meta.model ?? null,
         meta.actualUsage?.promptTokens ?? null,
         meta.actualUsage?.completionTokens ?? null,
         meta.actualUsage?.totalTokens ?? null,
+        meta.compression?.mode ?? null,
+        meta.compression?.messagesOriginal ?? null,
+        meta.compression?.messagesKept ?? null,
+        meta.compression?.compressionPct ?? null,
       ],
     ).catch((err) => console.error('[db] logUsage error:', err))
 
@@ -228,6 +240,12 @@ export function logUsage(keyId: string, endpoint: string, tokensSaved: number, m
           actualPromptTokens: meta.actualUsage.promptTokens,
           actualCompletionTokens: meta.actualUsage.completionTokens,
           actualTotalTokens: meta.actualUsage.totalTokens,
+        } : {}),
+        ...(meta.compression ? {
+          compressionMode: meta.compression.mode,
+          messagesOriginal: meta.compression.messagesOriginal,
+          messagesKept: meta.compression.messagesKept,
+          compressionPct: meta.compression.compressionPct,
         } : {}),
       })
       if (usage.length > 10_000) usage.splice(0, usage.length - 10_000)
@@ -301,9 +319,11 @@ export async function getKeyUsage(keyId: string, limit = 100, range: UsageTimeRa
       key_id: string; endpoint: string; tokens_saved: number; called_at: string
       domain: string | null; provider: string | null; model: string | null
       actual_prompt_tokens: number | null; actual_completion_tokens: number | null; actual_total_tokens: number | null
+      compression_mode: string | null; messages_original: number | null; messages_kept: number | null; compression_pct: number | null
     }>(
       `SELECT key_id, endpoint, tokens_saved, called_at, domain, provider, model,
-              actual_prompt_tokens, actual_completion_tokens, actual_total_tokens
+              actual_prompt_tokens, actual_completion_tokens, actual_total_tokens,
+              compression_mode, messages_original, messages_kept, compression_pct
        FROM usage_log WHERE ${conditions.join(' AND ')}
        ORDER BY called_at DESC LIMIT $${params.length}`,
       params,
@@ -317,6 +337,10 @@ export async function getKeyUsage(keyId: string, limit = 100, range: UsageTimeRa
       ...(r.actual_prompt_tokens != null ? { actualPromptTokens: r.actual_prompt_tokens } : {}),
       ...(r.actual_completion_tokens != null ? { actualCompletionTokens: r.actual_completion_tokens } : {}),
       ...(r.actual_total_tokens != null ? { actualTotalTokens: r.actual_total_tokens } : {}),
+      ...(r.compression_mode ? { compressionMode: r.compression_mode } : {}),
+      ...(r.messages_original != null ? { messagesOriginal: r.messages_original } : {}),
+      ...(r.messages_kept != null ? { messagesKept: r.messages_kept } : {}),
+      ...(r.compression_pct != null ? { compressionPct: r.compression_pct } : {}),
     }))
   } else {
     return loadUsage()
