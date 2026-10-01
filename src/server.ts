@@ -3,11 +3,14 @@ import { Resend } from 'resend'
 import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, extname, join } from 'node:path'
+import { lookup as dnsLookup } from 'node:dns/promises'
+import { isIP } from 'node:net'
 import {
   classify,
   classifyAsync,
   compressHistory,
   compressHistoryAsync,
+  compressHistoryWithEmbeddings,
   createEmptyLLMWiki,
   ctsAsync,
   ingestSession,
@@ -50,6 +53,7 @@ import {
 } from './saas/db.js'
 import { initDb, getDb } from './saas/database.js'
 import { getAdminDashboardHtml } from './admin-ui.js'
+import { getMemoryViewHtml } from './memory-ui.js'
 
 // Load .env for local dev (no extra dependencies needed)
 const envFile = join(process.cwd(), '.env')
@@ -65,6 +69,13 @@ if (existsSync(envFile)) {
 }
 
 type WikiLLMCall = (prompt: string) => Promise<string>
+
+// Every tokensSaved/tokenSavingsPct figure surfaced below is estimated
+// pre-call from real tokenization (src/cts-core/tokenizer.ts) — it is not
+// the provider's actual billed usage. /v1/chat/completions's
+// x-cts-actual-usage header carries the real, provider-reported number once
+// a call is actually made. Label every estimate as one — see AUDIT.md Part 9.
+const TOKENS_SAVED_BASIS = 'estimated from tokenization — not yet verified against your provider\'s actual billed invoice'
 
 // Sanitize user-supplied session IDs used as DB/store keys
 function sanitizeSessionId(raw: string): string {
@@ -371,6 +382,14 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     return
   }
 
+  // ── Customer-facing "what's been memorized about me" page ────────────────
+  if (req.method === 'GET' && url.pathname === '/memory') {
+    const origin = `${req.headers['x-forwarded-proto'] ?? 'http'}://${req.headers.host ?? `localhost:${PORT}`}`
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
+    res.end(getMemoryViewHtml(origin))
+    return
+  }
+
   // â”€â”€ Static file serving (built frontend) â€” must come before auth â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (req.method === 'GET' && !url.pathname.startsWith('/api') && !url.pathname.startsWith('/admin') && !url.pathname.startsWith('/demo')) {
     // Named page routes â†' serve their specific HTML from dist/
@@ -474,6 +493,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       compressedHistory: compression.compressed,
       intent: frame.intent, domain: frame.domain, state: frame.state,
       tokensSaved: compression.tokensSaved,
+      tokensSavedBasis: TOKENS_SAVED_BASIS,
       frame: { confidence: frame.confidence, risk: frame.risk },
     })
     return
@@ -498,11 +518,51 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       compressedTokens: compression.compressedTokens,
       tokensSaved: compression.tokensSaved,
       tokenSavingsPct: compression.originalTokens > 0 ? Math.round((compression.tokensSaved / compression.originalTokens) * 1000) / 10 : 0,
+      tokensSavedBasis: TOKENS_SAVED_BASIS,
       droppedCount: compression.droppedCount,
       keptReasons: compression.keptReasons,
       intent: frame.intent, domain: frame.domain, state: frame.state,
       frame: { confidence: frame.confidence, risk: frame.risk, signals: frame.signals },
     })
+    return
+  }
+
+  if (req.method === 'POST' && url.pathname === '/demo/compress-embeddings') {
+    const ip = getClientIp(req)
+    if (!checkDemoRateLimit(ip)) {
+      res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '60' })
+      res.end(JSON.stringify({ error: 'Demo rate limit: 20 requests/minute.' }))
+      return
+    }
+    // Semantic-similarity compression needs its own Gemini key for the
+    // embedding call, independent of whatever provider a real completion
+    // request would use — pass it as x-embedding-key, same convention as
+    // x-llm-key elsewhere in this file.
+    const embeddingKey = String(req.headers['x-embedding-key'] ?? '')
+    if (!embeddingKey) {
+      sendJson(res, 400, { error: 'Missing x-embedding-key header (a Gemini API key for the embedding call).' })
+      return
+    }
+    const body    = await readJson(req)
+    const message = String(body.message ?? '')
+    const history = asMessages(body.history)
+    const frame   = classify(message, history)
+    try {
+      const compression = await compressHistoryWithEmbeddings([...history, { role: 'user' as const, content: message }], frame, embeddingKey)
+      sendJson(res, 200, {
+        compressedHistory: compression.compressed,
+        originalTokens: compression.originalTokens,
+        compressedTokens: compression.compressedTokens,
+        tokensSaved: compression.tokensSaved,
+        tokensSavedBasis: TOKENS_SAVED_BASIS,
+        droppedCount: compression.droppedCount,
+        keptReasons: compression.keptReasons,
+        intent: frame.intent, domain: frame.domain, state: frame.state,
+        frame: { confidence: frame.confidence, risk: frame.risk },
+      })
+    } catch (err) {
+      sendJson(res, 502, { error: `Embedding upstream error: ${(err as Error).message}` })
+    }
     return
   }
 
@@ -588,6 +648,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       compressedHistory: compression.compressed,
       intent: frame.intent, domain: frame.domain, state: frame.state,
       tokensSaved: compression.tokensSaved,
+      tokensSavedBasis: TOKENS_SAVED_BASIS,
       frame: { confidence: frame.confidence, risk: frame.risk },
       cacheHit: false,
       wikiPageCount: sessionWiki?.pages?.length ?? 0,
@@ -615,7 +676,16 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   const key = await authenticate(req, res)
   if (!key) return
 
-  const userId = key.id
+  // Scope wiki/memory storage by (API key, end-user id) instead of API key
+  // alone, so a customer's different end users don't share one merged
+  // memory (audit issue #7). Optional and backward compatible: a caller
+  // that doesn't pass x-end-user-id gets the old key-only behavior, same as
+  // before this fix — but now that's an explicit choice, not an unfixable bug.
+  const rawEndUserId = req.headers['x-end-user-id']
+  const endUserId = typeof rawEndUserId === 'string' && rawEndUserId.trim()
+    ? sanitizeSessionId(rawEndUserId)
+    : null
+  const userId = endUserId ? `${key.id}:${endUserId}` : key.id
 
   if (req.method === 'POST' && url.pathname === '/api/classify') {
     const body  = await readJson(req)
@@ -637,7 +707,15 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       compressedHistory: compression.compressed,
       intent: frame.intent, domain: frame.domain, state: frame.state,
       tokensSaved: compression.tokensSaved,
+      tokensSavedBasis: TOKENS_SAVED_BASIS,
       memoryFrame: compression.memoryFrame ?? null,
+      // Conversation-awareness signal, not a compliance boundary: tells the
+      // calling agent what kind of turn this is (medical_caution,
+      // legal_caution, crisis, protected_context, unsafe_request,
+      // financial_caution) so it can choose its own handling. See
+      // AUDIT.md Part 9 — this replaces the "architecturally enforced
+      // protected zones" claim, which was not true, with an honest one.
+      risk: frame.risk,
     })
     return
   }
@@ -749,7 +827,27 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
   if (req.method === 'GET' && url.pathname === '/api/usage') {
     recordUsage(key.id, '/api/usage')
-    sendJson(res, 200, await getOwnUsage(key.id))
+    const since = url.searchParams.get('since') ?? undefined
+    const until = url.searchParams.get('until') ?? undefined
+    const usage = await getOwnUsage(key.id, { since, until })
+    sendJson(res, 200, {
+      ...usage,
+      basis: 'estimated',
+      note: 'totalTokensSaved is estimated from real tokenization of your compressed vs. original history — it is not yet verified against your provider\'s actual billed invoice. See x-cts-actual-usage on /v1/chat/completions responses for the real per-call usage your provider reported.',
+    })
+    return
+  }
+
+  // GET /api/usage/calls — per-call "what was compressed" breakdown for the
+  // calling key. Metadata only (domain, provider, model, compression mode,
+  // message counts, token counts) — never the message content itself.
+  if (req.method === 'GET' && url.pathname === '/api/usage/calls') {
+    recordUsage(key.id, '/api/usage/calls')
+    const since = url.searchParams.get('since') ?? undefined
+    const until = url.searchParams.get('until') ?? undefined
+    const limit = Number(url.searchParams.get('limit') || 50)
+    const calls = await getKeyUsage(key.id, limit, { since, until })
+    sendJson(res, 200, { calls })
     return
   }
 
@@ -768,8 +866,28 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   //   x-cts-domain          — detected domain
   //   x-cts-intent          — detected intent
   //   x-cts-compression-pct — compression percentage (0-100)
+  //   x-cts-risk            — comma-separated risk signals (medical_caution,
+  //                           legal_caution, crisis, protected_context,
+  //                           unsafe_request, financial_caution), or empty.
+  //                           This is a conversation-awareness SIGNAL for the
+  //                           calling agent to act on — not a compliance
+  //                           boundary. It does not change how this endpoint
+  //                           compresses; it tells the caller what kind of
+  //                           turn this was so THEY can decide what to do.
   if (req.method === 'POST' && (url.pathname === '/v1/chat/completions' || url.pathname === '/v1/chat/completions/')) {
-    const body      = await readJson(req)
+    const body = await readJson(req)
+
+    // Week-1 scope (AUDIT.md Part 9): this endpoint only supports text-only
+    // messages with no tool calls. Reject cleanly with a clear 400 instead of
+    // crashing downstream — tool_calls/tool_call_id, null content (standard
+    // for OpenAI tool-call turns), and array (multimodal) content all used to
+    // reach estimateTokens()/messageRelevanceScore() and throw a 500.
+    const unsupportedReason = findUnsupportedMessageShape(body.messages)
+    if (unsupportedReason) {
+      sendJson(res, 400, { error: unsupportedReason, unsupported: true })
+      return
+    }
+
     const messages  = (body.messages as Array<{ role: string; content: string }> | undefined) ?? []
     const model     = String(body.model ?? 'gpt-4o')
     const stream    = Boolean(body.stream)
@@ -789,18 +907,6 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       : []
     const currentMessage = lastUser?.content ?? ''
 
-    // Run CTS classify + compress pipeline
-    const frame       = classify(currentMessage, historyMsgs)
-    const currentMsg: Message = { role: 'user', content: currentMessage }
-    const compression = compressHistory([...historyMsgs, currentMsg], frame)
-
-    const tokensSaved  = compression.tokensSaved
-    const comprPct     = compression.originalTokens > 0
-      ? Math.round((tokensSaved / compression.originalTokens) * 100)
-      : 0
-
-    recordUsage(key.id, '/v1/chat/completions', tokensSaved)
-
     // Resolve which LLM to call
     const llmKey      = String(req.headers['x-llm-key'] ?? '')
     const llmProvider = String(req.headers['x-llm-provider'] ?? 'openai')
@@ -811,32 +917,96 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       return
     }
 
-    // Build the forwarded message array (compressed history + system + current)
-    const forwardMessages: Array<{ role: string; content: string }> = []
-    if (systemMsg) forwardMessages.push(systemMsg)
-    forwardMessages.push(...compression.compressed.map((m) => ({ role: m.role, content: m.content })))
-    // If currentMessage is not already in compressed (it may be), append it
+    // Run CTS classify + compress pipeline
+    const frame       = classify(currentMessage, historyMsgs)
+    const currentMsg: Message = { role: 'user', content: currentMessage }
+
+    // Prefer real semantic-similarity compression over the hardcoded
+    // per-domain regex scorer — the regex path only matches vocabulary it
+    // was hand-tuned for (Stripe, ThinkPad, Dallas, Lisinopril, ...) and is
+    // effectively blind on anything else (audit issue #3). A real 60-question
+    // LoCoMo comparison measured F1=0.105 (regex) vs F1=0.213 (embeddings) on
+    // the same real conversations. This needs a real Gemini key for the
+    // embedding call, independent of whichever provider serves the actual
+    // completion — x-embedding-key if the customer supplies one, else their
+    // own key when they're already on Gemini. With no key available, or if
+    // the embedding call itself fails, the regex path is the fallback, not
+    // the default.
+    const embeddingKey  = String(req.headers['x-embedding-key'] ?? (llmProvider === 'gemini' ? llmKey : ''))
+    let   compressionMode: 'embeddings' | 'regex' = 'regex'
+    let   compression = compressHistory([...historyMsgs, currentMsg], frame)
+    if (embeddingKey) {
+      try {
+        compression = await compressHistoryWithEmbeddings([...historyMsgs, currentMsg], frame, embeddingKey)
+        compressionMode = 'embeddings'
+      } catch {
+        // fall through to the regex compression already computed above
+      }
+    }
+
+    const tokensSaved  = compression.tokensSaved
+    const comprPct     = compression.originalTokens > 0
+      ? Math.round((tokensSaved / compression.originalTokens) * 100)
+      : 0
+
+    // Shape-only metadata for the customer-facing "what was compressed" view —
+    // counts and a mode label, never the message content itself.
+    const compressionMeta = {
+      mode:             compressionMode,
+      messagesOriginal: compression.original.length,
+      messagesKept:     compression.compressed.length,
+      compressionPct:   comprPct,
+    }
+
+    // Build the forwarded history + current message, without any system entry —
+    // system is handled per-provider below, since Anthropic's Messages API takes
+    // it as a top-level `system` string and rejects a `role: "system"` message.
+    const forwardHistory: Array<{ role: string; content: string }> = compression.compressed.map((m) => ({ role: m.role, content: m.content }))
     const alreadyHasCurrent = compression.compressed.some(
       (m) => m.role === 'user' && m.content === currentMessage
     )
     if (!alreadyHasCurrent && currentMessage) {
-      forwardMessages.push({ role: 'user', content: currentMessage })
+      forwardHistory.push({ role: 'user', content: currentMessage })
     }
 
-    // Determine LLM endpoint
+    // Determine LLM endpoint + provider-shaped request body
     let llmUrl: string
     let llmHeaders: Record<string, string>
+    let llmBody: Record<string, unknown>
     if (llmProvider === 'anthropic') {
+      // Anthropic's Messages API needs a top-level `system` string (not a
+      // `role: "system"` message) and a required `max_tokens` — sending the
+      // OpenAI body shape here gets rejected outright. Also strip any
+      // OpenAI-only fields (`{...body}` used to forward these verbatim).
       llmUrl     = 'https://api.anthropic.com/v1/messages'
       llmHeaders = { 'x-api-key': llmKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' }
+      llmBody    = {
+        model: llmModel,
+        max_tokens: typeof body.max_tokens === 'number' ? body.max_tokens : 4096,
+        ...(systemMsg ? { system: systemMsg.content } : {}),
+        messages: forwardHistory,
+        stream,
+      }
     } else if (llmProvider === 'gemini') {
-      llmUrl     = `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions?key=${llmKey}`
-      llmHeaders = { 'content-type': 'application/json' }
+      // Was `?key=${llmKey}` in the URL — Gemini's OpenAI-compat endpoint now
+      // requires Authorization: Bearer and rejects the old query-param form
+      // with a 400 (see callGemini() below, which already used Bearer
+      // correctly). Also fixes the second half of audit issue #10: an API
+      // key belongs in a header, never in a URL that proxies/logs can capture.
+      llmUrl     = 'https://generativelanguage.googleapis.com/v1beta/openai/chat/completions'
+      llmHeaders = { authorization: `Bearer ${llmKey}`, 'content-type': 'application/json' }
+      llmBody    = { ...body, messages: [...(systemMsg ? [systemMsg] : []), ...forwardHistory], model: llmModel, stream }
     } else {
       // Default: OpenAI-compatible (openai, groq, together, etc.)
       const baseUrl = String(req.headers['x-llm-base-url'] ?? 'https://api.openai.com')
+      const baseUrlError = await validateLlmBaseUrl(baseUrl)
+      if (baseUrlError) {
+        sendJson(res, 400, { error: baseUrlError })
+        return
+      }
       llmUrl     = `${baseUrl.replace(/\/$/, '')}/v1/chat/completions`
       llmHeaders = { authorization: `Bearer ${llmKey}`, 'content-type': 'application/json' }
+      llmBody    = { ...body, messages: [...(systemMsg ? [systemMsg] : []), ...forwardHistory], model: llmModel, stream }
     }
 
     const controller = new AbortController()
@@ -848,10 +1018,16 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
         signal:  controller.signal,
         method:  'POST',
         headers: llmHeaders,
-        body:    JSON.stringify({ ...body, messages: forwardMessages, model: llmModel, stream }),
+        body:    JSON.stringify(llmBody),
       })
     } catch (err) {
       clearTimeout(timeout)
+      // Still log the attempt (domain/provider/model, no actual usage since
+      // nothing was billed) so quota accounting and the usage log don't
+      // silently drop failed upstream calls.
+      recordUsage(key.id, '/v1/chat/completions', tokensSaved, {
+        domain: frame.domain, provider: llmProvider, model: llmModel, compression: compressionMeta,
+      })
       sendJson(res, 502, { error: `LLM upstream error: ${(err as Error).message}` })
       return
     }
@@ -862,8 +1038,17 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     res.setHeader('x-cts-domain',          frame.domain)
     res.setHeader('x-cts-intent',          frame.intent)
     res.setHeader('x-cts-compression-pct', String(comprPct))
+    res.setHeader('x-cts-risk',            frame.risk.join(','))
+    res.setHeader('x-cts-compression-mode', compressionMode)
 
     if (stream) {
+      // Real per-call usage isn't available for a streamed response without
+      // buffering the whole SSE body (providers only send the usage object
+      // in the final chunk, if at all) — log the pre-call estimate + routing
+      // metadata now rather than not logging the call at all.
+      recordUsage(key.id, '/v1/chat/completions', tokensSaved, {
+        domain: frame.domain, provider: llmProvider, model: llmModel, compression: compressionMeta,
+      })
       // Stream passthrough — pipe LLM response directly to client
       res.writeHead(llmResponse.status, {
         'content-type':          'text/event-stream',
@@ -871,7 +1056,9 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
         'x-cts-tokens-saved':    String(tokensSaved),
         'x-cts-domain':          frame.domain,
         'x-cts-intent':          frame.intent,
+        'x-cts-risk':            frame.risk.join(','),
         'x-cts-compression-pct': String(comprPct),
+        'x-cts-compression-mode': compressionMode,
       })
       if (llmResponse.body) {
         const reader = llmResponse.body.getReader()
@@ -890,6 +1077,23 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
 
     // Non-stream: return JSON
     const llmPayload = await llmResponse.json() as Record<string, unknown>
+    // Surface the provider's own real usage (what was actually billed) —
+    // x-cts-tokens-saved above is still our pre-call estimate of the
+    // original-vs-compressed delta; this is ground truth for what this
+    // specific compressed request actually cost, straight from OpenAI's
+    // response body. Never overwrite it with a further estimate.
+    const realUsage = llmPayload.usage as { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number } | undefined
+    if (realUsage) res.setHeader('x-cts-actual-usage', JSON.stringify(realUsage))
+    recordUsage(key.id, '/v1/chat/completions', tokensSaved, {
+      domain: frame.domain, provider: llmProvider, model: llmModel, compression: compressionMeta,
+      ...(realUsage ? {
+        actualUsage: {
+          promptTokens: realUsage.prompt_tokens,
+          completionTokens: realUsage.completion_tokens,
+          totalTokens: realUsage.total_tokens,
+        },
+      } : {}),
+    })
     res.writeHead(llmResponse.status, { 'content-type': 'application/json' })
     res.end(JSON.stringify(llmPayload))
     return
@@ -925,7 +1129,9 @@ async function routeAdmin(req: IncomingMessage, res: ServerResponse, url: URL): 
   if (req.method === 'GET' && /^\/admin\/keys\/[^/]+\/usage$/.test(url.pathname)) {
     const keyId = url.pathname.split('/')[3]
     const limit = Number(url.searchParams.get('limit') || 100)
-    sendJson(res, 200, { usage: await getKeyUsage(keyId, limit) })
+    const since = url.searchParams.get('since') ?? undefined
+    const until = url.searchParams.get('until') ?? undefined
+    sendJson(res, 200, { usage: await getKeyUsage(keyId, limit, { since, until }) })
     return
   }
 
@@ -995,10 +1201,65 @@ async function routeAdmin(req: IncomingMessage, res: ServerResponse, url: URL): 
 
 // â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+// audit issue #10 (second half): x-llm-base-url used to be read straight into a
+// fetch() URL with no validation — a customer could point this server at an internal
+// address (a cloud metadata endpoint, a private-network service) and use it as an SSRF
+// proxy, with the response relayed back through this server's own reply. Resolves the
+// hostname (not just checks a literal IP) so a public hostname that resolves to a
+// private address is caught too, not just an IP typed in directly.
+const PRIVATE_IP_PATTERNS = [
+  /^127\./, /^10\./, /^192\.168\./, /^169\.254\./, /^0\./,
+  /^172\.(1[6-9]|2\d|3[01])\./,
+  /^::1$/, /^::$/, /^fe80:/i, /^fc[0-9a-f]{2}:/i, /^fd[0-9a-f]{2}:/i,
+]
+
+async function isPrivateOrUnresolvableHost(hostname: string): Promise<boolean> {
+  if (hostname === 'localhost') return true
+  if (isIP(hostname)) return PRIVATE_IP_PATTERNS.some((p) => p.test(hostname))
+  try {
+    const results = await dnsLookup(hostname, { all: true })
+    return results.some((r) => PRIVATE_IP_PATTERNS.some((p) => p.test(r.address)))
+  } catch {
+    return true // can't resolve it â†’ treat as unsafe rather than proceeding blind
+  }
+}
+
+// Test-only escape hatch: audit/tests/integration.test.ts spawns a real HTTP server
+// and needs to point x-llm-base-url at a local mock upstream it controls, which is
+// exactly the shape this check exists to block. Rather than weaken the check for every
+// private address, it exempts only the one exact host:port the test harness names via
+// this env var (unset in every real deployment, so production behavior is unaffected).
+const TEST_TRUSTED_LLM_HOST = process.env.CTS_TEST_TRUSTED_LLM_HOST
+
+async function validateLlmBaseUrl(rawUrl: string): Promise<string | null> {
+  let parsed: URL
+  try {
+    parsed = new URL(rawUrl)
+  } catch {
+    return 'x-llm-base-url is not a valid URL.'
+  }
+  if (TEST_TRUSTED_LLM_HOST && parsed.host === TEST_TRUSTED_LLM_HOST) {
+    return null
+  }
+  if (parsed.protocol !== 'https:') {
+    return 'x-llm-base-url must use https.'
+  }
+  if (await isPrivateOrUnresolvableHost(parsed.hostname)) {
+    return 'x-llm-base-url resolves to a private/internal address, which is not allowed.'
+  }
+  return null
+}
+
+
 function setCors(res: ServerResponse): void {
   res.setHeader('Access-Control-Allow-Origin', CORS_ORIGIN)
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-Admin-Secret,X-End-User-Id,x-llm-key,x-llm-provider,x-llm-model,x-llm-base-url,x-embedding-key')
+  // Without this, a browser-based caller can't read the x-cts-* signal headers
+  // at all (cross-origin fetch() hides response headers by default) — which
+  // would make the conversation-awareness signal invisible to exactly the
+  // kind of frontend code most likely to want it.
+  res.setHeader('Access-Control-Expose-Headers', 'x-cts-tokens-saved,x-cts-domain,x-cts-intent,x-cts-compression-pct,x-cts-compression-mode,x-cts-risk,x-cts-actual-usage')
   res.setHeader('Vary', 'Origin')
   // Security headers
   res.setHeader('X-Content-Type-Options', 'nosniff')
@@ -1024,6 +1285,24 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
     })
     req.on('error', reject)
   })
+}
+
+// Week-1 scope guard for /v1/chat/completions (AUDIT.md Part 9): this proxy
+// only handles text-only messages with no tool calls. Returns a human-readable
+// reason if `value` isn't that shape, or null if it's fine to proceed.
+function findUnsupportedMessageShape(value: unknown): string | null {
+  if (!Array.isArray(value)) return 'messages must be an array.'
+  for (let i = 0; i < value.length; i++) {
+    const m = value[i] as Record<string, unknown> | null
+    if (!m || typeof m !== 'object') return `messages[${i}] must be an object.`
+    if ('tool_calls' in m || 'tool_call_id' in m || m.role === 'tool') {
+      return `messages[${i}] uses tool calling, which this endpoint does not support yet. Text-only conversations only for now.`
+    }
+    if (typeof m.content !== 'string') {
+      return `messages[${i}].content must be a string. Multimodal (array) content and null content are not supported yet — this endpoint is text-only for now.`
+    }
+  }
+  return null
 }
 
 function asMessages(value: unknown): Message[] {

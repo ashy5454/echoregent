@@ -4,7 +4,7 @@
 
 **Conversation Intelligence Middleware**
 
-*Classifies every conversation turn. Compresses history without losing meaning. Enforces protected zones where no compression — and no monetization — ever happens.*
+*Classifies every conversation turn for domain, intent, and risk. Compresses history for OpenAI-compatible APIs without losing meaning — and gives your agent a conversation-awareness signal it can act on.*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6)](src/)
@@ -18,24 +18,17 @@
 
 ## Results
 
-Evaluated on 120 conversations across SQuAD, StackOverflow, and Medical QA. Graded by Gemini as judge.
+We don't have an independently reproducible benchmark to publish yet. An
+earlier version of this README carried specific numbers here (a quality
+score, a LoCoMo comparison, a load-test figure) that no script or dataset in
+this repo actually produces — see `AUDIT.md` for the full accounting of what
+was and wasn't verified. Rather than leave numbers up that nobody can rerun,
+we took them down.
 
-| Metric | EchoRegent | Full context |
-|---|---|---|
-| Avg quality score | **9.0** | 8.7 |
-| Win / tie / loss | **48 / 32 / 12** | — |
-| Match-or-beat rate | **87%** | baseline |
-
-**LoCoMo benchmark** (same benchmark mem0 used):
-
-| | EchoRegent | mem0 |
-|---|---|---|
-| F1 | **0.079** | 0.069 |
-| Tokens used | **259** | 6,956 |
-| Efficiency | **26× fewer tokens** | baseline |
-
-**Load test** (10M tokens, production API):
-- 329 req/s · 17ms p50 · 0 errors · 64.7% token reduction
+A paired benchmark — compressed vs. full history, both with the provider's
+own prompt caching enabled, on real (anonymized) conversations — is in
+progress under `/audit/bench` in this repo. Numbers will go here once
+they're reproducible by anyone who clones the repo, not asserted.
 
 ---
 
@@ -46,13 +39,15 @@ LLMs receive your full conversation history on every turn. At 100 turns, that is
 EchoRegent sits between your application and the LLM and fixes all three:
 
 ```
-Better answers. 65% fewer tokens. Protected zones that never compress.
+Fewer tokens. Domain- and risk-aware, not just character-counting.
 ```
 
-- **Classifier** — domain, intent, emotional state, risk level on every turn, <10ms on CPU
-- **Compressor** — T5-based summarization, 64.7% token reduction, 87% quality match-or-beat rate
-- **Protected zones** — medical, crisis, legal: never compressed, never monetized, architecturally enforced
-- **MCP server** — drop into Claude, Cursor, Windsurf, or any MCP-compatible tool in minutes
+- **Classifier** — domain, intent, emotional state, and risk signal on every turn. The rule-based fallback (what runs without extra setup) measures under 1ms on CPU; an optional fine-tuned DistilBERT path exists but needs weights not included in this repo (see "Self-host vs managed" below).
+- **Compressor** — domain-aware history compression, tuned to preserve concrete facts (IDs, dates, numbers) that naive summarization drops. A T5-based summarization path also exists in the codebase; it is not yet the default on the main `/v1/chat/completions` proxy.
+- **Conversation awareness** — medical, legal, crisis, and other risk signals are classified on every turn and exposed to your application (`x-cts-risk` header, or the `risk` field on `/compress`) so **your code** can decide how to handle a sensitive conversation. This is a signal, not an enforced compliance boundary — see "Conversation awareness" below.
+- **MCP server** — drop into Claude Code, Cursor, Windsurf, or any MCP-compatible tool.
+
+**Provider support today:** OpenAI-compatible APIs, text-only conversations, no tool calling yet. Requests with `tool_calls` or non-text content are rejected with a clear error rather than silently mishandled. Anthropic, Gemini, and tool-calling/multimodal support are on the roadmap, not shipped.
 
 ---
 
@@ -100,71 +95,72 @@ Four tools available immediately: `cts_compress_history`, `cts_classify_intent`,
                         │
                         ▼
               ┌──────────────────┐
-              │   CLASSIFIER     │  DistilBERT — fine-tuned on 10 domains
-              │                  │  domain · intent · risk · emotional state
-              └────────┬─────────┘
-                       │
-          ┌────────────┼──────────────┐
-          │            │              │
-     protected      commerce      general
-     zone ▼          zone ▼        zone ▼
-  no compression   compress      compress
-  no monetization  + route       + route
-          │            │              │
-          └────────────┴──────────────┘
-                        │
-                        ▼
-              ┌──────────────────┐
-              │   COMPRESSOR     │  T5 — removes noise, keeps semantics
-              │                  │  50–80% token reduction
+              │   CLASSIFIER     │  domain · intent · risk signal
+              │                  │  (rule-based by default; optional
+              │                  │   fine-tuned DistilBERT path)
               └────────┬─────────┘
                         │
                         ▼
               ┌──────────────────┐
-              │  SEMANTIC CACHE  │  MiniLM — skips recompression
+              │   COMPRESSOR     │  domain-aware, removes noise,
+              │                  │  keeps facts + semantics
+              └────────┬─────────┘
+                        │
+                        ▼
+              ┌──────────────────┐
+              │  SEMANTIC CACHE  │  skips recompression
               │                  │  if semantically equivalent turn seen
               └────────┬─────────┘
                         │
                         ▼
                    LLM call
-              (compressed context)
+         (compressed context + x-cts-risk header
+          so YOUR code can act on sensitive turns)
 ```
 
 ---
 
 ## Domain classifier
 
-10 domains out of the box. Trained on real multi-turn conversation data.
+8 domains out of the box, rule-based by default.
 
-| Domain | Compression | Monetization | Notes |
-|---|---|---|---|
-| `coding` | aggressive | allowed | Stack traces, diffs compress well |
-| `commerce` | moderate | allowed | Product context must survive |
-| `education` | moderate | allowed | Concept threads preserved |
-| `sales` | moderate | allowed | Objection history kept |
-| `customer_support` | conservative | allowed | Issue context critical |
-| `hospitality` | moderate | allowed | — |
-| `general` | moderate | allowed | — |
-| `medical` | **none** | **blocked** | Protected zone |
-| `legal` | **none** | **blocked** | Protected zone |
-| `crisis` | **none** | **blocked** | Protected zone — hard floor |
+| Domain | Compression | Notes |
+|---|---|---|
+| `coding` | aggressive | Stack traces, diffs compress well |
+| `commerce` | moderate | Product context must survive |
+| `education` | moderate | Concept threads preserved |
+| `sales` | moderate | Objection history kept |
+| `customer_support` | conservative | Issue context critical |
+| `general` | moderate | — |
+| `medical` | conservative | Also raises `medical_caution` risk — see below |
+| `legal` | conservative | Also raises `legal_caution` risk — see below |
 
-Classification happens in <10ms on CPU. No LLM call needed for routing.
+`crisis` is not a separate domain — it's a **risk signal** (see below) that
+can be raised alongside any domain, most often `general`. The rule-based
+classifier runs in under 1ms on CPU (measured); no LLM call needed for
+routing.
 
 ---
 
-## Protected zones
+## Conversation awareness
 
-The protected zone is not a filter. It is an architectural boundary.
+EchoRegent classifies a risk signal on every turn — `medical_caution`,
+`legal_caution`, `crisis`, `protected_context`, `unsafe_request`, or
+`financial_caution` — and exposes it to your application via the
+**`x-cts-risk`** response header on `/v1/chat/completions` (comma-separated),
+or the **`risk`** field on `/compress`.
 
-When the classifier returns `medical`, `legal`, or `crisis`:
+**This is a signal your application acts on — it is not an enforced
+boundary.** EchoRegent does not currently guarantee that a medical, legal, or
+crisis conversation is compressed differently, excluded from any downstream
+logic, or retained differently, on its own. If your product needs a hard
+compliance boundary — never compress, never forward to a third party,
+elevated retention, an audit trail — build that check in your own code using
+`x-cts-risk` as the trigger.
 
-1. Compression is **disabled at the function level** — not skipped, not flagged, disabled
-2. The raw history is passed to the LLM unchanged
-3. Any monetization hook (ads, upsells, affiliate) is **architecturally prevented** from firing
-4. The turn is logged with elevated retention and cannot be purged automatically
-
-This is the CTBM (Conversation-Type-Based Monetization) principle: conversation type is the primary structural boundary, not user consent or subscription tier.
+*(An earlier version of this README described this as "protected zones...
+architecturally enforced." That wasn't accurate, and has been corrected —
+see `AUDIT.md` in this repo for the full accounting of what changed and why.)*
 
 ---
 
@@ -185,10 +181,10 @@ The MCP tools `cts_memory_remember` and `cts_memory_recall` expose this to any M
 
 | | Self-hosted | Managed API (yudi.co.in) |
 |---|---|---|
-| Core classifier | Base HuggingFace DistilBERT | Fine-tuned Yudi weights |
-| Compressor | Base T5-small | Fine-tuned T5 (higher recall) |
-| Protected zone enforcement | ✓ full | ✓ full |
-| Token savings | 40–60% | 50–80% |
+| Core classifier | Rule-based, or base HuggingFace DistilBERT | Fine-tuned Yudi weights |
+| Compressor | Rule-based | Fine-tuned T5 (higher recall) |
+| Conversation-awareness signal | ✓ (risk header/field) | ✓ (risk header/field) |
+| Token savings | Not yet independently benchmarked — see `AUDIT.md` | Not yet independently benchmarked — see `AUDIT.md` |
 | Setup | `npm run dev` | API key + one line |
 | Cost | Your compute | Pay per call |
 
@@ -236,18 +232,25 @@ PRODUCTION_READINESS.md   Honest pre-pilot checklist
 ## API
 
 ```bash
-# Classify a conversation turn
-POST /classify
+# Classify a conversation turn (requires Authorization: Bearer <key>)
+POST /api/classify
 { "message": "I've been having chest pains", "history": [...] }
-→ { "domain": "medical", "risk": "high", "protected": true }
+→ { "domain": "medical", "intent": "information_seeking", "state": "opening",
+    "risk": ["medical_caution"], "signals": {...}, "confidence": {...} }
 
-# Compress history
+# Compress history (requires Authorization: Bearer <key>)
 POST /compress
-{ "history": [...], "domain": "coding" }
-→ { "compressed": [...], "tokens_saved": 3420, "ratio": 0.61 }
+{ "message": "...", "history": [...] }
+→ { "compressedHistory": [...], "intent": "...", "domain": "...", "state": "...",
+    "tokensSaved": 3420, "memoryFrame": {...}, "risk": ["medical_caution"] }
+
+# OpenAI-compatible proxy (one-line baseURL swap — see Provider support above)
+POST /v1/chat/completions
+→ standard OpenAI chat completion response, plus x-cts-* response headers
+  (x-cts-domain, x-cts-intent, x-cts-risk, x-cts-tokens-saved, x-cts-compression-pct)
 
 # Health + model readiness
-GET /ready   → 200 when classifier + T5 are loaded, 503 while loading
+GET /ready   → 200 when the classifier is loaded, 503 while loading
 GET /health  → always 200 if HTTP server is alive
 ```
 
@@ -257,7 +260,7 @@ GET /health  → always 200 if HTTP server is alive
 
 - [mem0](https://github.com/mem0ai/mem0) — persistent memory layer architecture
 - [LangChain](https://github.com/langchain-ai/langchain) — conversation chain abstractions
-- [Nissenbaum (2004)](https://crypto.stanford.edu/~ninghui/courses/Fall2008/papers/privacy_as_contextual_integrity.pdf) — contextual integrity as the theoretical ground for protected zones
+- [Nissenbaum (2004)](https://crypto.stanford.edu/~ninghui/courses/Fall2008/papers/privacy_as_contextual_integrity.pdf) — contextual integrity as the theoretical ground for the conversation-awareness signal
 - [ARIA by Yudi Labs](https://github.com/ashy5454/aria) — autonomous research loop that uses EchoRegent's memory layer
 
 ---

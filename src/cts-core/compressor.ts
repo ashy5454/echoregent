@@ -1,22 +1,21 @@
 import type { CompressionResult, MemoryFrame, Message, RoutingFrame } from './types'
 import { summarizeWithT5 } from './ml-t5'
+import { countChatTokens } from './tokenizer'
+import { embedText, embedBatch, cosineSimilarity } from './embeddings'
 
 const HIGH_VALUE_DOMAINS = new Set(['coding', 'customer_support', 'sales'])
+// Multi-word phrases only — a bare single word ("Tokyo", "cat", "lunch") is too likely to be
+// the actual substance of an on-topic message (a timezone bug that reproduces "in Tokyo," a
+// medical detail about "cat" allergies, a delivery window scheduled "during lunch") to use as
+// a small-talk signal on its own. A multi-word phrase like "dark mode" or "favorite color" is
+// specific enough to small talk that it doesn't carry this same false-positive risk.
 const GENERIC_DISTRACTOR_PATTERNS = [
   /\bdark mode\b/i,
   /\blight mode\b/i,
-  /\bMarvel\b/i,
-  /\bmovie\b/i,
-  /\bweather\b/i,
-  /\bTokyo\b/i,
-  /\bcat\b/i,
-  /\blunch\b/i,
   /\bspace travel\b/i,
   /\bfavorite color\b/i,
   /\bstanding desk\b/i,
   /\bfitness routine\b/i,
-  /\bsushi\b/i,
-  /\bburger\b/i,
 ]
 
 export interface CompressionStats {
@@ -59,7 +58,7 @@ export function compressHistory(history: Message[], frame: RoutingFrame): Compre
   }
 
   const memoryFrame = buildMemoryFrame(original, frame)
-  const summaryMessage: Message = { role: 'assistant', content: serializeMemoryFrame(memoryFrame) }
+  const summaryMessage = getStableSummaryMessage(original, frame)
   const recentMessages = pickRecentMessages(original, frame, memoryFrame)
   const anchorMessages = pickAnchorMessages(original, recentMessages, frame, memoryFrame)
 
@@ -124,6 +123,32 @@ export function compressHistory(history: Message[], frame: RoutingFrame): Compre
   }
   // ─────────────────────────────────────────────────────────────────────────
 
+  // ── Minimum-retention floor ────────────────────────────────────────────────
+  // pickRecentMessages/pickAnchorMessages cap out at a handful of messages
+  // (2-4 each) regardless of conversation length. For a short conversation
+  // that's most of it; for a long one it's a sliver — and because that sliver
+  // already satisfies the ratio ceiling above, the compressor never reaches
+  // for the rest of its real token budget. Left unchecked this collapses a
+  // 400+ turn conversation down to single digits and destroys recall (a real
+  // LoCoMo run measured F1 dropping from 0.326 to 0.032 on exactly this
+  // failure mode). This floor guarantees at least a minimum fraction of the
+  // original messages survive no matter how the ratio/vocabulary heuristics
+  // land, prioritizing the most recent ones not already kept.
+  const MIN_RETENTION_RATIO = 0.15
+  const minMessageCount = Math.min(original.length, Math.max(4, Math.ceil(original.length * MIN_RETENTION_RATIO)))
+  const retainedOriginals = new Set(compressed.filter((message) => message !== summaryMessage))
+  if (retainedOriginals.size < minMessageCount) {
+    const needed = minMessageCount - retainedOriginals.size
+    const additional = original.filter((message) => !retainedOriginals.has(message)).slice(-needed)
+    for (const message of additional) retainedOriginals.add(message)
+    const orderedOriginals = original.filter((message) => retainedOriginals.has(message))
+    const hasSummary = compressed.includes(summaryMessage)
+    compressed = hasSummary ? uniqueMessages([summaryMessage, ...orderedOriginals]) : orderedOriginals
+    compressedTokens = estimateTokens(compressed)
+    keptReasons.push(`CTS enforced a minimum retention floor: kept ${orderedOriginals.length} of ${original.length} original messages for a long conversation.`)
+  }
+  // ─────────────────────────────────────────────────────────────────────────
+
   const retainedOriginalCount = compressed.filter((message) => message.role !== 'assistant' || message.content !== summaryMessage.content).length
 
   if (compressed.length === 1) {
@@ -185,6 +210,77 @@ function serializeMemoryFrame(memoryFrame: MemoryFrame): string {
   }
 
   return parts.join(' ')
+}
+
+// ── Stable-prefix summary caching (audit issue #8) ────────────────────────
+// buildMemoryFrame() used to be re-run on the FULL history (including the
+// message currently in flight) on every single call, which bakes the latest
+// user message into `task`/`userGoal` and rewrites the summary text every
+// turn. That destroys the stable prefix provider prompt caching depends on:
+// a cache breakpoint only pays off when everything before it is byte-
+// identical to a previous request (see AUDIT.md Part 6 / the Anthropic
+// prompt-caching docs cited there).
+//
+// Fix: the summary TEXT that becomes compressed[0] is built from a "settled"
+// slice of history — everything except the most-recent `recentCount`
+// messages (which change every turn by design and are sent separately,
+// verbatim, via pickRecentMessages) — and only regenerated once the settled
+// slice grows past the next batch boundary. Between regenerations, the exact
+// same cached string is returned, so the request prefix stays stable across
+// multiple consecutive turns instead of changing on every single one.
+//
+// `memoryFrame` (the fuller, always-fresh version built from the complete
+// history) is untouched by this and still used for anchor/recent-message
+// selection and the must-keep rescue pass below — this only changes what
+// text gets embedded as the cacheable summary message itself.
+const SUMMARY_SNAPSHOT_BATCH = 4
+const MAX_SUMMARY_CACHE_ENTRIES = 200
+const summarySnapshotCache = new Map<string, Message>()
+
+function recentWindowSize(frame: RoutingFrame): number {
+  return HIGH_VALUE_DOMAINS.has(frame.domain) ? 4 : 2
+}
+
+function getStableSummaryMessage(original: Message[], frame: RoutingFrame): Message {
+  const recentCount = recentWindowSize(frame)
+  const settled = original.slice(0, Math.max(0, original.length - recentCount))
+  // Below one full batch there's nothing to round down to without throwing
+  // away all settled content — use it as-is (this window is inherently less
+  // stable, same as a real cache breakpoint moving early in a short
+  // conversation); once settled.length >= SUMMARY_SNAPSHOT_BATCH, round down
+  // to the batch boundary so the snapshot — and therefore the cached summary
+  // text — stays IDENTICAL across every turn inside that batch window.
+  const snapshotLength = settled.length < SUMMARY_SNAPSHOT_BATCH
+    ? settled.length
+    : Math.floor(settled.length / SUMMARY_SNAPSHOT_BATCH) * SUMMARY_SNAPSHOT_BATCH
+  const snapshot = settled.slice(0, snapshotLength)
+
+  const cacheKey = `${frame.domain}:${snapshotLength}:${hashMessages(snapshot)}`
+  const cached = summarySnapshotCache.get(cacheKey)
+  if (cached) return cached
+
+  const snapshotFrame = buildMemoryFrame(snapshot, frame)
+  const message: Message = { role: 'assistant', content: serializeMemoryFrame(snapshotFrame) }
+
+  summarySnapshotCache.set(cacheKey, message)
+  if (summarySnapshotCache.size > MAX_SUMMARY_CACHE_ENTRIES) {
+    const oldest = summarySnapshotCache.keys().next().value
+    if (oldest !== undefined) summarySnapshotCache.delete(oldest)
+  }
+  return message
+}
+
+// Cheap deterministic string hash (FNV-1a) — this only needs to distinguish
+// different settled-history snapshots from each other, not resist collision
+// attacks, so no crypto dependency.
+function hashMessages(messages: Message[]): string {
+  const text = messages.map((m) => `${m.role}:${m.content}`).join('\u0000')
+  let hash = 0x811c9dc5
+  for (let i = 0; i < text.length; i++) {
+    hash ^= text.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+  return (hash >>> 0).toString(36)
 }
 
 function domainLead(memoryFrame: MemoryFrame): string {
@@ -374,7 +470,12 @@ function inferUnresolved(text: string, domain: string, intent: string): string[]
   if (domain === 'coding') {
     if (/\b403|401|500|failed|timeout|signature|schema|bio|requests\b/.test(lowered)) addMatches(collector, text, /\b403|401|500|signature|timeout|failed payment|card_declined|retry_count|rate limiting|latency|schema|bio|requests\b/gi)
   } else if (domain === 'customer_support') {
-    if (/\brefund|arrived|tracking|escalate|process\b/.test(lowered)) addMatches(collector, text, /\brefund|arrived|tracking|Dallas|Chicago|escalated?|process\b/gi)
+    if (/\brefund|arrived|tracking|escalate|process\b/.test(lowered)) {
+      addMatches(collector, text, /\brefund|arrived|tracking|escalated?|process\b/gi)
+      // A location following "in" — generalizes what used to be a hardcoded
+      // Dallas|Chicago alternation, which silently dropped every other city.
+      addMatches(collector, text, /(?<=\bin )[A-Z][a-z]{2,15}\b/g)
+    }
   } else if (domain === 'sales') {
     if (/\bprice|budget|security|discount|contract\b/.test(lowered)) addMatches(collector, text, /\bprice|budget|security|discount|ROI|SSO|audit logs|contract\b/gi)
   } else if (domain === 'legal') {
@@ -459,7 +560,7 @@ function factImportance(fact: string, domain: string): number {
   if (/\d/.test(fact)) score += 2
   if (fact.includes(' ')) score += 1
   if (domain === 'coding' && /\b(403|401|500|Stripe|TypeScript|Python|Redis|Postgres|signature|webhook|dead-letter|card_declined|retry_count|rate limiting|latency|concurrency|100 requests|API key|exponential backoff|nullable|backfill|constraints|migration|queue|retry|worker|database|schema|scrape|pagination|script|requests|bio|BeautifulSoup|CSV)\b/i.test(fact)) score += 4
-  if (domain === 'customer_support' && /\b(Dallas|Chicago|refund|delivery|express shipping|damaged monitor|replacement|escalated?|tracking|order|Friday|Monday|deadline|process)\b/i.test(fact)) score += 4
+  if (domain === 'customer_support' && /\b(refund|delivery|express shipping|damaged monitor|replacement|escalated?|tracking|order|Friday|Monday|deadline|process)\b/i.test(fact)) score += 4
   if (domain === 'sales' && /\b(ROI|SOC2|SSO|audit logs|discount|security|premium|startups|contract|budget)\b/i.test(fact)) score += 4
   if (domain === 'legal' && /\b(indemnity clause|third-party claims|non-compete|California law|California|whistleblower|contract|18 months|termination|India|retaliation|documentation|performance)\b/i.test(fact)) score += 4
   if (domain === 'medical' && /\b(chest tightness|shortness of breath|ibuprofen|stomach discomfort|two days|three weeks|daily|knee pain|blood pressure|doctor|Lisinopril|cough|side effects|140\/90)\b/i.test(fact)) score += 4
@@ -473,9 +574,9 @@ function compactSentence(value: string, limit: number): string {
   return value.replace(/\s+/g, ' ').trim().replace(/[|]/g, '').slice(0, limit)
 }
 
+// Real BPE token count (see tokenizer.ts) — was chars/4 (audit issue #9).
 function estimateTokens(messages: Message[]): number {
-  const chars = messages.reduce((sum, message) => sum + message.content.length, 0)
-  return Math.ceil(chars / 4)
+  return countChatTokens(messages)
 }
 
 function domainPattern(domain: string): RegExp {
@@ -508,6 +609,15 @@ function scoreContent(content: string, pattern: RegExp): number {
 
 function uniqueMessages(messages: Message[]): Message[] {
   return messages.filter((message, index) => messages.findIndex((other) => other.content === message.content && other.role === message.role) === index)
+}
+
+// No real English word runs past ~40 characters — a whitespace-free chunk
+// longer than that means word boundaries were lost during generation, not
+// that the model produced one very long real word.
+function isDegenerateSummary(text: string): boolean {
+  if (text.length < 30) return false
+  const longestRun = text.split(/\s+/).reduce((max, word) => Math.max(max, word.length), 0)
+  return longestRun > 40
 }
 
 function createCollector(): Map<string, string> {
@@ -621,6 +731,17 @@ export async function compressHistoryAsync(history: Message[], frame: RoutingFra
     // Generate natural-language summary
     const summary = await summarizeWithT5(t5Input)
 
+    // Sanity-check the output before trusting it. A broken export can return
+    // successfully (no exception) while producing degenerate text — confirmed
+    // live this session: the checked-in T5 export generates run-together
+    // text with no word boundaries at all ("Thelistindexisoutofrangethere").
+    // That has no real English word anywhere near this length, so treat it
+    // as a T5 failure and let the existing catch block below fall back to
+    // the rule-based compressor, instead of silently shipping broken text.
+    if (isDegenerateSummary(summary)) {
+      throw new Error('T5 output failed sanity check (no word boundaries — degenerate generation)')
+    }
+
     // Extract hard facts from full history BEFORE T5 can lose them.
     // These are concrete values (dates, names, numbers, IDs) that abstractive
     // summarizers routinely drop but LLMs need to answer follow-up questions.
@@ -670,6 +791,107 @@ export async function compressHistoryAsync(history: Message[], frame: RoutingFra
   }
 }
 
+// ── Embedding-based compression ───────────────────────────────────────────────
+// Replaces the hardcoded domain-keyword regex scorer (messageRelevanceScore)
+// with real semantic similarity (Gemini embeddings) between each candidate
+// message and the current query. The regex scorer only ever matches
+// vocabulary it was hand-tuned for (Stripe, ThinkPad, Dallas, Lisinopril,
+// ...) — on real conversations outside that vocabulary it's effectively
+// blind, which is a real contributor to the LoCoMo quality gap (audit issue
+// #3). This asks a general question instead: "is this message about the
+// same thing as what's being asked right now", which needs no per-domain
+// tuning and works on unseen vocabulary.
+//
+// Requires a real Gemini API key (never hardcoded/persisted) since the
+// embedding call goes straight to Gemini's native API, independent of
+// whichever provider the customer's actual completion call uses.
+export async function compressHistoryWithEmbeddings(history: Message[], frame: RoutingFrame, geminiApiKey: string): Promise<CompressionResult> {
+  const original = [...history]
+  const keptReasons: string[] = []
+
+  if (history.length <= 4) {
+    const originalTokens = estimateTokens(original)
+    keptReasons.push('Short history kept in full.')
+    return {
+      original,
+      compressed: original,
+      memoryFrame: buildMemoryFrame(original, frame),
+      keptReasons,
+      droppedCount: 0,
+      originalTokens,
+      compressedTokens: originalTokens,
+      tokensSaved: 0,
+    }
+  }
+
+  const memoryFrame = buildMemoryFrame(original, frame)
+  const summaryMessage = getStableSummaryMessage(original, frame)
+  const query = original.filter((m) => m.role === 'user').at(-1)?.content ?? ''
+
+  // Always keep a small verbatim recent window for conversational continuity
+  // (same window size the rule-based path uses), independent of similarity.
+  const recentCount = recentWindowSize(frame)
+  const recentMessages = original.slice(-recentCount)
+  const recentSet = new Set(recentMessages)
+  const candidates = original.filter((m) => !recentSet.has(m))
+
+  const [queryEmbedding, candidateEmbeddings] = await Promise.all([
+    embedText(query, geminiApiKey, 'RETRIEVAL_QUERY'),
+    embedBatch(candidates.map((m) => m.content), geminiApiKey, 'RETRIEVAL_DOCUMENT'),
+  ])
+
+  const ranked = candidates
+    .map((message, i) => ({ message, score: cosineSimilarity(queryEmbedding, candidateEmbeddings[i]) }))
+    .sort((a, b) => b.score - a.score)
+
+  const originalTokens = estimateTokens(original)
+  const targetMaxRatio = HIGH_VALUE_DOMAINS.has(frame.domain) ? 0.62 : 0.5
+  const budgetTokens = originalTokens * targetMaxRatio
+
+  const picked: Message[] = []
+  let runningTokens = estimateTokens([summaryMessage, ...recentMessages])
+  for (const item of ranked) {
+    const cost = estimateTokens([item.message])
+    if (runningTokens + cost > budgetTokens) continue
+    picked.push(item.message)
+    runningTokens += cost
+  }
+
+  const pickedSet = new Set(picked)
+  const orderedPicked = original.filter((m) => pickedSet.has(m))
+  let compressed = uniqueMessages([summaryMessage, ...orderedPicked, ...recentMessages])
+  let compressedTokens = estimateTokens(compressed)
+
+  // Same minimum-retention floor as the rule-based path, but backfilling by
+  // similarity rank instead of pure recency — consistent with what this
+  // whole path is testing.
+  const MIN_RETENTION_RATIO = 0.15
+  const minMessageCount = Math.min(original.length, Math.max(4, Math.ceil(original.length * MIN_RETENTION_RATIO)))
+  const retainedOriginals = new Set(compressed.filter((m) => m !== summaryMessage))
+  if (retainedOriginals.size < minMessageCount) {
+    const needed = minMessageCount - retainedOriginals.size
+    const additional = ranked.filter((item) => !retainedOriginals.has(item.message)).slice(0, needed).map((item) => item.message)
+    for (const message of additional) retainedOriginals.add(message)
+    const orderedOriginals = original.filter((m) => retainedOriginals.has(m))
+    compressed = uniqueMessages([summaryMessage, ...orderedOriginals])
+    compressedTokens = estimateTokens(compressed)
+    keptReasons.push(`CTS (embeddings) enforced a minimum retention floor: kept ${orderedOriginals.length} of ${original.length} original messages.`)
+  }
+
+  keptReasons.push('CTS selected messages by semantic similarity (Gemini embeddings) to the current query, not keyword/domain regex.')
+
+  const retainedOriginalCount = compressed.filter((m) => m !== summaryMessage).length
+  return {
+    original,
+    compressed,
+    memoryFrame,
+    keptReasons,
+    droppedCount: Math.max(0, original.length - retainedOriginalCount),
+    originalTokens,
+    compressedTokens,
+    tokensSaved: Math.max(0, originalTokens - compressedTokens),
+  }
+}
 
 
 
