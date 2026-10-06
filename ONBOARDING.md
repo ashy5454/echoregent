@@ -48,9 +48,12 @@ injects long-term memory about the user, forwards the compressed request to
 whichever provider you configured, and returns the provider's response with
 EchoRegent's own metadata (domain, compression ratio, tokens saved) attached
 as response headers. You either use it as a drop-in OpenAI-compatible proxy
-(`/v1/chat/completions`, bring your own provider key) or as a hosted chat
-endpoint where EchoRegent itself holds the key and generates replies
-(`/api/chat`, `/demo/chat`).
+(`/v1/chat/completions`, bring your own provider key), or through the
+fuller pipeline endpoints that also inject memory and build a
+domain-specific system prompt (`/api/chat` with caller-supplied provider
+credentials, and `/demo/chat`, where EchoRegent holds the key). Note that
+the main proxy path does **not** inject memory or a system prompt — see
+Section 2.
 
 ---
 
@@ -70,9 +73,11 @@ endpoint where EchoRegent itself holds the key and generates replies
           │                  │   │                     │   │  llmWiki.ts     │
           │  domain + intent │   │  3 modes:           │   │                 │
           │  + risk, via     │   │  - compressHistory  │   │  per-(key,end-  │
-          │  DistilBERT ONNX │   │    (regex, sync)    │   │  user) structured│
-          │  or keyword      │   │  - compressHistory- │   │  memory, exposed│
-          │  fallback        │   │    Async (T5 —      │   │  at /api/wiki*  │
+          │  keyword rules   │   │    (regex, sync)    │   │  user) structured│
+          │  (sync, used by  │   │  - compressHistory- │   │  memory, exposed│
+          │  the proxy);     │   │    Async (T5 —      │   │  at /api/wiki*  │
+          │  DistilBERT only │   │                     │   │                 │
+          │  on /api/chat    │   │                     │   │                 │
           │                  │   │    BROKEN, unused   │   │  and /memory    │
           │                  │   │    in the proxy path)│   │                 │
           │                  │   │  - compressHistory- │   │                 │
@@ -97,16 +102,29 @@ endpoint where EchoRegent itself holds the key and generates replies
           └─────────────────────────────────────────────┘
 ```
 
-Two separate usage patterns, don't confuse them:
+Three usage patterns, don't confuse them (corrected 2026-10-06 — an
+earlier version of this section lumped the last two together and
+overstated which endpoints use the ML models):
 
-- **Proxy mode** (`/v1/chat/completions`): the caller brings their own
-  provider key via `x-llm-key`. EchoRegent classifies and compresses, then
-  forwards to the real provider and relays the real response. EchoRegent
-  never generates the reply itself here.
-- **Hosted mode** (`/api/chat`, `/demo/chat`): EchoRegent holds its own
-  provider key (`DEMO_LLM_API_KEY` / `GEMINI_API_KEY`) and generates the
-  reply itself, via `src/providerServer.ts` → `callGemini`/`callOpenRouter`.
-  This is what the landing-page demo chat and `/api/chat` use.
+- **Proxy mode** (`/v1/chat/completions`) — the primary product surface.
+  The caller brings their own provider key via `x-llm-key`. EchoRegent
+  classifies (with the **keyword-rule** `classify()`, not DistilBERT),
+  compresses, then forwards to the real provider and relays the real
+  response. It passes the caller's own system message through untouched:
+  **no memory injection and no EchoRegent system prompt happen on this
+  path.**
+- **Full-pipeline mode** (`/api/chat`): runs `ctsAsync()` — the DistilBERT
+  classifier (`classifyAsync`, with keyword fallback), T5-based
+  `compressHistoryAsync` (degenerate output now falls back to the rule
+  compressor), wiki-memory injection, and a domain-specific system prompt
+  from `router.ts`. The reply comes from the caller-supplied `live`
+  provider config in the request body, or a canned `mockResponder` reply if
+  none is given. It does not use the semantic cache.
+- **Demo mode** (`/demo/chat`): EchoRegent holds its own provider key
+  (`DEMO_LLM_API_KEY` / `GEMINI_API_KEY`) and generates the reply itself via
+  `src/providerServer.ts`. Uses keyword `classify()`, rule-based
+  compression, LLM-wiki context injection, and the MiniLM semantic cache.
+  This is what the landing-page demo chat uses.
 
 ---
 
@@ -220,8 +238,9 @@ echoregent/
 │   │   ├── embeddings.ts     Gemini embeddings client used by
 │   │   │                     compressHistoryWithEmbeddings().
 │   │   ├── semantic-cache.ts MiniLM-based response cache (checkCache/
-│   │   │                     storeCache) — used by hosted-mode endpoints
-│   │   │                     to skip regenerating identical-ish replies.
+│   │   │                     storeCache) — used only by /demo/chat (and the
+│   │   │                     eval-only /test/cache) to skip regenerating
+│   │   │                     identical-ish replies.
 │   │   ├── wiki.ts           Per-user structured memory implementation.
 │   │   ├── llmWiki.ts        Ingested knowledge-base sources/pages.
 │   │   ├── router.ts         Builds the system prompt from the routing
@@ -392,9 +411,9 @@ breakdowns, that's real, not-yet-done work.
 
 | Model | Base checkpoint | Status | Where it's used |
 |---|---|---|---|
-| Classifier | `distilbert-base-uncased` | **Real, loads, runs.** Biased: trained on wildly imbalanced per-domain data (thousands of coding examples vs. single digits of legal), so it silently guesses "coding" when unsure. Architecture is fine; the training data isn't. | `classifyAsync()`, used by hosted-mode endpoints when available, keyword fallback otherwise. |
+| Classifier | `distilbert-base-uncased` | **Real, loads, runs.** Biased: trained on wildly imbalanced per-domain data (thousands of coding examples vs. single digits of legal), so it silently guesses "coding" when unsure. Architecture is fine; the training data isn't. | `classifyAsync()`, used **only** by `/api/chat` (via `ctsAsync()`) and the demo/eval endpoint `/demo/compress-async`, with keyword fallback. The main `/v1/chat/completions` proxy path and `/demo/chat`, `/api/classify`, `/compress` all use the sync keyword-rule `classify()` — DistilBERT is not on the main product path. (Observed once this session, n=1: on an obvious order-support conversation DistilBERT said `coding` while the keyword classifier said `customer_support`.) |
 | T5 compressor | T5 (encoder/decoder) | **Real weights, broken output.** Generates text with no word boundaries — a genuine model/export defect, not a decode-config bug (the tokenizer's SentencePiece Metaspace setup is structurally correct). A validation+fallback was added this session so it fails loudly instead of silently shipping garbage, but the model itself is still broken. | `compressHistoryAsync()` — not called by the `/v1/chat/completions` proxy path at all (see Section 9, Issue #2). |
-| MiniLM (semantic cache) | `sentence-transformers/all-MiniLM-L6-v2` | **Real, works, verified.** Live-tested this session: 0.97 cosine similarity on a true paraphrase, correct misses on unrelated queries, correct per-session isolation. | `checkCache()`/`storeCache()` in hosted-mode endpoints (`/api/chat`, `/demo/chat`). |
+| MiniLM (semantic cache) | `sentence-transformers/all-MiniLM-L6-v2` | **Real, works, verified.** Live-tested this session: 0.97 cosine similarity on a true paraphrase, correct misses on unrelated queries, correct per-session isolation. | `checkCache()`/`storeCache()` in `/demo/chat` only (plus the eval-only `/test/cache`). Not used by `/api/chat` or the proxy. |
 
 **The infrastructure blocker, if you retrain anything:** the two "fixed" T5
 re-exports found earlier use ONNX IR version 9; this stack's
@@ -614,8 +633,10 @@ npm run eval:plugins
 ```
 
 **Environment variables** (`.env.example` has the template):
-- `DEMO_LLM_API_KEY` / `DEMO_LLM_MODEL` — hosted-mode provider key, used by
-  `/api/chat` and `/demo/chat`. Falls back to `GEMINI_API_KEY` if unset.
+- `DEMO_LLM_API_KEY` / `DEMO_LLM_MODEL` — the provider key `/demo/chat`
+  uses to generate replies. Falls back to `GEMINI_API_KEY` if unset.
+  (`/api/chat` takes its provider credentials from the request body
+  instead.)
 - `GEMINI_API_KEY` — also used directly if you want Gemini as the demo
   provider, and reused as the embeddings key for compression when the
   caller's provider is Gemini.
@@ -680,11 +701,11 @@ deploys where you need to force a clean rebuild.
   that waitlist-form two-column layout, don't reach for `.api-container` —
   write a scoped class or inline style instead, or clean up the CSS
   collision properly first.
-- **`mockResponder.ts` is not what generates real replies.** It backs the
-  `cts()`/`ctsAsync()` library-mode functions in `cts-core/index.ts`
-  (used by some eval scripts), not `server.ts`'s hosted-mode endpoints —
-  those call the real providers via `providerServer.ts`. Don't go looking
-  in `mockResponder.ts` to understand how `/api/chat` actually replies.
+- **`mockResponder.ts` is a canned fallback, not a real responder.** It
+  backs the `cts()`/`ctsAsync()` library-mode functions in
+  `cts-core/index.ts`. `/api/chat` calls it when the request body has no
+  `live` provider config; with a `live` config it calls the real provider
+  via `providerServer.ts`. `/demo/chat` and the proxy never use it.
 - **"CTS" vs "EchoRegent"** — the product was renamed; the rename is not
   complete everywhere. `README.md` and new session work (this doc
   included) use EchoRegent; `admin-ui.ts`'s page title, some older docs,
