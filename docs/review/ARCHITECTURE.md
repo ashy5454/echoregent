@@ -13,8 +13,9 @@ Cost and latency grow with the tokens sent, and irrelevant context can
 degrade answers. EchoRegent is a **token middle layer**: it sits between an
 app and an LLM provider, removes noise from the conversation history before
 the call, and reports what it did and what it saved. Beyond compression it
-also classifies each turn (domain, intent, risk), can inject long-term
-memory, and is proposed to score the LLM's output.
+also classifies each turn (domain, intent, risk), keeps a memory of key facts
+about the user (a scored version is in progress), and is proposed to score
+the LLM's output.
 
 ---
 
@@ -29,7 +30,7 @@ flowchart LR
   E -->|response| B
   B -->|response + x-cts headers| A
   D -.->|embeddings, one call per message| G[(Gemini embeddings API)]
-  M[(Memory: user wiki, knowledge wiki)] -.->|only on some routes| B
+  M[(Memory - wiki today, scored key facts in progress)] -.->|only on some routes| B
   B --> L[(Usage log: metadata only, no message text)]
 ```
 
@@ -49,7 +50,7 @@ The same picture as plain text:
  │                   embeddings API (Gemini)                                        │
  └───────────────┬──────────────────────────────────────────────┬──────────────────┘
                  ▼                                              ▼
-        Memory stores (optional)                    Usage log (metadata only)
+   Memory (wiki now; scored key facts next)         Usage log (metadata only)
 ```
 
 ---
@@ -159,7 +160,56 @@ caching is not broken.
 
 ---
 
-## 8. Tech stack
+## 8. Memory layer: key facts and scores
+
+**Built today**
+
+- **Key facts inside compression.** For each turn the compressor pulls facts
+  out of the conversation with domain-specific patterns (IDs, codes, dates,
+  amounts, error messages, identifiers, and a fixed list of domain terms) and
+  gives each fact an importance score: small bonuses for IDs, numbers and
+  multi-word facts, plus the largest bonus when the fact matches a
+  hand-written vocabulary for the domain. It keeps the top 10, and the best 5
+  to 8 become the "Key facts" line of the short summary that stands in for
+  older turns. The scoring is hand-tuned and fitted to a small set of demo
+  entities, so it is weak on text outside those vocabularies.
+- **User memory (long-term).** Five plain lists per user: profile, patterns,
+  active context, recurring blockers, behavioral signals. They are filled by
+  hand-written patterns, hold 8 to 12 items each at 90 characters per item,
+  and drop the oldest entry when full. There are no scores, no per-fact
+  timestamps, no source, and no conflict handling.
+- **Knowledge memory.** Ingested sources are turned into wiki pages by an LLM
+  call, and pages are selected for the current message.
+- **Scope and control.** Per API key, optionally per end user. Customers can
+  view and clear their memory on a page and through an API.
+- **Where it is injected.** `/api/chat` and `/demo/chat` only. The main proxy
+  path injects no memory.
+
+**In progress (design intent, not built)**
+
+A single key-fact memory in which every fact carries a score, and the score
+decides three things:
+
+1. **Keep or forget:** which facts survive when memory is full, replacing
+   oldest-first dropping.
+2. **Inject:** which facts go into the prompt for the current turn, within a
+   token budget.
+3. **Conflicts:** when a new fact contradicts an old one, which wins (a newer
+   fact outranks a stale one).
+
+Candidate fact record, proposed for the reviewer to critique: fact text; type
+(identity, preference, task state, constraint, and so on); source turn;
+created and last-confirmed times; importance score; confidence; number of
+times reinforced; and a pointer to the fact it supersedes.
+
+Open questions: what feeds the score, how scores decay over time, how
+contradictions are detected, how injected facts are kept from eating the
+token savings, and how to show that memory improves answers. Nothing
+evaluates memory today.
+
+---
+
+## 9. Tech stack
 
 | Layer | Technology |
 |---|---|
@@ -173,7 +223,7 @@ caching is not broken.
 
 ---
 
-## 9. Data flow: what leaves the server
+## 10. Data flow: what leaves the server
 
 - The conversation goes to the **customer's LLM provider** (expected).
 - On the embeddings path, message text **also goes to Google's embeddings
@@ -185,7 +235,7 @@ caching is not broken.
 
 ---
 
-## 10. Latency-relevant facts
+## 11. Latency-relevant facts
 
 | Step | Cost |
 |---|---|
@@ -201,13 +251,18 @@ latency has not been measured.
 
 ---
 
-## 11. Capability status
+## 12. Capability status
 
 | Capability | Status |
 |---|---|
 | Compress history (rule-based, embeddings) | built |
 | Token and cost accounting (estimated, plus provider-reported usage) | built; no holdout-verified savings yet |
 | Memory (view, clear, per end-user scope) | built; extraction is rough |
+| Key-fact extraction and scoring inside compression | built; hand-tuned, tied to demo vocabularies |
+| Long-term memory (five lists, oldest dropped first) | built; crude, no scores |
+| Scored key-fact memory (keep or forget, inject, conflicts) | in progress; not built |
+| Memory on the main proxy path | not built |
+| Evaluation of whether memory improves answers | not built |
 | Risk signals (crisis, medical, legal, financial) | built as flags only; they do not change behavior |
 | Protected zones (never compress high-risk conversations) | not built |
 | Trained classifier and summarizer on the main path | not in use |
