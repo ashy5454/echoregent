@@ -67,6 +67,40 @@ export interface RoutingFrame {
   }
 }
 
+export type ContextStrategy = 'verbatim' | 'compress'
+
+export type PolicyAction = 'allow' | 'block'
+
+export interface ContextPolicy {
+  /** A customer-controlled identifier recorded with every decision. */
+  version: string
+  /** Domains that must never be compressed, cached, or automatically remembered. */
+  protectedDomains: DomainType[]
+  /** Risk signals that trigger the same hard protection. */
+  protectedRisks: RiskSignal[]
+  /** Maximum retention used by downstream persistent stores for ordinary memory. */
+  defaultRetentionDays: number
+}
+
+export interface PolicyDecision {
+  policyVersion: string
+  protected: boolean
+  compression: PolicyAction
+  responseCache: PolicyAction
+  memoryWrite: PolicyAction
+  retrieval: PolicyAction
+  reasons: string[]
+}
+
+export interface ContextPlan {
+  strategy: ContextStrategy
+  reason: string
+  policy: PolicyDecision
+  originalMessageCount: number
+  estimatedOriginalTokens: number
+  providerCacheEligible: boolean
+}
+
 export interface CompressionResult {
   original: Message[]
   compressed: Message[]
@@ -119,6 +153,8 @@ export interface WikiSource {
   title: string
   content: string
   addedAt: string
+  expiresAt?: string
+  redactions?: Record<string, number>
 }
 
 export interface WikiPage {
@@ -130,9 +166,25 @@ export interface WikiPage {
   tags: string[]
 }
 
+export type MemoryFactStatus = 'current' | 'superseded' | 'expired' | 'deleted'
+
+export interface MemoryFact {
+  id: string
+  value: string
+  normalizedValue: string
+  sourceIds: string[]
+  createdAt: string
+  validFrom: string
+  validUntil?: string
+  status: MemoryFactStatus
+  confidence: number
+  supersedesId?: string
+}
+
 export interface LLMWiki {
   sources: WikiSource[]
   pages: WikiPage[]
+  facts: MemoryFact[]
   indexMarkdown: string
   logMarkdown: string
   schemaMarkdown: string
@@ -147,6 +199,8 @@ export interface SourceInput {
 
 export interface CTSResult {
   frame: RoutingFrame
+  policy: PolicyDecision
+  contextPlan: ContextPlan
   compression: CompressionResult
   route: RouteResult
   response: string
@@ -156,8 +210,11 @@ export interface CTSResult {
 export interface CTSInput {
   message: string
   history?: Message[]
+  frame?: RoutingFrame
   wikiContext?: string
   customDomainPlugins?: CustomDomainPlugin[]
+  contextPolicy?: Partial<ContextPolicy>
+  provider?: string
 }
 
 export interface LLMResponderInput {

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head><meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0" /><title>EchoRegent use cases</title></head>
+  <body>
+    <canvas id="stars" aria-hidden="true"></canvas>
+    <main>
+      <p><a href="/">← EchoRegent</a></p>
+      <h1>Built for support and coding agents</h1>
+      <section class="uc-code">
+        <h2>Customer support</h2>
+        <p>Preserve ticket IDs, deadlines, account context, and source-cited facts while removing irrelevant history.</p>
+        <button class="uc-lang-btn active" type="button" data-target="policy">Policy</button>
+        <div class="uc-lang-panel active" data-id="policy"><pre>Protected data is never automatically compressed, cached, or remembered.</pre></div>
+      </section>
+      <section class="uc-code">
+        <h2>Coding copilots</h2>
+        <p>Keep stack traces, paths, API errors, and selected implementation decisions available without replaying an entire session.</p>
+        <button class="uc-lang-btn active" type="button" data-target="trace">Trace</button>
+        <div class="uc-lang-panel active" data-id="trace"><pre>Every context decision records the strategy, policy version, and token outcome.</pre></div>
+      </section>
+    </main>
+    <script type="module" src="/src/usecases.ts"></script>
+  </body>
+</html>

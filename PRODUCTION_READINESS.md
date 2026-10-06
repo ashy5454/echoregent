@@ -34,8 +34,8 @@ This is the honest pre-pilot checklist after adding the async compression path, 
    - If medical scores low, disable medical pilots or route medical to low/no compression.
 
 6. Finish architectural memory guarantees.
-   - Current wiki/memory exists, but Layer A/B protected-zone enforcement is not a hard architectural boundary yet.
-   - Cross-session memory exists through the wiki store, but it needs stronger permission controls, export/delete UX, and retrieval evals.
+   - Protected-zone enforcement now blocks compression, response caching, cross-session retrieval, and automatic memory writes in the shared core. Continue expanding policy coverage and test adversarial classifier failures.
+   - Cross-session memory has source-cited facts, correction/forget operations, and retrieval evaluation primitives; it still needs organization RBAC, export UX, and broader retrieval evaluations.
 
 ## Pilot go/no-go thresholds
 

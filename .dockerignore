@@ -1,0 +1,12 @@
+.git
+.github
+node_modules
+cts-mcp/node_modules
+dist
+cts-mcp/dist
+data
+ml
+.env
+.env.*
+!.env.example
+npm-debug.log*
