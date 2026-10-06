@@ -168,14 +168,9 @@ res = requests.post(
 
 <section class="section" id="results">
   <h2 class="section-title">Measured, not asserted</h2>
-  <p class="section-sub">Real numbers from real API calls — see the methodology note below each one.</p>
+  <p class="section-sub">Real numbers from real API calls — see the methodology note below.</p>
 
-  <div class="bench-metric-cards" style="grid-template-columns: repeat(2, 1fr); max-width: 700px; margin-left: auto; margin-right: auto;">
-    <div class="bench-metric-card">
-      <div class="bench-metric-num">29.4%</div>
-      <div class="bench-metric-label">Token reduction</div>
-      <div class="bench-metric-sub">Paired A/B benchmark on realistic conversations, both arms making real Gemini API calls and reading real <code>total_tokens</code> from real responses.</div>
-    </div>
+  <div class="bench-metric-cards" style="grid-template-columns: 1fr; max-width: 360px; margin-left: auto; margin-right: auto;">
     <div class="bench-metric-card">
       <div class="bench-metric-num">0.213 <span style="opacity:0.4;font-size:16px">vs 0.105</span></div>
       <div class="bench-metric-label">LoCoMo answer-quality F1</div>
@@ -185,10 +180,9 @@ res = requests.post(
 
   <p class="bench-quality-note" style="text-align:center;max-width:640px;margin-left:auto;margin-right:auto;">
     LoCoMo is a stress test on very long conversations, not a savings number — it's here to show the honest
-    quality/compression tradeoff at that extreme, not to be read as a typical-case result. Both benchmarks are
-    real scripts in this repo (<code>audit/notes/live_paired_bench.ts</code>,
-    <code>audit/notes/locomo_eval_embeddings.ts</code>) — clone the repo and rerun them yourself with your own
-    provider key.
+    quality/compression tradeoff at that extreme, not to be read as a typical-case result. The benchmark is a
+    real script in this repo (<code>audit/notes/locomo_eval_embeddings.ts</code>) — clone the repo and rerun it
+    yourself with your own provider key.
   </p>
 </section>
 
