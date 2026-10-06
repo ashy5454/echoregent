@@ -290,9 +290,10 @@ echoregent/
 │   │                           breakeven.ts, stats.ts. See AUDIT.md Part 5.
 │   │
 │   └── notes/                  Smaller, real, already-run scripts:
-│       ├── live_paired_bench.ts        The real paired A/B benchmark that
-│       │                               produced the 29.4% token-reduction
-│       │                               number (needs GEMINI_TEST_KEY).
+│       ├── live_paired_bench.ts        A paired A/B token-usage benchmark
+│       │                               (needs GEMINI_TEST_KEY). It covers
+│       │                               only the older rule-based compressor,
+│       │                               so its results are outdated.
 │       ├── locomo_eval.ts, locomo_eval_embeddings.ts  Real LoCoMo dataset
 │       │                               evals — the second produced the
 │       │                               F1 0.213 (embeddings) vs 0.105

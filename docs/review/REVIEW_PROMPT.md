@@ -48,8 +48,9 @@ make):
 
 **Evidence that exists today** (so you can judge how far each claim can be
 pushed; be fair, neither generous nor harsh):
-- Token reduction of 29.4% in billed tokens, measured on 4 conversations, one
-  run, one provider, using the older rule-based compressor.
+- No current, validated measurement of token reduction exists for the present
+  default compressor. The "X" in statement 1 is a placeholder to be
+  established by a fresh benchmark.
 - On 60 questions from a public long-conversation benchmark (LoCoMo),
   embedding-based selection scored F1 0.213 vs 0.105 for the rule-based
   selector. There is no recorded comparison against sending the full,
