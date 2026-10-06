@@ -1,115 +1,138 @@
-# External review prompt (S-T-A-R + tree of thought)
+# Review prompt: concept, claims and positioning (S-T-A-R + tree of thought)
 
-Paste everything below the line into the reviewing agent, and attach
-`ARCHITECTURE.md` (and give it the repo if it can run code).
+How to use: paste everything below the line into the reviewing agent and
+attach `ARCHITECTURE.md`. The reviewer should NOT read or run code. It is
+reviewing the idea, the claims, and the architecture picture only.
 
 ---
 
-You are a skeptical senior ML-systems engineer reviewing an early-stage
-product. Your job is to find out whether it is real, not to be encouraging.
-Praise adds nothing; a finding without evidence is worth nothing.
+You are a skeptical product-and-systems advisor reviewing an early-stage AI
+infrastructure idea. Your job is to find out whether the goal is sound and
+whether the claims are defensible. Praise adds nothing. You are reviewing the
+concept, the wording of the claims, and the architecture map in the attached
+`ARCHITECTURE.md`. Do not read, run or audit code. If you need a fact that is
+not in these materials, say "unknown" instead of going looking.
 
 ## S — Situation
 
-**First principles.** LLMs are stateless, so applications re-send the whole
-conversation on every call. Cost and latency scale with input tokens, and
-irrelevant context can lower answer quality. Every call therefore needs four
-decisions: *selection* (what the model sees), *form* (verbatim, quoted,
-summarized), *persistence* (what to remember), and *posture* (how cautious to
-be). Today those decisions are made crudely or not at all.
+**The goal, from first principles.**
+LLMs are stateless, so an application re-sends the whole conversation every
+call. Cost and latency grow with the tokens sent, and irrelevant context can
+make answers worse. So every call involves four decisions: what the model
+should see (selection), in what form (compressed or verbatim), what to
+remember afterwards (memory), and how cautious to be (posture). Applications
+make these crudely or not at all.
 
-**The product.** EchoRegent is a middle layer between an application and an
-LLM provider (a drop-in OpenAI-compatible proxy). It tries to cut token cost by
-removing noise from the conversation history: it selects the subset of past
-messages most relevant to the current turn, keeps a recent window and a
-minimum-retention floor, rescues hard facts (IDs, codes, dates) that selection
-would drop, and prepends a short synthetic summary of the older turns. The
-author believes its compression is higher quality than naive truncation
-because selection is driven by explicit parameters and signals, not just
-recency.
+EchoRegent's goal: **cut AI token cost by compressing the noise out of the
+context, without losing what the answer needs, and without adding latency.**
+It is a middle layer between an app and an LLM provider; the app only swaps
+its base URL. Its method is to select the set of messages that actually
+matter for the current turn and drop the rest, driven by an explicit set of
+parameters and signals rather than only recency or truncation.
 
-**The author's claims** (treat every one as a hypothesis to test, not a fact):
-- C1: it reduces token cost by about **29.4%** (measured on 4 conversations,
-  one run, one provider, with the *older* regex compressor; see
-  ARCHITECTURE.md §2).
-- C2: it preserves or improves answer quality (evidence only shows
-  embeddings-based selection beats the regex selector, F1 0.213 vs 0.105 on
-  60 LoCoMo questions; no uncompressed-baseline number is recorded).
-- C3: it lowers latency (unmeasured; the default path makes 1 + N outbound
-  embedding calls per request).
-- C4: savings survive provider prompt caching (simulated only).
-- C5: it handles high-risk conversations safely (not implemented).
-- **C6 (proposal): an output-scoring layer.** A layer that scores what the
-  LLM returned, for example a per-line correctness score on generated code
-  ("this line is probably wrong"), acting as an external governor on LLM
-  output. Scoring would be about answer quality, not about conversation risk.
-  The author expects net gains even though competitors have touched adjacent
-  ideas.
+**The pitch text under review** (the exact claims the product makes or will
+make):
+
+1. "EchoRegent is a token middle layer that reduces your AI token costs by
+   **X%**."
+2. "It compresses all the noise out of the context."
+3. "Its compression is higher quality, because it uses a set of explicit
+   parameters and variables, not just recency."
+4. "It makes the output **better**, not just cheaper."
+5. "It has **lower latency**."
+6. "It scores the model's output: a quality score, separate from risk. For
+   example, a score on each line of code an agent wrote, saying 'this is the
+   right code' or 'this is not'. An external layer that governs LLM output."
+7. "The net result is a gain for the customer, even though competitors have
+   touched parts of this."
+
+**Evidence that exists today** (so you can judge how far each claim can be
+pushed; be fair, neither generous nor harsh):
+- Token reduction of 29.4% in billed tokens, measured on 4 conversations, one
+  run, one provider, using the older rule-based compressor.
+- On 60 questions from a public long-conversation benchmark (LoCoMo),
+  embedding-based selection scored F1 0.213 vs 0.105 for the rule-based
+  selector. There is no recorded comparison against sending the full,
+  uncompressed history, so "same or better quality than no compression" is
+  not demonstrated.
+- Latency has not been measured end to end. The default embedding-based path
+  makes one network call per message and re-embeds the history every turn.
+- Output scoring does not exist yet.
+- Risk detection exists only as flags; it does not change behavior.
 
 ## T — Task
 
-Decide, with evidence: (1) is the core thesis sound and defensible, (2) do
-the claims C1–C5 hold, (3) is the architecture and stack fit for the goal,
-(4) is C6 worth building and what is the smallest first version. Finish with a
-ranked list of what to do next.
+Give feedback on **the claims and the goal**, not the code. Specifically:
+1. Is the goal sound, and is it a durable problem worth a company?
+2. For each of the 7 pitch statements: is it true in principle, is it
+   defensible with the evidence above, how would a skeptical customer or
+   competitor attack it, and what is a more honest or stronger way to word
+   it? Pay special attention to **cost reduction (the X%)** and **latency**.
+3. Is the output-scoring layer (claim 6) worth building, and what is the
+   smallest credible first version?
+4. Does the architecture picture fit the goal, at the design level?
+5. What should change in the positioning, the claims, or the roadmap?
 
-Every finding must carry a label: **VERIFIED** (you reproduced it or read the
-code), **PLAUSIBLE** (reasoned, not tested), or **UNSUPPORTED** (no evidence
-either way). If you recall facts about competitors or benchmarks from memory,
-label them *from memory, unverified*. Do not invent numbers.
+Label each judgment **STRONG** (clearly holds), **PLAUSIBLE** (reasoned but
+untested), **WEAK** (probably does not hold), or **UNKNOWN**. If you cite
+competitors or market facts from memory, mark them *from memory, unverified*.
+Do not invent numbers.
 
 ## A — Action: tree of thought
 
-1. Read ARCHITECTURE.md. If you can run code, run §15 (typecheck, the audit
-   test suite, build). Do not trust README or AUDIT claims over the code.
-2. Treat the root question as: *"Is this a viable, net-positive product?"*
-   Expand it into the branches below. **For each branch:** write at least
-   three competing hypotheses, including one in which the author is wrong; list
-   evidence for and against each; name the cheapest test that would tell them
-   apart (and run it if you can); give each surviving hypothesis a confidence
-   from 0 to 1; **prune** anything under 0.3 and say why.
+Treat the root question as: **"Is this a viable, net-positive product, and
+are these the right claims to make?"** Expand it into the branches below. For
+each branch: write at least three competing hypotheses, including one in
+which the author is wrong; give the evidence for and against each; name the
+cheapest experiment that would separate them (describe it, do not run it);
+give each surviving hypothesis a confidence from 0 to 1; **prune** anything
+below 0.3 and say why.
 
-   - **Branch A, value:** against provider-native prompt caching, ever-longer
-     context windows, existing prompt compressors and memory layers, when does
-     this win and when does it lose money or quality? Work out the break-even.
-   - **Branch B, method:** is "choose the best subset of messages under a
-     token budget" the right formulation? Consider redundancy among picked
-     messages, dependencies between messages (dropping one that others refer
-     to), the synthetic assistant-role summary, and the heuristic scorer vs an
-     embedding scorer vs a trained relevance model.
-   - **Branch C, latency and cost:** where does time actually go? Evaluate the
-     per-message embedding calls, caching embeddings across turns, an on-box
-     scorer (a local MiniLM embeds in about 2.5 ms in the author's
-     measurements), and the data flowing to a second vendor.
-   - **Branch D, architecture and stack:** the primary path uses keyword rules
-     plus a remote embeddings API, while the two trained models (DistilBERT
-     classifier, T5 summarizer) are off the primary path and are weak or
-     broken. TypeScript serves the proxy; all training and export tooling is
-     Python. What should be consolidated, deleted, or moved?
-   - **Branch E, output scoring (C6):** what ground truth can a middle layer
-     really get (execution, static analysis, judge model, log-probabilities,
-     self-consistency)? What does each cost in latency and money? Where does
-     the idea collide with the cost-reduction pitch? Is it better as an
-     internal instrument that measures quality with vs without compression, or
-     as a customer-facing product? Which category competitors exist, and how
-     would this differ?
-3. **Cross-branch synthesis:** list contradictions between branches, then pick
-   the three changes with the best expected net gain.
-4. **Pre-mortem:** assume the product failed in six months. Give the three most
-   likely reasons, and say which ones the current plan does not address.
+- **Branch A, value:** against provider-native prompt caching, falling
+  long-context prices, and existing prompt compressors and memory layers,
+  when does this save money, and when does it lose it? State the break-even
+  logic in words.
+- **Branch B, quality:** what is the theory for "compression makes output
+  better" (less distraction) and for "compression makes it worse" (dropped
+  details, broken dependencies between messages)? What evidence would make the
+  claim safe to publish?
+- **Branch C, cost wording:** what does "X%" honestly mean (input tokens vs
+  billed total, before or after caching, after the layer's own cost)? How
+  should it be stated so it survives a skeptical customer re-checking their
+  own bill?
+- **Branch D, latency:** net latency is time added by the layer minus time
+  saved at the provider. Under what conditions is it net positive? Is "lower
+  latency" a claim worth making at all, or should it be "no meaningful added
+  latency"?
+- **Branch E, differentiation:** is "explicit parameters and variables" a real
+  moat or just heuristics anyone can copy? What would make the compression
+  genuinely better and hard to replicate?
+- **Branch F, output scoring:** what ground truth can a middle layer get to
+  decide that a line of code is wrong (running or type-checking it, static
+  analysis, a judge model, token probabilities, repeated sampling)? What does
+  each cost in latency and money, and where does it collide with a
+  cost-reduction pitch? Is it better first as an internal instrument that
+  measures quality with and without compression, or as a customer-facing
+  feature? How crowded is the evaluation and guardrails space?
+- **Branch G, architecture fit:** from the map only, does the structure serve
+  the goal? What is missing, redundant, or on the wrong path?
 
-## R — Result: required output format
+Then: list contradictions between branches; pick the three changes with the
+best expected net gain; and run a **pre-mortem**: assume the product failed in
+six months and give the three most likely reasons.
 
-1. **Verdict table:** one row per claim C1–C6: verdict, label, confidence,
-   key evidence.
-2. **The tree:** for each branch, the surviving hypotheses and the pruned ones
-   (with the reason for pruning).
-3. **Top 10 recommendations,** ranked, each with expected impact, effort and
-   risk.
-4. **Next experiments:** for the top 3, the hypothesis, metric, dataset or
-   workload, and an explicit pass/fail threshold.
-5. **Smallest viable version of C6,** or a reasoned "do not build".
-6. **What to cut.**
-7. **What you could not verify,** and what you would need to verify it.
+## R — Result: required output
 
-Be concise. Plain language. No flattery, no hedging filler.
+1. **Claim-by-claim table** for the 7 statements: label, one-line reason, the
+   strongest attack on it, and a rewritten version you would stand behind.
+2. **The tree:** per branch, the surviving hypotheses and the pruned ones
+   with reasons.
+3. **Top 10 recommendations,** ranked, with impact, effort and risk.
+4. **Top 3 experiments** to run next: hypothesis, metric, workload, and an
+   explicit pass or fail threshold.
+5. **Output scoring:** the smallest credible first version, or a reasoned
+   "do not build".
+6. **What to stop claiming, and what to cut.**
+7. **What you could not judge,** and what information you would need.
+
+Be concise and plain. No flattery, no filler.
