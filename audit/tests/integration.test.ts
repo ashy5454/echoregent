@@ -62,8 +62,9 @@ beforeAll(async () => {
   await new Promise<void>((resolve) => mockUpstream.listen(MOCK_PORT, '127.0.0.1', resolve))
 
   // Spawn the real CTS server against a throwaway cwd (so data/*.json lands in a temp dir).
-  const tsxBin = join(REPO_ROOT, 'node_modules', '.bin', 'tsx')
+  const tsxBin = join(REPO_ROOT, 'node_modules', '.bin', process.platform === 'win32' ? 'tsx.cmd' : 'tsx')
   ctsProcess = spawn(tsxBin, [join(REPO_ROOT, 'src/server.ts')], {
+    shell: process.platform === 'win32',
     cwd: tempCwd,
     env: {
       ...process.env,

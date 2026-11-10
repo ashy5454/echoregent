@@ -1,0 +1,63 @@
+{
+  "arm": "baseline",
+  "run": 1,
+  "startedAt": "2026-11-10T13:25:30.176Z",
+  "model": "gpt-6.1-sol",
+  "provider": "agentrouter",
+  "reasoning": "client default",
+  "taskHash": "dea9035bb9780639ce1c52fe4d14e278f7ddc37efa3f2da518a57affe422c0c4",
+  "fixtureHash": "82446067bd343cb3dd02d3fb6609d5b17985f237f1063af285e8a8da97229fce",
+  "exitCode": 0,
+  "timedOut": false,
+  "completed": false,
+  "checksPassed": false,
+  "testResult": "RESULT 3/8 passed",
+  "latencyMs": 38809,
+  "calls": [
+    {
+      "status": 200,
+      "durationMs": 6770,
+      "requestBytes": 62835,
+      "usage": [],
+      "error": "This operation was aborted"
+    },
+    {
+      "status": 200,
+      "durationMs": 9898,
+      "requestBytes": 64260,
+      "usage": [],
+      "error": "This operation was aborted"
+    },
+    {
+      "status": 200,
+      "durationMs": 9161,
+      "requestBytes": 73369,
+      "usage": [],
+      "error": "This operation was aborted"
+    },
+    {
+      "status": 200,
+      "durationMs": 12444,
+      "requestBytes": 77227,
+      "usage": [],
+      "error": "This operation was aborted"
+    }
+  ],
+  "providerTotals": null,
+  "clientUsage": [
+    {
+      "input_tokens": 52746,
+      "cached_input_tokens": 38521,
+      "cache_write_input_tokens": 14213,
+      "output_tokens": 617,
+      "reasoning_output_tokens": 279
+    }
+  ],
+  "transformations": [],
+  "proxyStats": null,
+  "errors": [],
+  "expectedInitialTestFailures": [],
+  "stderr": "Reading additional input from stdin...\n2026-11-10T13:25:37.179026Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: \"Rejected(\\\"`\\\\\\\"C:\\\\\\\\\\\\\\\\Windows\\\\\\\\\\\\\\\\System32\\\\\\\\\\\\\\\\WindowsPowerShell\\\\\\\\\\\\\\\\v1.0\\\\\\\\\\\\\\\\powershell.exe\\\\\\\" -Command 'node test.mjs'` rejected: blocked by policy\\\")\" }\n2026-11-10T13:25:56.218807Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: \"Rejected(\\\"`\\\\\\\"C:\\\\\\\\\\\\\\\\Windows\\\\\\\\\\\\\\\\System32\\\\\\\\\\\\\\\\WindowsPowerShell\\\\\\\\\\\\\\\\v1.0\\\\\\\\\\\\\\\\powershell.exe\\\\\\\" -Command 'Get-Content -LiteralPath README.md'` rejected: blocked by policy\\\")\" }\n2026-11-10T13:25:56.218815Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: \"Rejected(\\\"`\\\\\\\"C:\\\\\\\\\\\\\\\\Windows\\\\\\\\\\\\\\\\System32\\\\\\\\\\\\\\\\WindowsPowerShell\\\\\\\\\\\\\\\\v1.0\\\\\\\\\\\\\\\\powershell.exe\\\\\\\" -Command 'Get-Content -LiteralPath usage.mjs'` rejected: blocked by policy\\\")\" }\n",
+  "billedCost": null,
+  "note": "One paired coding task, live provider-reported tokens. No invoice cost or universal savings claim. Coordinator subagent tokens are excluded."
+}

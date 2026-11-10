@@ -6,12 +6,13 @@ import type { CTSAsyncInput, CTSInput, CTSResult, Message } from './types'
 
 export * from './types'
 export { classify, classifyAsync } from './classifier'
-export { compressHistory, compressHistoryAsync, compressHistoryWithEmbeddings, getCompressionStats } from './compressor'
+export { compressHistory, compressHistoryAsync, compressHistoryWithEmbeddings, compressHistoryML, getCompressionStats } from './compressor'
 export { routePrompt } from './router'
 export { createEmptyWiki, ingestSession, wikiToContextString } from './wiki'
 export { createEmptyLLMWiki, ingestSourceIntoLLMWiki, lintLLMWiki, llmWikiToContextString } from './llmWiki'
 export { warmUpClassifier, getClassifierHealth } from './ml-classifier'
 export { warmUpT5, getT5Health } from './ml-t5'
+export { scoreRelevance, warmUpRelevanceModel, getRelevanceHealth, type RelevanceModelHealth } from './ml-relevance'
 export {
   warmUpSemanticCache,
   checkCache,

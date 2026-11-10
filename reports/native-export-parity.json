@@ -1,0 +1,14 @@
+[
+  {
+    "name": "cts_relevance",
+    "minimum_source_export_cosine": 0.9847308397293091,
+    "vectors": 4,
+    "passed": true
+  },
+  {
+    "name": "cts_minilm",
+    "minimum_source_export_cosine": 0.9888606071472168,
+    "vectors": 4,
+    "passed": true
+  }
+]

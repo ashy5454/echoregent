@@ -1,0 +1,186 @@
+{
+  "arm": "echoregent",
+  "run": 4,
+  "startedAt": "2026-11-10T13:45:18.635Z",
+  "model": "gpt-6.1-sol",
+  "provider": "agentrouter",
+  "reasoning": "client default",
+  "taskHash": "dea9035bb9780639ce1c52fe4d14e278f7ddc37efa3f2da518a57affe422c0c4",
+  "fixtureHash": "82446067bd343cb3dd02d3fb6609d5b17985f237f1063af285e8a8da97229fce",
+  "exitCode": 0,
+  "timedOut": false,
+  "completed": true,
+  "checksPassed": true,
+  "testResult": "RESULT 8/8 passed",
+  "latencyMs": 29704,
+  "calls": [
+    {
+      "status": 200,
+      "durationMs": 5089,
+      "requestBytes": 62809,
+      "usage": [
+        {
+          "inputTokens": 12258,
+          "cachedInputTokens": 0,
+          "uncachedInputTokens": 12258,
+          "outputTokens": 142,
+          "totalTokens": 12400
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    },
+    {
+      "status": 200,
+      "durationMs": 17931,
+      "requestBytes": 88941,
+      "usage": [
+        {
+          "inputTokens": 18015,
+          "cachedInputTokens": 12255,
+          "uncachedInputTokens": 5760,
+          "outputTokens": 824,
+          "totalTokens": 18839
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    },
+    {
+      "status": 200,
+      "durationMs": 4356,
+      "requestBytes": 106470,
+      "usage": [
+        {
+          "inputTokens": 20762,
+          "cachedInputTokens": 18012,
+          "uncachedInputTokens": 2750,
+          "outputTokens": 61,
+          "totalTokens": 20823
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    }
+  ],
+  "providerTotals": {
+    "inputTokens": 51035,
+    "cachedInputTokens": 30267,
+    "uncachedInputTokens": 20768,
+    "outputTokens": 1027,
+    "totalTokens": 52062
+  },
+  "clientUsage": [
+    {
+      "input_tokens": 51035,
+      "cached_input_tokens": 30267,
+      "cache_write_input_tokens": 20759,
+      "output_tokens": 1027,
+      "reasoning_output_tokens": 313
+    }
+  ],
+  "transformations": [
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "message",
+      "newestItemFields": [
+        "type",
+        "id",
+        "role",
+        "content"
+      ],
+      "newestOutputShape": "undefined",
+      "inputItems": 7
+    },
+    {
+      "changed": false,
+      "reason": "unchanged",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "newestItemFields": [
+        "type",
+        "id",
+        "call_id",
+        "output"
+      ],
+      "newestOutputShape": [
+        {
+          "type": "input_text",
+          "fields": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "type": "input_text",
+          "fields": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "type": "input_text",
+          "fields": [
+            "type",
+            "text"
+          ]
+        }
+      ],
+      "inputItems": 10
+    },
+    {
+      "changed": false,
+      "reason": "unchanged",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "newestItemFields": [
+        "type",
+        "id",
+        "call_id",
+        "output"
+      ],
+      "newestOutputShape": [
+        {
+          "type": "input_text",
+          "fields": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "type": "input_text",
+          "fields": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "type": "input_text",
+          "fields": [
+            "type",
+            "text"
+          ]
+        }
+      ],
+      "inputItems": 14
+    }
+  ],
+  "proxyStats": {
+    "requests": 3,
+    "compressed": 0,
+    "protected": 0,
+    "errors": 0
+  },
+  "errors": [],
+  "expectedInitialTestFailures": [
+    {
+      "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'node test.mjs'",
+      "exitCode": 1
+    }
+  ],
+  "stderr": "Reading additional input from stdin...\n",
+  "billedCost": null,
+  "note": "One paired coding task, live provider-reported tokens. No invoice cost or universal savings claim. Coordinator subagent tokens are excluded."
+}

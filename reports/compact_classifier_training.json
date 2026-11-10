@@ -1,0 +1,98 @@
+{
+  "model": "cts_classifier",
+  "architecture": "TF-IDF unigram/bigram + balanced logistic regression",
+  "original_checkpoint_recovered": false,
+  "train_count": 6400,
+  "product_calibration_count": 1920,
+  "test_count": 1600,
+  "class_distribution": {
+    "coding": 1000,
+    "commerce": 1000,
+    "customer_support": 1000,
+    "education": 1000,
+    "general": 1000,
+    "legal": 1000,
+    "medical": 1000,
+    "sales": 1000
+  },
+  "metrics": {
+    "coding": {
+      "precision": 1.0,
+      "recall": 0.98,
+      "f1-score": 0.98989898989899,
+      "support": 200.0
+    },
+    "commerce": {
+      "precision": 0.964824120603015,
+      "recall": 0.96,
+      "f1-score": 0.9624060150375939,
+      "support": 200.0
+    },
+    "customer_support": {
+      "precision": 0.995,
+      "recall": 0.995,
+      "f1-score": 0.995,
+      "support": 200.0
+    },
+    "education": {
+      "precision": 0.9523809523809523,
+      "recall": 1.0,
+      "f1-score": 0.975609756097561,
+      "support": 200.0
+    },
+    "general": {
+      "precision": 0.9948979591836735,
+      "recall": 0.975,
+      "f1-score": 0.9848484848484849,
+      "support": 200.0
+    },
+    "legal": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 200.0
+    },
+    "medical": {
+      "precision": 0.9949748743718593,
+      "recall": 0.99,
+      "f1-score": 0.9924812030075187,
+      "support": 200.0
+    },
+    "sales": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 200.0
+    },
+    "accuracy": 0.9875,
+    "macro avg": {
+      "precision": 0.9877597383174376,
+      "recall": 0.9875,
+      "f1-score": 0.9875305561112686,
+      "support": 1600.0
+    },
+    "weighted avg": {
+      "precision": 0.9877597383174376,
+      "recall": 0.9875,
+      "f1-score": 0.9875305561112685,
+      "support": 1600.0
+    }
+  },
+  "sources": {
+    "code-search-net/code_search_net": 1000,
+    "embedding-data/Amazon-QA": 1000,
+    "bitext/Bitext-customer-support-llm-chatbot-training-dataset": 1000,
+    "rajpurkar/squad": 1000,
+    "https://raw.githubusercontent.com/budzianowski/multiwoz/master/data/MultiWOZ_2.2/train/dialogues_002.json": 511,
+    "https://raw.githubusercontent.com/budzianowski/multiwoz/master/data/MultiWOZ_2.2/train/dialogues_001.json": 489,
+    "https://raw.githubusercontent.com/TheAtticusProject/cuad/main/data.zip": 1000,
+    "qiaojin/PubMedQA": 1000,
+    "pipeline/data/synthetic_gen.py": 1000
+  },
+  "split": "seeded stratified 80/20, deduplicated text; same-source holdout, not independent real traffic",
+  "limitations": [
+    "No private training data used. Sales examples are synthetic. Quality gates need independent product probes; source or template overlap can inflate holdout results."
+  ],
+  "weight_sha256": "cbe500bca63b8571dcda5427bc8095d8423382d62c75e71f310ddf924b9dcfe2",
+  "duration_seconds": 1.8956426000222564
+}

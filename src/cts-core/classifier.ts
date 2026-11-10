@@ -2,31 +2,8 @@ import { extractSignals } from './signals'
 import { classifyDomainML } from './ml-classifier'
 import type { ConversationState, CustomDomainPlugin, DomainType, IntentType, Message, RiskSignal, RoutingFrame } from './types'
 
-export function classify(message: string, history: Message[] = [], customDomainPlugins: CustomDomainPlugin[] = []): RoutingFrame {
-  const signals = extractSignals(message, history)
-  const lower = message.toLowerCase()
-  const historyText = history.map((item) => item.content).join('\n').toLowerCase()
-  const contextText = `${lower}\n${historyText}`
-
-  const domain = detectDomain(lower, contextText, signals, customDomainPlugins)
-  const intent = detectIntent(lower, contextText, signals, domain)
-  const state = detectState(lower, history, signals, domain)
-  const risk = detectRisk(signals, domain, contextText)
-
-  return {
-    intent,
-    state,
-    domain,
-    risk,
-    signals,
-    confidence: {
-      intent: scoreIntent(intent, signals),
-      state: state === 'opening' ? 0.9 : 0.74,
-      domain: domain === 'general' ? 0.62 : 0.88,
-      risk: risk.length === 0 ? 1 : 0.88,
-    },
-  }
-}
+export { classify } from '../../packages/core/src/classifier.js'
+import { classify } from '../../packages/core/src/classifier.js'
 
 function detectDomain(
   lower: string,
@@ -61,6 +38,7 @@ function detectDomain(
   // being about legal advice. Require it to co-occur with a real legal-advice
   // term, or require one of the stronger unambiguous terms on its own.
   if (/\b(termination|contract|clause)\b/.test(lower)) return 'legal'
+  if (/\b(landlord|tenant)\b/.test(lower) && /\b(deposit|evict|eviction|lease|rights|rent)\b/.test(lower)) return 'legal'
   if (/\blegal\b/.test(lower) && /\b(advice|clause|contract|termination|non-compete|indemnity|liable|lawsuit|tenant|rights|counsel)\b/.test(contextText)) return 'legal'
   if (/\b(refund|order|delivery|ticket)\b/.test(lower)) return 'customer_support'
   const scores: Array<{ domain: DomainType; score: number }> = [
@@ -107,10 +85,9 @@ function detectDomain(
 
   const ranked = scores.sort((a, b) => b.score - a.score)
   const best = ranked[0]
-  // Safety-first tie-break: medical is a protected zone (no compression, no
-  // monetization). If it's tied with or one point behind the top score, a
-  // misclassification here means real medical content silently loses its
-  // protection. Prefer medical over an equally-weak alternative signal.
+  // Safety-first tie-break: medical content gets the fact-preserving medical
+  // policy. If it's tied with or one point behind the top score, prefer medical
+  // rather than risk routing clinical text through a less protective domain.
   const medical = ranked.find((item) => item.domain === 'medical')
   if (medical && medical.score > 0 && best.score - medical.score <= 1 && best.domain !== 'medical') {
     return 'medical'
@@ -221,7 +198,7 @@ function scoreIntent(intent: IntentType, signals: ReturnType<typeof extractSigna
 }
 
 // ── ML-powered async classify ─────────────────────────────────────────────────
-// Same as classify() but uses DistilBERT for domain detection.
+// Same as classify() but uses installed trained weights for domain detection.
 // Intent, state, and risk still use deterministic rules (they work well).
 // Falls back to keyword-based domain if the ML model errors.
 
@@ -251,8 +228,16 @@ export async function classifyAsync(
     // 2. Try ML model
     try {
       const ml   = await classifyDomainML(contextText.slice(0, 512))
-      domain     = ml.label as DomainType
-      domainConf = ml.score
+      const ruleDomain = detectDomain(lower, contextText, signals, customDomainPlugins)
+      const trainedDomains = new Set(['coding', 'commerce', 'customer_support', 'education', 'general', 'legal', 'medical', 'sales'])
+      if (!trainedDomains.has(ml.label) || !Number.isFinite(ml.score) || ml.score < 0.7 ||
+          ruleDomain === 'legal' || ruleDomain === 'medical' || lower.trim().length < 8) {
+        domain = ruleDomain
+        domainConf = domain === 'general' ? 0.62 : 0.88
+      } else {
+        domain = ml.label as DomainType
+        domainConf = ml.score
+      }
     } catch {
       // 3. Fallback to keyword rules if model unavailable
       domain     = detectDomain(lower, contextText, signals, customDomainPlugins)

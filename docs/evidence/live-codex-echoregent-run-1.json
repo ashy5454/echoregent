@@ -1,0 +1,97 @@
+{
+  "arm": "echoregent",
+  "run": 1,
+  "startedAt": "2026-11-10T13:24:46.948Z",
+  "model": "gpt-6.1-sol",
+  "provider": "agentrouter",
+  "reasoning": "client default",
+  "taskHash": "dea9035bb9780639ce1c52fe4d14e278f7ddc37efa3f2da518a57affe422c0c4",
+  "fixtureHash": "82446067bd343cb3dd02d3fb6609d5b17985f237f1063af285e8a8da97229fce",
+  "exitCode": 0,
+  "timedOut": false,
+  "completed": false,
+  "checksPassed": false,
+  "testResult": "RESULT 3/8 passed",
+  "latencyMs": 33746,
+  "calls": [
+    {
+      "status": 200,
+      "durationMs": 4640,
+      "requestBytes": 62843,
+      "usage": [],
+      "error": "This operation was aborted"
+    },
+    {
+      "status": 200,
+      "durationMs": 8387,
+      "requestBytes": 64294,
+      "usage": [],
+      "error": "This operation was aborted"
+    },
+    {
+      "status": 200,
+      "durationMs": 7008,
+      "requestBytes": 74485,
+      "usage": [],
+      "error": "This operation was aborted"
+    },
+    {
+      "status": 200,
+      "durationMs": 12881,
+      "requestBytes": 77821,
+      "usage": [],
+      "error": "This operation was aborted"
+    }
+  ],
+  "providerTotals": null,
+  "clientUsage": [
+    {
+      "input_tokens": 53160,
+      "cached_input_tokens": 38830,
+      "cache_write_input_tokens": 14318,
+      "output_tokens": 640,
+      "reasoning_output_tokens": 406
+    }
+  ],
+  "transformations": [
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "message",
+      "inputItems": 7
+    },
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "inputItems": 10
+    },
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "inputItems": 13
+    },
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "inputItems": 16
+    }
+  ],
+  "proxyStats": {
+    "requests": 4,
+    "compressed": 0,
+    "protected": 0,
+    "errors": 4
+  },
+  "errors": [],
+  "expectedInitialTestFailures": [],
+  "stderr": "Reading additional input from stdin...\n2026-11-10T13:24:52.070103Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: \"Rejected(\\\"`\\\\\\\"C:\\\\\\\\\\\\\\\\Windows\\\\\\\\\\\\\\\\System32\\\\\\\\\\\\\\\\WindowsPowerShell\\\\\\\\\\\\\\\\v1.0\\\\\\\\\\\\\\\\powershell.exe\\\\\\\" -Command 'node test.mjs'` rejected: blocked by policy\\\")\" }\n2026-11-10T13:25:07.235294Z ERROR codex_core::tools::router: error=exec_command failed: CreateProcess { message: \"Rejected(\\\"`\\\\\\\"C:\\\\\\\\\\\\\\\\Windows\\\\\\\\\\\\\\\\System32\\\\\\\\\\\\\\\\WindowsPowerShell\\\\\\\\\\\\\\\\v1.0\\\\\\\\\\\\\\\\powershell.exe\\\\\\\" -Command 'Get-Content -LiteralPath usage.mjs,README.md'` rejected: blocked by policy\\\")\" }\n",
+  "billedCost": null,
+  "note": "One paired coding task, live provider-reported tokens. No invoice cost or universal savings claim. Coordinator subagent tokens are excluded."
+}

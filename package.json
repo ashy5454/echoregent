@@ -1,11 +1,11 @@
 {
-  "name": "cts-v4-local-api",
+  "name": "echoregent-workspace",
   "version": "0.4.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1",
-    "api": "tsx src/server.ts",
+    "api": "npm run build:packages && node packages/cli/dist/index.js proxy",
     "build": "tsc && vite build",
     "eval:convert": "tsx src/evals/convertLegacyDataset.ts",
     "eval:dataset": "tsx src/evals/datasetEval.ts",
@@ -13,7 +13,16 @@
     "eval:session-memory": "tsx src/evals/sessionMemoryEval.ts",
     "eval:plugins": "tsx src/evals/pluginEval.ts",
     "test": "vitest run",
-    "preview": "vite preview --host 127.0.0.1"
+    "bench:tokens": "tsx audit/bench/token-savings-bench.ts",
+    "verify:relevance": "tsx audit/bench/verify-relevance.ts",
+    "bench:latency": "tsx audit/bench/model-latency.ts",
+    "test:models": "node --import tsx --test audit/bench/native-models.check.mjs",
+    "preview": "vite preview --host 127.0.0.1",
+    "build:packages": "npm run build --workspace @echoregent/core && npm run build --workspace @echoregent/cli",
+    "pack:packages": "npm run build:packages && npm pack --workspace @echoregent/core --pack-destination artifacts && npm pack --workspace @echoregent/cli --pack-destination artifacts",
+    "dev:legacy-api": "tsx src/server.ts",
+    "test:codex": "node scripts/codex-integration.mjs",
+    "test:packages": "node scripts/package-smoke.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",
@@ -26,8 +35,16 @@
   "dependencies": {
     "@xenova/transformers": "^2.17.2",
     "gpt-tokenizer": "^4.0.0",
+    "onnxruntime-node": "1.16.3",
     "pg": "^8.20.0",
     "resend": "^6.12.3",
     "tsx": "^4.19.2"
-  }
+  },
+  "overrides": {
+    "onnxruntime-node": "$onnxruntime-node"
+  },
+  "workspaces": [
+    "packages/core",
+    "packages/cli"
+  ]
 }

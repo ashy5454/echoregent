@@ -10,6 +10,8 @@ data/
 
 # ML models (too large for git — download via ml/download_*.py scripts)
 ml/
+models/
+.venv/
 
 # Training datasets (large — not part of source)
 coding.json
@@ -23,3 +25,21 @@ medical.json
 multiwoz.json
 sales.json
 audit/notes/locomo/
+
+# Local encoder export candidates and Python bytecode
+reports/relevance-candidate/
+reports/cache-candidate/
+reports/relevance-optimized.onnx
+__pycache__/
+*.pyc
+
+# Local npm release archives
+artifacts/
+.superpowers/
+
+# Local agent state and duplicate console captures
+.kiro/
+_vitest_full.txt
+audit/test-output/
+reports/*.txt
+reports/profile-*.jsonl

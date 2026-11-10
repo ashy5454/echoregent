@@ -1,0 +1,32 @@
+name: npm packages
+
+on:
+  push:
+    paths: ["packages/**", "scripts/**", "audit/tests/package-*.test.ts", "package*.json", ".github/workflows/npm-packages.yml"]
+  pull_request:
+    paths: ["packages/**", "scripts/**", "audit/tests/package-*.test.ts", "package*.json", ".github/workflows/npm-packages.yml"]
+
+jobs:
+  packages:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: [22, 24]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm run build:packages
+      - run: npm test
+      - run: npm install -g @openai/codex@0.167.0
+      - run: npm run test:packages
+      - uses: actions/upload-artifact@v4
+        with:
+          name: npm-${{ matrix.os }}-node${{ matrix.node }}
+          path: |
+            artifacts/*.tgz
+            docs/evidence/codex-integration.json

@@ -1,0 +1,167 @@
+{
+  "arm": "echoregent",
+  "run": 2,
+  "startedAt": "2026-11-10T13:30:24.200Z",
+  "model": "gpt-6.1-sol",
+  "provider": "agentrouter",
+  "reasoning": "client default",
+  "taskHash": "dea9035bb9780639ce1c52fe4d14e278f7ddc37efa3f2da518a57affe422c0c4",
+  "fixtureHash": "82446067bd343cb3dd02d3fb6609d5b17985f237f1063af285e8a8da97229fce",
+  "exitCode": 0,
+  "timedOut": false,
+  "completed": true,
+  "checksPassed": true,
+  "testResult": "RESULT 8/8 passed",
+  "latencyMs": 82672,
+  "calls": [
+    {
+      "status": 200,
+      "durationMs": 3987,
+      "requestBytes": 62809,
+      "usage": [
+        {
+          "inputTokens": 12258,
+          "cachedInputTokens": 0,
+          "uncachedInputTokens": 12258,
+          "outputTokens": 92,
+          "totalTokens": 12350
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    },
+    {
+      "status": 200,
+      "durationMs": 5517,
+      "requestBytes": 87391,
+      "usage": [
+        {
+          "inputTokens": 17660,
+          "cachedInputTokens": 12255,
+          "uncachedInputTokens": 5405,
+          "outputTokens": 161,
+          "totalTokens": 17821
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    },
+    {
+      "status": 200,
+      "durationMs": 53488,
+      "requestBytes": 89944,
+      "usage": [
+        {
+          "inputTokens": 18205,
+          "cachedInputTokens": 17657,
+          "uncachedInputTokens": 548,
+          "outputTokens": 2031,
+          "totalTokens": 20236
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    },
+    {
+      "status": 200,
+      "durationMs": 5732,
+      "requestBytes": 117840,
+      "usage": [
+        {
+          "inputTokens": 20294,
+          "cachedInputTokens": 18202,
+          "uncachedInputTokens": 2092,
+          "outputTokens": 59,
+          "totalTokens": 20353
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    },
+    {
+      "status": 200,
+      "durationMs": 12902,
+      "requestBytes": 127200,
+      "usage": [
+        {
+          "inputTokens": 22241,
+          "cachedInputTokens": 20291,
+          "uncachedInputTokens": 1950,
+          "outputTokens": 442,
+          "totalTokens": 22683
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    }
+  ],
+  "providerTotals": {
+    "inputTokens": 90658,
+    "cachedInputTokens": 68405,
+    "uncachedInputTokens": 22253,
+    "outputTokens": 2785,
+    "totalTokens": 93443
+  },
+  "clientUsage": [
+    {
+      "input_tokens": 90658,
+      "cached_input_tokens": 68405,
+      "cache_write_input_tokens": 22238,
+      "output_tokens": 2785,
+      "reasoning_output_tokens": 1911
+    }
+  ],
+  "transformations": [
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "message",
+      "inputItems": 7
+    },
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "inputItems": 10
+    },
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "inputItems": 12
+    },
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "inputItems": 18
+    },
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "inputItems": 20
+    }
+  ],
+  "proxyStats": {
+    "requests": 5,
+    "compressed": 0,
+    "protected": 0,
+    "errors": 0
+  },
+  "errors": [],
+  "expectedInitialTestFailures": [
+    {
+      "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'node test.mjs'",
+      "exitCode": 1
+    }
+  ],
+  "stderr": "Reading additional input from stdin...\n",
+  "billedCost": null,
+  "note": "One paired coding task, live provider-reported tokens. No invoice cost or universal savings claim. Coordinator subagent tokens are excluded."
+}

@@ -1,0 +1,12 @@
+{
+  "name": "@echoregent/cli", "version": "0.4.0",
+  "description": "EchoRegent local proxy, Codex launcher, diagnostics and MCP server",
+  "type": "module", "bin": { "echoregent": "./dist/index.js" },
+  "main": "./dist/index.js", "types": "./dist/index.d.ts",
+  "files": ["dist", "README.md", "LICENSE", "MODEL_LICENSES.md"],
+  "engines": { "node": ">=22.12.0" }, "license": "MIT",
+  "repository": { "type": "git", "url": "https://github.com/ashy5454/echoregent.git", "directory": "packages/cli" },
+  "publishConfig": { "access": "public" },
+  "dependencies": { "@echoregent/core": "0.4.0", "@modelcontextprotocol/sdk": "^1.29.0" },
+  "scripts": { "build": "tsc -p tsconfig.json", "prepack": "npm run build" }
+}

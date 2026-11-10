@@ -1,0 +1,123 @@
+﻿name: Model Evaluation
+
+on:
+  pull_request:
+    paths:
+      - 'src/cts-core/**'
+      - 'ml/**'
+  push:
+    branches:
+      - ml-models
+
+jobs:
+  model-eval:
+    name: LoCoMo eval & vitest suite
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript type check
+        run: node node_modules/typescript/bin/tsc --noEmit
+
+      - name: Ensure reports directory exists
+        run: mkdir -p reports
+
+      - name: Cache LoCoMo dataset
+        uses: actions/cache@v4
+        with:
+          path: audit/notes/locomo/locomo10.json
+          key: locomo-${{ hashFiles('audit/notes/locomo/locomo10.json') }}
+          restore-keys: locomo-
+
+      - name: Check for hardcoded API keys in diff
+        run: |
+          DIFF_OUTPUT=$(git diff HEAD~1 -- src/cts-core/ 2>/dev/null || true)
+          if echo "$DIFF_OUTPUT" | grep -qE "(GEMINI_API_KEY|OPENAI_API_KEY)[[:space:]]*=[[:space:]]*['\"][a-zA-Z0-9_-]{8,}"; then
+            echo "::error::Hardcoded API key detected in src/cts-core/ diff"
+            exit 2
+          fi
+
+      - name: Run vitest audit suite
+        run: node node_modules/vitest/vitest.mjs run audit/tests/
+
+      - name: Run LoCoMo eval (rule arm; embeddings arm optional)
+        env:
+          GEMINI_TEST_KEY: ${{ secrets.GEMINI_TEST_KEY }}
+        run: |
+          node node_modules/tsx/dist/cli.mjs audit/notes/locomo_eval_embeddings.ts 2>&1 | tee reports/locomo_eval_output.txt || true
+          RULE_F1=$(grep -oP 'Regex compressor.*?F1=\K[\d.]+' reports/locomo_eval_output.txt | head -1 || echo "0")
+          echo "Rule arm F1: ${RULE_F1}"
+          python3 -c "f=float('${RULE_F1}' or 0); exit(1 if f < 0.100 else 0)" || \
+            (echo "::error::Rule arm F1 (${RULE_F1}) is below 0.100 threshold" && exit 1)
+
+      - name: Upload evaluation report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-report-${{ github.run_id }}
+          path: reports/
+          retention-days: 30
+
+  onnx-sanity:
+    name: ONNX artifact sanity check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/ml-models'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out ml-models branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install ONNX verification dependencies
+        run: pip install onnx==1.14.1 onnxruntime==1.17.1 numpy==1.26.4
+
+      - name: Run ONNX IR version and sanity check
+        run: |
+          python3 - <<'EOF'
+          import pathlib, sys
+          import onnx
+          import numpy as np
+
+          failed = []
+          onnx_files = list(pathlib.Path("ml").rglob("*.onnx"))
+          if not onnx_files:
+              print("No .onnx files found in ml/ — skipping check.")
+              sys.exit(0)
+
+          for onnx_path in onnx_files:
+              try:
+                  model = onnx.load(str(onnx_path))
+                  if model.ir_version > 8:
+                      print(f"::error file={onnx_path}::IR version {model.ir_version} > 8")
+                      failed.append(str(onnx_path))
+                  else:
+                      print(f"OK: {onnx_path} (IR {model.ir_version})")
+              except Exception as e:
+                  print(f"::error file={onnx_path}::Failed to load: {e}")
+                  failed.append(str(onnx_path))
+
+          if failed:
+              print(f"\nFailed: {failed}")
+              sys.exit(1)
+          else:
+              print("\nAll ONNX files passed IR version check.")
+          EOF

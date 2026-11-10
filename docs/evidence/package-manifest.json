@@ -1,0 +1,31 @@
+{
+    "measuredAt":  "2026-11-10T20:03:50.5907365Z",
+    "branch":  "abhiram",
+    "packages":  [
+                     {
+                         "name":  "@echoregent/core",
+                         "version":  "0.4.0",
+                         "artifact":  "echoregent-core-0.4.0.tgz",
+                         "compressedBytes":  22079,
+                         "unpackedBytes":  73704,
+                         "files":  24,
+                         "sha256":  "d376293fb555176584c8ca82f48555f535591e1cb42d76791b2417452eb03346",
+                         "compiledJavaScript":  true,
+                         "typeDeclarations":  true,
+                         "modelWeightBytes":  0
+                     },
+                     {
+                         "name":  "@echoregent/cli",
+                         "version":  "0.4.0",
+                         "artifact":  "echoregent-cli-0.4.0.tgz",
+                         "compressedBytes":  11070,
+                         "unpackedBytes":  36819,
+                         "files":  12,
+                         "sha256":  "1abf21ddbb4b30df533e971fffaaae9dd2bc8b9148cf3ef8487f267d04b0de65",
+                         "compiledJavaScript":  true,
+                         "typeDeclarations":  true,
+                         "modelWeightBytes":  0
+                     }
+                 ],
+    "publishedToNpm":  false
+}

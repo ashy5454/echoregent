@@ -1,0 +1,446 @@
+{
+  "measuredAt": "2026-11-10T17:34:54.304Z",
+  "inference": "Local only. No provider calls or API credits.",
+  "counting": "gpt-tokenizer 4.0.0: o200k_base on serialized request JSON for package cases; existing gpt-4o chat-token estimator for history cases.",
+  "limitations": [
+    "History benchmark has 8 known synthetic templates with 40 acknowledgement variants each; it is not a held-out or production benchmark.",
+    "History results describe legacy development compression, not the current packaged proxy. Its medical/legal policy differs from the packaged protected-context policy.",
+    "Package totals depend on this deliberately selected mixture of repeated logs and pass-through controls.",
+    "Tokenizer estimates do not establish provider-billed savings, cache hits, output-token changes, or monetary savings.",
+    "Facts checked are selected benchmark strings and unique tool-output lines; this does not establish preservation of every semantic detail."
+  ],
+  "history": [
+    {
+      "measurement": "legacy-history",
+      "arm": "rules",
+      "templates": 8,
+      "variantsPerTemplate": 40,
+      "cases": 320,
+      "before": 50502,
+      "after": 19493,
+      "saved": 31009,
+      "savingsPct": 61.401528652330605,
+      "factsKept": 1240,
+      "factsTotal": 1240,
+      "currentKept": 320,
+      "modelHealth": {
+        "name": "cts_relevance",
+        "status": "not_loaded",
+        "loaded": false
+      },
+      "fixtureHash": "3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb",
+      "domains": [
+        {
+          "domain": "coding",
+          "before": 6608,
+          "after": 2720,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "customer_support",
+          "before": 6598,
+          "after": 2320,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "sales",
+          "before": 6348,
+          "after": 2760,
+          "factsKept": 200,
+          "factsTotal": 200
+        },
+        {
+          "domain": "commerce",
+          "before": 6524,
+          "after": 2400,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "education",
+          "before": 5992,
+          "after": 2377,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "general",
+          "before": 6342,
+          "after": 2412,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "medical",
+          "before": 6262,
+          "after": 2264,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "legal",
+          "before": 5828,
+          "after": 2240,
+          "factsKept": 160,
+          "factsTotal": 160
+        }
+      ],
+      "failedCases": [],
+      "exitCode": 0,
+      "rawOutput": "\nSYNTHETIC RETENTION REGRESSION (rule path; templates are known to the implementation)\n\ndomain              savings    facts  current\ncoding                  59%     100%    40/40\ncustomer_support        65%     100%    40/40\nsales                   57%     100%    40/40\ncommerce                63%     100%    40/40\neducation               60%     100%    40/40\ngeneral                 62%     100%    40/40\nmedical                 64%     100%    40/40\nlegal                   62%     100%    40/40\n\naggregate (all domains): 61%\nhard-fact retention:     1240/1240 (100%)\ncurrent-turn retention:  320/320\n{\"measurement\":\"legacy-history\",\"arm\":\"rules\",\"templates\":8,\"variantsPerTemplate\":40,\"cases\":320,\"before\":50502,\"after\":19493,\"saved\":31009,\"savingsPct\":61.401528652330605,\"factsKept\":1240,\"factsTotal\":1240,\"currentKept\":320,\"modelHealth\":{\"name\":\"cts_relevance\",\"status\":\"not_loaded\",\"loaded\":false},\"fixtureHash\":\"3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb\",\"domains\":[{\"domain\":\"coding\",\"before\":6608,\"after\":2720,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"customer_support\",\"before\":6598,\"after\":2320,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"sales\",\"before\":6348,\"after\":2760,\"factsKept\":200,\"factsTotal\":200},{\"domain\":\"commerce\",\"before\":6524,\"after\":2400,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"education\",\"before\":5992,\"after\":2377,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"general\",\"before\":6342,\"after\":2412,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"medical\",\"before\":6262,\"after\":2264,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"legal\",\"before\":5828,\"after\":2240,\"factsKept\":160,\"factsTotal\":160}],\"failedCases\":[]}\n"
+    },
+    {
+      "measurement": "legacy-history",
+      "arm": "fine-tuned relevance",
+      "templates": 8,
+      "variantsPerTemplate": 40,
+      "cases": 320,
+      "before": 50502,
+      "after": 19640,
+      "saved": 30862,
+      "savingsPct": 61.1104510712447,
+      "factsKept": 1240,
+      "factsTotal": 1240,
+      "currentKept": 320,
+      "modelHealth": {
+        "name": "cts_relevance",
+        "status": "ready",
+        "loaded": true,
+        "loadedAt": "2026-11-10T17:34:53.023Z"
+      },
+      "fixtureHash": "3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb",
+      "domains": [
+        {
+          "domain": "coding",
+          "before": 6608,
+          "after": 2720,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "customer_support",
+          "before": 6598,
+          "after": 2320,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "sales",
+          "before": 6348,
+          "after": 2760,
+          "factsKept": 200,
+          "factsTotal": 200
+        },
+        {
+          "domain": "commerce",
+          "before": 6524,
+          "after": 3040,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "education",
+          "before": 5992,
+          "after": 2080,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "general",
+          "before": 6342,
+          "after": 2320,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "medical",
+          "before": 6262,
+          "after": 2160,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "legal",
+          "before": 5828,
+          "after": 2240,
+          "factsKept": 160,
+          "factsTotal": 160
+        }
+      ],
+      "failedCases": [],
+      "exitCode": 0,
+      "rawOutput": "\nSYNTHETIC RETENTION REGRESSION (ML path; templates are known to the implementation)\n\ndomain              savings    facts  current\ncoding                  59%     100%    40/40\ncustomer_support        65%     100%    40/40\nsales                   57%     100%    40/40\ncommerce                53%     100%    40/40\neducation               65%     100%    40/40\ngeneral                 63%     100%    40/40\nmedical                 66%     100%    40/40\nlegal                   62%     100%    40/40\n\naggregate (all domains): 61%\nhard-fact retention:     1240/1240 (100%)\ncurrent-turn retention:  320/320\n{\"measurement\":\"legacy-history\",\"arm\":\"fine-tuned relevance\",\"templates\":8,\"variantsPerTemplate\":40,\"cases\":320,\"before\":50502,\"after\":19640,\"saved\":30862,\"savingsPct\":61.1104510712447,\"factsKept\":1240,\"factsTotal\":1240,\"currentKept\":320,\"modelHealth\":{\"name\":\"cts_relevance\",\"status\":\"ready\",\"loaded\":true,\"loadedAt\":\"2026-11-10T17:34:53.023Z\"},\"fixtureHash\":\"3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb\",\"domains\":[{\"domain\":\"coding\",\"before\":6608,\"after\":2720,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"customer_support\",\"before\":6598,\"after\":2320,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"sales\",\"before\":6348,\"after\":2760,\"factsKept\":200,\"factsTotal\":200},{\"domain\":\"commerce\",\"before\":6524,\"after\":3040,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"education\",\"before\":5992,\"after\":2080,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"general\",\"before\":6342,\"after\":2320,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"medical\",\"before\":6262,\"after\":2160,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"legal\",\"before\":5828,\"after\":2240,\"factsKept\":160,\"factsTotal\":160}],\"failedCases\":[]}\n"
+    },
+    {
+      "measurement": "legacy-history",
+      "arm": "base MiniLM",
+      "templates": 8,
+      "variantsPerTemplate": 40,
+      "cases": 320,
+      "before": 50502,
+      "after": 19640,
+      "saved": 30862,
+      "savingsPct": 61.1104510712447,
+      "factsKept": 1240,
+      "factsTotal": 1240,
+      "currentKept": 320,
+      "modelHealth": {
+        "name": "cts_relevance",
+        "status": "ready",
+        "loaded": true,
+        "loadedAt": "2026-11-10T17:34:54.043Z"
+      },
+      "fixtureHash": "3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb",
+      "domains": [
+        {
+          "domain": "coding",
+          "before": 6608,
+          "after": 2720,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "customer_support",
+          "before": 6598,
+          "after": 2320,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "sales",
+          "before": 6348,
+          "after": 2760,
+          "factsKept": 200,
+          "factsTotal": 200
+        },
+        {
+          "domain": "commerce",
+          "before": 6524,
+          "after": 3040,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "education",
+          "before": 5992,
+          "after": 2080,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "general",
+          "before": 6342,
+          "after": 2320,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "medical",
+          "before": 6262,
+          "after": 2160,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "legal",
+          "before": 5828,
+          "after": 2240,
+          "factsKept": 160,
+          "factsTotal": 160
+        }
+      ],
+      "failedCases": [],
+      "exitCode": 0,
+      "rawOutput": "\nSYNTHETIC RETENTION REGRESSION (ML path; templates are known to the implementation)\n\ndomain              savings    facts  current\ncoding                  59%     100%    40/40\ncustomer_support        65%     100%    40/40\nsales                   57%     100%    40/40\ncommerce                53%     100%    40/40\neducation               65%     100%    40/40\ngeneral                 63%     100%    40/40\nmedical                 66%     100%    40/40\nlegal                   62%     100%    40/40\n\naggregate (all domains): 61%\nhard-fact retention:     1240/1240 (100%)\ncurrent-turn retention:  320/320\n{\"measurement\":\"legacy-history\",\"arm\":\"base MiniLM\",\"templates\":8,\"variantsPerTemplate\":40,\"cases\":320,\"before\":50502,\"after\":19640,\"saved\":30862,\"savingsPct\":61.1104510712447,\"factsKept\":1240,\"factsTotal\":1240,\"currentKept\":320,\"modelHealth\":{\"name\":\"cts_relevance\",\"status\":\"ready\",\"loaded\":true,\"loadedAt\":\"2026-11-10T17:34:54.043Z\"},\"fixtureHash\":\"3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb\",\"domains\":[{\"domain\":\"coding\",\"before\":6608,\"after\":2720,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"customer_support\",\"before\":6598,\"after\":2320,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"sales\",\"before\":6348,\"after\":2760,\"factsKept\":200,\"factsTotal\":200},{\"domain\":\"commerce\",\"before\":6524,\"after\":3040,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"education\",\"before\":5992,\"after\":2080,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"general\",\"before\":6342,\"after\":2320,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"medical\",\"before\":6262,\"after\":2160,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"legal\",\"before\":5828,\"after\":2240,\"factsKept\":160,\"factsTotal\":160}],\"failedCases\":[]}\n"
+    }
+  ],
+  "packagedTotals": {
+    "before": 42808,
+    "after": 32490,
+    "cases": 11,
+    "changedCases": 3,
+    "invariantChecksPassed": true,
+    "saved": 10318,
+    "savingsPct": 24.1
+  },
+  "packaged": [
+    {
+      "name": "600 repeated fixture logs",
+      "before": 4298,
+      "after": 119,
+      "saved": 4179,
+      "savingsPct": 97.23,
+      "changed": true,
+      "reason": "repeated-log-lines",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 2
+    },
+    {
+      "name": "mixed logs with duplicate runs",
+      "before": 3346,
+      "after": 1386,
+      "saved": 1960,
+      "savingsPct": 58.58,
+      "changed": true,
+      "reason": "repeated-log-lines",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 81
+    },
+    {
+      "name": "custom input_text output block",
+      "before": 4314,
+      "after": 135,
+      "saved": 4179,
+      "savingsPct": 96.87,
+      "changed": true,
+      "reason": "repeated-log-lines",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 2
+    },
+    {
+      "name": "timestamped non-identical logs",
+      "before": 6088,
+      "after": 6088,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 600
+    },
+    {
+      "name": "dense unique tool output",
+      "before": 4168,
+      "after": 4168,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 240
+    },
+    {
+      "name": "structured JSON tool output",
+      "before": 2195,
+      "after": 2195,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 1
+    },
+    {
+      "name": "fenced tool output",
+      "before": 4302,
+      "after": 4302,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 3
+    },
+    {
+      "name": "medical protected context",
+      "before": 4301,
+      "after": 4301,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "protected-context",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 2
+    },
+    {
+      "name": "legal protected context",
+      "before": 4297,
+      "after": 4297,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "protected-context",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 2
+    },
+    {
+      "name": "older uncompressed tool output",
+      "before": 4318,
+      "after": 4318,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 2
+    },
+    {
+      "name": "ordinary conversation without tool output",
+      "before": 1181,
+      "after": 1181,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "checks": {
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "expectedPassThrough": true
+      },
+      "uniqueLines": 0
+    }
+  ]
+}

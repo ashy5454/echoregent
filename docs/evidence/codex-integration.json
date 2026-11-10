@@ -1,0 +1,25 @@
+{
+  "kind": "controlled-provider-integration",
+  "timestamp": "2026-11-10T19:54:31.468Z",
+  "client": "codex-cli 0.167.0",
+  "platform": "win32",
+  "node": "v24.19.0",
+  "requests": 2,
+  "protocol": "responses",
+  "authentication": "fixture bearer key forwarded",
+  "streaming": "incremental SSE",
+  "toolRoundTrip": true,
+  "toolOutputShape": {
+    "itemType": "function_call_output",
+    "itemFields": [
+      "type",
+      "id",
+      "call_id",
+      "output"
+    ],
+    "type": "string",
+    "parts": null
+  },
+  "persistentConfigChanged": false,
+  "billingEvidence": false
+}

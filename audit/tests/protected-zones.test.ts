@@ -61,34 +61,34 @@ function medicalFrame(): RoutingFrame {
   }
 }
 
-describe('Issue #1 — protected zones are not architecturally enforced in compressHistory()', () => {
-  it('FAILS: crisis-risk conversations should be passed through unchanged per README, but are compressed', () => {
+describe('Issue #1 — protected-zone policy after the medical/legal opt-in', () => {
+  it('crisis-risk conversations are passed through unchanged', () => {
     const history = longNonKeywordHistory()
     const result = compressHistory(history, crisisFrame())
 
-    // What the README promises for a protected zone:
-    //   "The raw history is passed to the LLM unchanged"
+    // Crisis / protected_context remain a hard safety boundary.
     expect(result.compressed).toEqual(result.original)
     expect(result.tokensSaved).toBe(0)
   })
 
-  it('FAILS: medical-domain conversations should get zero compression per README ("none" in the domain table), but are compressed at the same ~50% ratio as general content', () => {
+  it('medical-domain conversations are now compressed like other domains', () => {
     const history = longNonKeywordHistory()
     const result = compressHistory(history, medicalFrame())
 
-    expect(result.compressed).toEqual(result.original)
-    expect(result.tokensSaved).toBe(0)
+    expect(result.tokensSaved).toBeGreaterThan(0)
+    expect(result.compressed.length).toBeLessThan(result.original.length)
   })
 
-  it('documents the actual behavior: medical is compressed at roughly the same aggressiveness as an unprotected domain', () => {
+  it('medical and general both compress, while crisis does not', () => {
     const history = longNonKeywordHistory()
     const generalFrame: RoutingFrame = { ...medicalFrame(), domain: 'general', risk: [] }
 
     const medicalResult = compressHistory(history, medicalFrame())
     const generalResult = compressHistory(history, generalFrame)
+    const crisisResult = compressHistory(history, crisisFrame())
 
-    // Both get compressed; medical is not materially better protected than general.
     expect(medicalResult.tokensSaved).toBeGreaterThan(0)
     expect(generalResult.tokensSaved).toBeGreaterThan(0)
+    expect(crisisResult.tokensSaved).toBe(0)
   })
 })

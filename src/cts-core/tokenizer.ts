@@ -1,5 +1,7 @@
 import { encodeChat } from 'gpt-tokenizer'
 import type { Message } from './types'
+const messageCounts = new Map<string, number>()
+const COUNT_CACHE_LIMIT = 2048
 
 /**
  * Real BPE token count for a chat message array (OpenAI cl100k/o200k-style
@@ -15,10 +17,21 @@ import type { Message } from './types'
 export function countChatTokens(messages: Message[]): number {
   if (messages.length === 0) return 0
   try {
-    return encodeChat(
-      messages.map((m) => ({ role: m.role, content: m.content })),
-      'gpt-4o',
-    ).length
+    // Chat messages are independently encoded, followed by the three-token
+    // assistant prefix. Text keys and counts are bounded to 2,048 entries;
+    // token arrays are not retained.
+    let total = 3
+    for (const message of messages) {
+      const key = `${message.role}\0${message.content}`
+      let count = messageCounts.get(key)
+      if (count === undefined) {
+        count = encodeChat([{ role: message.role, content: message.content }], 'gpt-4o').length - 3
+        messageCounts.set(key, count)
+        if (messageCounts.size > COUNT_CACHE_LIMIT) messageCounts.delete(messageCounts.keys().next().value!)
+      }
+      total += count
+    }
+    return total
   } catch {
     // Defensive fallback only — e.g. content the tokenizer can't handle.
     // Still logged as a heuristic, not treated as ground truth elsewhere.

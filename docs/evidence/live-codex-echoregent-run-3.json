@@ -1,0 +1,123 @@
+{
+  "arm": "echoregent",
+  "run": 3,
+  "startedAt": "2026-11-10T13:35:33.775Z",
+  "model": "gpt-6.1-sol",
+  "provider": "agentrouter",
+  "reasoning": "client default",
+  "taskHash": "0383f0b1c9d145a92a6358f9e4c27d9e4489c1a5aa092f6c39c24b0ce1631156",
+  "fixtureHash": "82446067bd343cb3dd02d3fb6609d5b17985f237f1063af285e8a8da97229fce",
+  "exitCode": 0,
+  "timedOut": false,
+  "completed": false,
+  "checksPassed": false,
+  "testResult": "RESULT 3/8 passed",
+  "latencyMs": 10695,
+  "calls": [
+    {
+      "status": 200,
+      "durationMs": 6378,
+      "requestBytes": 62601,
+      "usage": [
+        {
+          "inputTokens": 12225,
+          "cachedInputTokens": 0,
+          "uncachedInputTokens": 12225,
+          "outputTokens": 72,
+          "totalTokens": 12297
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    },
+    {
+      "status": 200,
+      "durationMs": 3446,
+      "requestBytes": 67105,
+      "usage": [
+        {
+          "inputTokens": 13053,
+          "cachedInputTokens": 12222,
+          "uncachedInputTokens": 831,
+          "outputTokens": 9,
+          "totalTokens": 13062
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    }
+  ],
+  "providerTotals": {
+    "inputTokens": 25278,
+    "cachedInputTokens": 12222,
+    "uncachedInputTokens": 13056,
+    "outputTokens": 81,
+    "totalTokens": 25359
+  },
+  "clientUsage": [
+    {
+      "input_tokens": 25278,
+      "cached_input_tokens": 12222,
+      "cache_write_input_tokens": 13050,
+      "output_tokens": 81,
+      "reasoning_output_tokens": 0
+    }
+  ],
+  "transformations": [
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "message",
+      "newestItemFields": [
+        "type",
+        "id",
+        "role",
+        "content"
+      ],
+      "newestOutputShape": "undefined",
+      "inputItems": 7
+    },
+    {
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "charactersRemoved": 0,
+      "newestItemType": "custom_tool_call_output",
+      "newestItemFields": [
+        "type",
+        "id",
+        "call_id",
+        "output"
+      ],
+      "newestOutputShape": [
+        {
+          "type": "input_text",
+          "fields": [
+            "type",
+            "text"
+          ]
+        },
+        {
+          "type": "input_text",
+          "fields": [
+            "type",
+            "text"
+          ]
+        }
+      ],
+      "inputItems": 10
+    }
+  ],
+  "proxyStats": {
+    "requests": 2,
+    "compressed": 0,
+    "protected": 0,
+    "errors": 0
+  },
+  "errors": [],
+  "expectedInitialTestFailures": [],
+  "stderr": "Reading additional input from stdin...\n",
+  "billedCost": null,
+  "note": "Short tool-output format diagnostic; did not attempt to fix the coding fixture. Live provider token usage captured. Coordinator tokens excluded.",
+  "kind": "format-diagnostic"
+}

@@ -1,0 +1,11 @@
+# Reproducible evidence
+
+The [compaction verification](COMPACTION_VERIFICATION.md) records the completed boundary fixes, final test/build/install checks, controlled Codex integration and archive hashes.
+
+The [local token report](LOCAL_TOKEN_SAVINGS_REPORT.md) compares the same eleven fixtures with the [preserved baseline](LOCAL_TOKEN_SAVINGS_BASELINE.md), using history compaction off and on. Additional controls cover ISO timestamps, non-monotonic IDs, opaque unique output and diverse prose. Every measured package request reconstructs exactly, with separate checks for metadata, current/recent messages, caller mutation and protected context. Reproduce with `node --import tsx audit/bench/local-savings-report.mjs`; it uses local tokenizer/model calculations and sends no provider requests. These measurements establish local payload reductions, not billed savings or upstream task quality.
+
+`npm run test:packages` installs built archives without dev dependencies or installation scripts and reruns the actual Codex executable against a local controlled Responses server. `codex-integration.json` records the client, platform, runtime, routing, authentication, streaming and tool round trip. Tokens supplied by that fixture are invented test inputs, never billing evidence.
+
+The [live Codex report](LIVE_CODEX_REPORT.md) records a user-authorized paired run, fixes found during testing, and provider/Codex token totals. Both agents completed the same fixture. Their trajectories differed and no compression occurred in the final sample, so these runs establish no compression-driven savings claim. To establish one, use paired tasks with identical model/agent/tool/cache settings, multiple runs, a completion validator, and the provider's actual usage records. Keep retries and tool round trips inside the measured task interval. Separate uncached input, cached input, output, provider pricing and total latency.
+
+`node scripts/task-evidence.mjs results.jsonl summary.json` validates and summarizes records with the schema shown in that script. Records must carry actual provider usage and independently determined completion. The summarizer never infers billed tokens from context length and refuses incomplete measurements. Store only task identifiers/metrics in the published records; sanitize prompts and secrets separately.

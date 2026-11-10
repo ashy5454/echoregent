@@ -1,0 +1,124 @@
+{
+  "arm": "baseline",
+  "run": 2,
+  "startedAt": "2026-11-10T13:30:24.136Z",
+  "model": "gpt-6.1-sol",
+  "provider": "agentrouter",
+  "reasoning": "client default",
+  "taskHash": "dea9035bb9780639ce1c52fe4d14e278f7ddc37efa3f2da518a57affe422c0c4",
+  "fixtureHash": "82446067bd343cb3dd02d3fb6609d5b17985f237f1063af285e8a8da97229fce",
+  "exitCode": 0,
+  "timedOut": false,
+  "completed": true,
+  "checksPassed": true,
+  "testResult": "RESULT 8/8 passed",
+  "latencyMs": 65044,
+  "calls": [
+    {
+      "status": 200,
+      "durationMs": 5015,
+      "requestBytes": 62801,
+      "usage": [
+        {
+          "inputTokens": 12251,
+          "cachedInputTokens": 0,
+          "uncachedInputTokens": 12251,
+          "outputTokens": 94,
+          "totalTokens": 12345
+        }
+      ],
+      "error": null
+    },
+    {
+      "status": 200,
+      "durationMs": 6677,
+      "requestBytes": 87365,
+      "usage": [
+        {
+          "inputTokens": 17644,
+          "cachedInputTokens": 12248,
+          "uncachedInputTokens": 5396,
+          "outputTokens": 152,
+          "totalTokens": 17796
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    },
+    {
+      "status": 200,
+      "durationMs": 34813,
+      "requestBytes": 89907,
+      "usage": [
+        {
+          "inputTokens": 18181,
+          "cachedInputTokens": 17641,
+          "uncachedInputTokens": 540,
+          "outputTokens": 1420,
+          "totalTokens": 19601
+        }
+      ],
+      "error": null
+    },
+    {
+      "status": 200,
+      "durationMs": 10303,
+      "requestBytes": 109060,
+      "usage": [
+        {
+          "inputTokens": 19658,
+          "cachedInputTokens": 18178,
+          "uncachedInputTokens": 1480,
+          "outputTokens": 402,
+          "totalTokens": 20060
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    },
+    {
+      "status": 200,
+      "durationMs": 7070,
+      "requestBytes": 127288,
+      "usage": [
+        {
+          "inputTokens": 22890,
+          "cachedInputTokens": 19655,
+          "uncachedInputTokens": 3235,
+          "outputTokens": 151,
+          "totalTokens": 23041
+        }
+      ],
+      "error": null,
+      "clientCancelled": true
+    }
+  ],
+  "providerTotals": {
+    "inputTokens": 90624,
+    "cachedInputTokens": 67722,
+    "uncachedInputTokens": 22902,
+    "outputTokens": 2219,
+    "totalTokens": 92843
+  },
+  "clientUsage": [
+    {
+      "input_tokens": 90624,
+      "cached_input_tokens": 67722,
+      "cache_write_input_tokens": 22887,
+      "output_tokens": 2219,
+      "reasoning_output_tokens": 1260
+    }
+  ],
+  "transformations": [],
+  "proxyStats": null,
+  "errors": [],
+  "expectedInitialTestFailures": [
+    {
+      "command": "\"C:\\\\Windows\\\\System32\\\\WindowsPowerShell\\\\v1.0\\\\powershell.exe\" -Command 'node test.mjs'",
+      "exitCode": 1
+    }
+  ],
+  "stderr": "Reading additional input from stdin...\n",
+  "billedCost": null,
+  "note": "One paired coding task, live provider-reported tokens. No invoice cost or universal savings claim. Coordinator subagent tokens are excluded."
+}

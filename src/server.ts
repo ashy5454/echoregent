@@ -20,6 +20,7 @@ import {
   warmUpClassifier,
   warmUpT5,
   warmUpSemanticCache,
+  warmUpRelevanceModel,
   checkCache,
   storeCache,
   getCacheStats,
@@ -27,6 +28,7 @@ import {
   getClassifierHealth,
   getT5Health,
   getSemanticCacheHealth,
+  getRelevanceHealth,
   wikiToContextString,
   type CustomDomainPlugin,
   type LLMWiki,
@@ -288,6 +290,7 @@ function startModelWarmup(): Promise<void> {
     warmUpClassifier(),
     warmUpT5(),
     warmUpSemanticCache(),
+    warmUpRelevanceModel(),
   ]).then((results) => {
     startupState.modelWarmupFinishedAt = new Date().toISOString()
     for (const result of results) {
@@ -302,6 +305,7 @@ function currentModelHealth() {
     classifier: getClassifierHealth(),
     t5: getT5Health(),
     semanticCache: getSemanticCacheHealth(),
+    relevance: getRelevanceHealth(),
   }
 }
 
@@ -605,7 +609,8 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       : baseSystemPrompt
 
     // ── Semantic cache check (saves output tokens) ────────────────────────────
-    const cached = await checkCache(message, frame.domain, sessionId)
+    const cacheContext = { history, systemPrompt }
+    const cached = await checkCache(message, frame.domain, sessionId, cacheContext)
     if (cached.hit && cached.response) {
       sendJson(res, 200, {
         reply:             cached.response,
@@ -627,7 +632,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
       ? await callGemini(demoKey, compression.compressed, message, systemPrompt)
       : await callOpenRouter(demoKey, compression.compressed, message, systemPrompt)
 
-    await storeCache(message, reply, frame.domain, sessionId)
+    await storeCache(message, reply, frame.domain, sessionId, cacheContext)
 
     // ── Fire-and-forget wiki ingest (after ≥4 turns, non-blocking) ──────────
     if (history.length >= 4 && compression.memoryFrame) {
@@ -918,7 +923,7 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     }
 
     // Run CTS classify + compress pipeline
-    const frame       = classify(currentMessage, historyMsgs)
+    const frame       = await classifyAsync(currentMessage, historyMsgs)
     const currentMsg: Message = { role: 'user', content: currentMessage }
 
     // Prefer real semantic-similarity compression over the hardcoded
@@ -933,14 +938,17 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     // the embedding call itself fails, the regex path is the fallback, not
     // the default.
     const embeddingKey  = String(req.headers['x-embedding-key'] ?? (llmProvider === 'gemini' ? llmKey : ''))
-    let   compressionMode: 'embeddings' | 'regex' = 'regex'
-    let   compression = compressHistory([...historyMsgs, currentMsg], frame)
+    let   compressionMode: 'embeddings' | 'async' | 'regex' = 'async'
+    // Prefer embeddings compression when a Gemini key is available (best F1).
+    // Fall back to compressHistoryAsync (T5 path, with rule-based fallback
+    // inside it) when no embedding key is present or the embedding call fails.
+    let   compression = await compressHistoryAsync([...historyMsgs, currentMsg], frame)
     if (embeddingKey) {
       try {
         compression = await compressHistoryWithEmbeddings([...historyMsgs, currentMsg], frame, embeddingKey)
         compressionMode = 'embeddings'
       } catch {
-        // fall through to the regex compression already computed above
+        // fall through to the async/T5 compression already computed above
       }
     }
 
@@ -1040,6 +1048,16 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     res.setHeader('x-cts-compression-pct', String(comprPct))
     res.setHeader('x-cts-risk',            frame.risk.join(','))
     res.setHeader('x-cts-compression-mode', compressionMode)
+
+    // x-cts-estimated-usage: pre-call token accounting for both streamed and non-streamed responses
+    const estimatedPromptTokens = compression.originalTokens
+    const estimatedCompressedTokens = compression.compressedTokens
+    const estimatedUsageHeader = JSON.stringify({
+      estimatedPromptTokens,
+      estimatedCompressedTokens,
+      estimatedTokensSaved: Math.max(0, estimatedPromptTokens - estimatedCompressedTokens),
+    })
+    res.setHeader('x-cts-estimated-usage', estimatedUsageHeader)
 
     if (stream) {
       // Real per-call usage isn't available for a streamed response without

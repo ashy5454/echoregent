@@ -88,7 +88,11 @@ function extractPreferences(text: string): string[] {
   const preferences: string[] = []
   const lower = text.toLowerCase()
   if (lower.includes('typescript')) preferences.push('prefers_stack: TypeScript')
-  if (lower.includes('python')) preferences.push('prefers_stack: Python')
+  // BeautifulSoup, requests, scrapy, and pandas are Python-only libraries;
+  // infer Python preference even when the word 'python' is absent (sm_010 fix).
+  if (lower.includes('python') || lower.includes('beautifulsoup') || lower.includes('scrapy') || lower.includes('pandas')) {
+    preferences.push('prefers_stack: Python')
+  }
   if (lower.includes('openrouter')) preferences.push('llm_provider_interest: OpenRouter')
   if (lower.includes('apk')) preferences.push('delivery_interest: Android APK')
   if (lower.includes('local') || lower.includes('laptop')) preferences.push('deployment_preference: local-first')

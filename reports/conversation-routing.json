@@ -1,0 +1,61 @@
+{
+  "scope": "Nine independent hand-written paraphrase probes; diagnostic only, not a statistically representative accuracy estimate.",
+  "correct": 5,
+  "total": 9,
+  "results": [
+    {
+      "expected": "medical",
+      "actual": "medical",
+      "correct": true,
+      "text": "My throat is swelling after taking a pill and breathing feels difficult."
+    },
+    {
+      "expected": "medical",
+      "actual": "medical",
+      "correct": true,
+      "text": "I get dizzy whenever I stand up, could this be from the tablets?"
+    },
+    {
+      "expected": "legal",
+      "actual": "legal",
+      "correct": true,
+      "text": "My landlord kept the deposit even though I left the flat spotless."
+    },
+    {
+      "expected": "coding",
+      "actual": "general",
+      "correct": false,
+      "text": "Why does the connection pool freeze when requests spike?"
+    },
+    {
+      "expected": "commerce",
+      "actual": "commerce",
+      "correct": true,
+      "text": "A quiet compact keyboard would suit me better. What should I get?"
+    },
+    {
+      "expected": "sales",
+      "actual": "general",
+      "correct": false,
+      "text": "We want to roll this out to our whole company. What would eighty seats cost?"
+    },
+    {
+      "expected": "education",
+      "actual": "general",
+      "correct": false,
+      "text": "How do green leaves turn sunlight into food?"
+    },
+    {
+      "expected": "customer_support",
+      "actual": "general",
+      "correct": false,
+      "text": "The item came cracked and nobody has answered my emails."
+    },
+    {
+      "expected": "general",
+      "actual": "general",
+      "correct": true,
+      "text": "Suggest something relaxing to do this weekend."
+    }
+  ]
+}

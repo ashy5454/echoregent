@@ -1,0 +1,46 @@
+{
+  "run": 2,
+  "model": "gpt-6.1-sol",
+  "provider": "agentrouter",
+  "task": "Repair a usage normalizer with a repetitive test log",
+  "startDifferenceMs": 64,
+  "baseline": {
+    "inputTokens": 90624,
+    "cachedInputTokens": 67722,
+    "uncachedInputTokens": 22902,
+    "outputTokens": 2219,
+    "totalTokens": 92843,
+    "latencyMs": 65044,
+    "providerRequests": 5,
+    "compressedRequests": 0,
+    "middlewareErrors": 0,
+    "passed": "RESULT 8/8 passed"
+  },
+  "echoregent": {
+    "inputTokens": 90658,
+    "cachedInputTokens": 68405,
+    "uncachedInputTokens": 22253,
+    "outputTokens": 2785,
+    "totalTokens": 93443,
+    "latencyMs": 82672,
+    "providerRequests": 5,
+    "compressedRequests": 0,
+    "middlewareErrors": 0,
+    "passed": "RESULT 8/8 passed"
+  },
+  "echoMinusBaseline": {
+    "inputTokens": 34,
+    "cachedInputTokens": 683,
+    "uncachedInputTokens": -649,
+    "outputTokens": 566,
+    "totalTokens": 600
+  },
+  "totalTokenReductionPct": -0.6462522753465528,
+  "billedCost": null,
+  "limitations": [
+    "One live paired sample; model trajectories and cache usage can differ.",
+    "The task intentionally includes repetitive logs to exercise compression.",
+    "Reported tokens are verified against provider SSE and Codex aggregates; no invoice/pricing comparison.",
+    "Coordinator and diagnostic run tokens are excluded from the task comparison."
+  ]
+}

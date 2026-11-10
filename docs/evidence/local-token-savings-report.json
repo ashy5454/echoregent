@@ -1,0 +1,1107 @@
+{
+  "measuredAt": "2026-11-10T19:41:31.151Z",
+  "inference": "Local only. No provider calls or API credits.",
+  "counting": "gpt-tokenizer 4.0.0: o200k_base on serialized request JSON for package cases; existing gpt-4o chat-token estimator for history cases.",
+  "limitations": [
+    "History benchmark has 8 known synthetic templates with 40 acknowledgement variants each; it is not a held-out or production benchmark.",
+    "History results describe legacy development compression, not the current packaged proxy. Its medical/legal policy differs from the packaged protected-context policy.",
+    "Package totals depend on this deliberately selected mixture of repeated logs and pass-through controls.",
+    "The numbered build-turn fixture is templated prose, not arbitrary ordinary conversation. Diverse prose and opaque unique payloads are separate pass-through controls.",
+    "Optional history factoring preserves the latest user message and at least the last eight items. A newly aged chunk may change a provider prefix once; already factored chunks are deterministic.",
+    "Tokenizer estimates do not establish provider-billed savings, cache hits, output-token changes, or monetary savings.",
+    "Exact reconstructed package requests verify every text character, value, association, role, ID and metadata field in these fixtures. Upstream interpretation of templates and semantic answer quality were not tested."
+  ],
+  "baseline": {
+    "file": "local-token-savings-baseline.json",
+    "measuredAt": "2026-11-10T17:34:54.304Z",
+    "totals": {
+      "before": 42808,
+      "after": 32490,
+      "cases": 11,
+      "changedCases": 3,
+      "invariantChecksPassed": true,
+      "saved": 10318,
+      "savingsPct": 24.1
+    }
+  },
+  "history": [
+    {
+      "measurement": "legacy-history",
+      "arm": "rules",
+      "templates": 8,
+      "variantsPerTemplate": 40,
+      "cases": 320,
+      "before": 50502,
+      "after": 19493,
+      "saved": 31009,
+      "savingsPct": 61.401528652330605,
+      "factsKept": 1240,
+      "factsTotal": 1240,
+      "currentKept": 320,
+      "modelHealth": {
+        "name": "cts_relevance",
+        "status": "not_loaded",
+        "loaded": false
+      },
+      "fixtureHash": "3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb",
+      "domains": [
+        {
+          "domain": "coding",
+          "before": 6608,
+          "after": 2720,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "customer_support",
+          "before": 6598,
+          "after": 2320,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "sales",
+          "before": 6348,
+          "after": 2760,
+          "factsKept": 200,
+          "factsTotal": 200
+        },
+        {
+          "domain": "commerce",
+          "before": 6524,
+          "after": 2400,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "education",
+          "before": 5992,
+          "after": 2377,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "general",
+          "before": 6342,
+          "after": 2412,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "medical",
+          "before": 6262,
+          "after": 2264,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "legal",
+          "before": 5828,
+          "after": 2240,
+          "factsKept": 160,
+          "factsTotal": 160
+        }
+      ],
+      "failedCases": [],
+      "exitCode": 0,
+      "rawOutput": "\nSYNTHETIC RETENTION REGRESSION (rule path; templates are known to the implementation)\n\ndomain              savings    facts  current\ncoding                  59%     100%    40/40\ncustomer_support        65%     100%    40/40\nsales                   57%     100%    40/40\ncommerce                63%     100%    40/40\neducation               60%     100%    40/40\ngeneral                 62%     100%    40/40\nmedical                 64%     100%    40/40\nlegal                   62%     100%    40/40\n\naggregate (all domains): 61%\nhard-fact retention:     1240/1240 (100%)\ncurrent-turn retention:  320/320\n{\"measurement\":\"legacy-history\",\"arm\":\"rules\",\"templates\":8,\"variantsPerTemplate\":40,\"cases\":320,\"before\":50502,\"after\":19493,\"saved\":31009,\"savingsPct\":61.401528652330605,\"factsKept\":1240,\"factsTotal\":1240,\"currentKept\":320,\"modelHealth\":{\"name\":\"cts_relevance\",\"status\":\"not_loaded\",\"loaded\":false},\"fixtureHash\":\"3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb\",\"domains\":[{\"domain\":\"coding\",\"before\":6608,\"after\":2720,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"customer_support\",\"before\":6598,\"after\":2320,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"sales\",\"before\":6348,\"after\":2760,\"factsKept\":200,\"factsTotal\":200},{\"domain\":\"commerce\",\"before\":6524,\"after\":2400,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"education\",\"before\":5992,\"after\":2377,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"general\",\"before\":6342,\"after\":2412,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"medical\",\"before\":6262,\"after\":2264,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"legal\",\"before\":5828,\"after\":2240,\"factsKept\":160,\"factsTotal\":160}],\"failedCases\":[]}\n"
+    },
+    {
+      "measurement": "legacy-history",
+      "arm": "fine-tuned relevance",
+      "templates": 8,
+      "variantsPerTemplate": 40,
+      "cases": 320,
+      "before": 50502,
+      "after": 19640,
+      "saved": 30862,
+      "savingsPct": 61.1104510712447,
+      "factsKept": 1240,
+      "factsTotal": 1240,
+      "currentKept": 320,
+      "modelHealth": {
+        "name": "cts_relevance",
+        "status": "ready",
+        "loaded": true,
+        "loadedAt": "2026-11-10T19:41:25.595Z"
+      },
+      "fixtureHash": "3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb",
+      "domains": [
+        {
+          "domain": "coding",
+          "before": 6608,
+          "after": 2720,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "customer_support",
+          "before": 6598,
+          "after": 2320,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "sales",
+          "before": 6348,
+          "after": 2760,
+          "factsKept": 200,
+          "factsTotal": 200
+        },
+        {
+          "domain": "commerce",
+          "before": 6524,
+          "after": 3040,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "education",
+          "before": 5992,
+          "after": 2080,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "general",
+          "before": 6342,
+          "after": 2320,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "medical",
+          "before": 6262,
+          "after": 2160,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "legal",
+          "before": 5828,
+          "after": 2240,
+          "factsKept": 160,
+          "factsTotal": 160
+        }
+      ],
+      "failedCases": [],
+      "exitCode": 0,
+      "rawOutput": "\nSYNTHETIC RETENTION REGRESSION (ML path; templates are known to the implementation)\n\ndomain              savings    facts  current\ncoding                  59%     100%    40/40\ncustomer_support        65%     100%    40/40\nsales                   57%     100%    40/40\ncommerce                53%     100%    40/40\neducation               65%     100%    40/40\ngeneral                 63%     100%    40/40\nmedical                 66%     100%    40/40\nlegal                   62%     100%    40/40\n\naggregate (all domains): 61%\nhard-fact retention:     1240/1240 (100%)\ncurrent-turn retention:  320/320\n{\"measurement\":\"legacy-history\",\"arm\":\"fine-tuned relevance\",\"templates\":8,\"variantsPerTemplate\":40,\"cases\":320,\"before\":50502,\"after\":19640,\"saved\":30862,\"savingsPct\":61.1104510712447,\"factsKept\":1240,\"factsTotal\":1240,\"currentKept\":320,\"modelHealth\":{\"name\":\"cts_relevance\",\"status\":\"ready\",\"loaded\":true,\"loadedAt\":\"2026-11-10T19:41:25.595Z\"},\"fixtureHash\":\"3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb\",\"domains\":[{\"domain\":\"coding\",\"before\":6608,\"after\":2720,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"customer_support\",\"before\":6598,\"after\":2320,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"sales\",\"before\":6348,\"after\":2760,\"factsKept\":200,\"factsTotal\":200},{\"domain\":\"commerce\",\"before\":6524,\"after\":3040,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"education\",\"before\":5992,\"after\":2080,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"general\",\"before\":6342,\"after\":2320,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"medical\",\"before\":6262,\"after\":2160,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"legal\",\"before\":5828,\"after\":2240,\"factsKept\":160,\"factsTotal\":160}],\"failedCases\":[]}\n"
+    },
+    {
+      "measurement": "legacy-history",
+      "arm": "base MiniLM",
+      "templates": 8,
+      "variantsPerTemplate": 40,
+      "cases": 320,
+      "before": 50502,
+      "after": 19640,
+      "saved": 30862,
+      "savingsPct": 61.1104510712447,
+      "factsKept": 1240,
+      "factsTotal": 1240,
+      "currentKept": 320,
+      "modelHealth": {
+        "name": "cts_relevance",
+        "status": "ready",
+        "loaded": true,
+        "loadedAt": "2026-11-10T19:41:28.656Z"
+      },
+      "fixtureHash": "3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb",
+      "domains": [
+        {
+          "domain": "coding",
+          "before": 6608,
+          "after": 2720,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "customer_support",
+          "before": 6598,
+          "after": 2320,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "sales",
+          "before": 6348,
+          "after": 2760,
+          "factsKept": 200,
+          "factsTotal": 200
+        },
+        {
+          "domain": "commerce",
+          "before": 6524,
+          "after": 3040,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "education",
+          "before": 5992,
+          "after": 2080,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "general",
+          "before": 6342,
+          "after": 2320,
+          "factsKept": 160,
+          "factsTotal": 160
+        },
+        {
+          "domain": "medical",
+          "before": 6262,
+          "after": 2160,
+          "factsKept": 120,
+          "factsTotal": 120
+        },
+        {
+          "domain": "legal",
+          "before": 5828,
+          "after": 2240,
+          "factsKept": 160,
+          "factsTotal": 160
+        }
+      ],
+      "failedCases": [],
+      "exitCode": 0,
+      "rawOutput": "\nSYNTHETIC RETENTION REGRESSION (ML path; templates are known to the implementation)\n\ndomain              savings    facts  current\ncoding                  59%     100%    40/40\ncustomer_support        65%     100%    40/40\nsales                   57%     100%    40/40\ncommerce                53%     100%    40/40\neducation               65%     100%    40/40\ngeneral                 63%     100%    40/40\nmedical                 66%     100%    40/40\nlegal                   62%     100%    40/40\n\naggregate (all domains): 61%\nhard-fact retention:     1240/1240 (100%)\ncurrent-turn retention:  320/320\n{\"measurement\":\"legacy-history\",\"arm\":\"base MiniLM\",\"templates\":8,\"variantsPerTemplate\":40,\"cases\":320,\"before\":50502,\"after\":19640,\"saved\":30862,\"savingsPct\":61.1104510712447,\"factsKept\":1240,\"factsTotal\":1240,\"currentKept\":320,\"modelHealth\":{\"name\":\"cts_relevance\",\"status\":\"ready\",\"loaded\":true,\"loadedAt\":\"2026-11-10T19:41:28.656Z\"},\"fixtureHash\":\"3ba80721df5a717f032e09d628fc041d4109218333d05c5459fd0db3c1019ffb\",\"domains\":[{\"domain\":\"coding\",\"before\":6608,\"after\":2720,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"customer_support\",\"before\":6598,\"after\":2320,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"sales\",\"before\":6348,\"after\":2760,\"factsKept\":200,\"factsTotal\":200},{\"domain\":\"commerce\",\"before\":6524,\"after\":3040,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"education\",\"before\":5992,\"after\":2080,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"general\",\"before\":6342,\"after\":2320,\"factsKept\":160,\"factsTotal\":160},{\"domain\":\"medical\",\"before\":6262,\"after\":2160,\"factsKept\":120,\"factsTotal\":120},{\"domain\":\"legal\",\"before\":5828,\"after\":2240,\"factsKept\":160,\"factsTotal\":160}],\"failedCases\":[]}\n"
+    }
+  ],
+  "packagedTotals": {
+    "before": 42808,
+    "after": 26797,
+    "saved": 16011,
+    "savingsPct": 37.4,
+    "cases": 11,
+    "changedCases": 5,
+    "invariantChecksPassed": true
+  },
+  "historyEnabledTotals": {
+    "before": 42808,
+    "after": 26653,
+    "saved": 16155,
+    "savingsPct": 37.74,
+    "cases": 11,
+    "changedCases": 6,
+    "invariantChecksPassed": true
+  },
+  "comparisonToBaseline": [
+    {
+      "name": "600 repeated fixture logs",
+      "before": 4298,
+      "previousAfter": 119,
+      "defaultAfter": 119,
+      "historyEnabledAfter": 119
+    },
+    {
+      "name": "mixed logs with duplicate runs",
+      "before": 3346,
+      "previousAfter": 1386,
+      "defaultAfter": 948,
+      "historyEnabledAfter": 948
+    },
+    {
+      "name": "custom input_text output block",
+      "before": 4314,
+      "previousAfter": 135,
+      "defaultAfter": 135,
+      "historyEnabledAfter": 135
+    },
+    {
+      "name": "timestamped non-identical logs",
+      "before": 6088,
+      "previousAfter": 6088,
+      "defaultAfter": 3156,
+      "historyEnabledAfter": 3156
+    },
+    {
+      "name": "dense unique tool output",
+      "before": 4168,
+      "previousAfter": 4168,
+      "defaultAfter": 1845,
+      "historyEnabledAfter": 1845
+    },
+    {
+      "name": "structured JSON tool output",
+      "before": 2195,
+      "previousAfter": 2195,
+      "defaultAfter": 2195,
+      "historyEnabledAfter": 2195
+    },
+    {
+      "name": "fenced tool output",
+      "before": 4302,
+      "previousAfter": 4302,
+      "defaultAfter": 4302,
+      "historyEnabledAfter": 4302
+    },
+    {
+      "name": "medical protected context",
+      "before": 4301,
+      "previousAfter": 4301,
+      "defaultAfter": 4301,
+      "historyEnabledAfter": 4301
+    },
+    {
+      "name": "legal protected context",
+      "before": 4297,
+      "previousAfter": 4297,
+      "defaultAfter": 4297,
+      "historyEnabledAfter": 4297
+    },
+    {
+      "name": "older uncompressed tool output",
+      "before": 4318,
+      "previousAfter": 4318,
+      "defaultAfter": 4318,
+      "historyEnabledAfter": 4318
+    },
+    {
+      "name": "ordinary conversation without tool output",
+      "before": 1181,
+      "previousAfter": 1181,
+      "defaultAfter": 1181,
+      "historyEnabledAfter": 1037
+    }
+  ],
+  "packaged": [
+    {
+      "name": "600 repeated fixture logs",
+      "label": "600 repeated fixture logs",
+      "compactHistory": false,
+      "before": 4298,
+      "after": 119,
+      "saved": 4179,
+      "savingsPct": 97.23,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "f8d0b798ee39b328d7f46ae74d362507965b354b8f385b7e53641028f8098491",
+      "reconstructionHash": "f8d0b798ee39b328d7f46ae74d362507965b354b8f385b7e53641028f8098491",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 1
+    },
+    {
+      "name": "mixed logs with duplicate runs",
+      "label": "mixed logs with duplicate runs",
+      "compactHistory": false,
+      "before": 3346,
+      "after": 948,
+      "saved": 2398,
+      "savingsPct": 71.67,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "240c0ba567383bb2204b7acb2ff391e6c01557badeea86de8e201e12e74ea8f0",
+      "reconstructionHash": "240c0ba567383bb2204b7acb2ff391e6c01557badeea86de8e201e12e74ea8f0",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 81,
+      "messages": 1
+    },
+    {
+      "name": "custom input_text output block",
+      "label": "custom input_text output block",
+      "compactHistory": false,
+      "before": 4314,
+      "after": 135,
+      "saved": 4179,
+      "savingsPct": 96.87,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "4935c701ea3d826b176bc5d413289c30638d8fc03d5d51da6aecf827cde14c5b",
+      "reconstructionHash": "4935c701ea3d826b176bc5d413289c30638d8fc03d5d51da6aecf827cde14c5b",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 1
+    },
+    {
+      "name": "timestamped non-identical logs",
+      "label": "timestamped non-identical logs",
+      "compactHistory": false,
+      "before": 6088,
+      "after": 3156,
+      "saved": 2932,
+      "savingsPct": 48.16,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "db76f7f01d85fda84eea005249a8ababee78a9fa660c4039e5d5674627914c69",
+      "reconstructionHash": "db76f7f01d85fda84eea005249a8ababee78a9fa660c4039e5d5674627914c69",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 600,
+      "messages": 1
+    },
+    {
+      "name": "dense unique tool output",
+      "label": "dense unique tool output",
+      "compactHistory": false,
+      "before": 4168,
+      "after": 1845,
+      "saved": 2323,
+      "savingsPct": 55.73,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "d6733d083f3f192e6b5b1d706bb0af48b2f2d1dc0b66516d400a26af9391f39b",
+      "reconstructionHash": "d6733d083f3f192e6b5b1d706bb0af48b2f2d1dc0b66516d400a26af9391f39b",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 240,
+      "messages": 1
+    },
+    {
+      "name": "structured JSON tool output",
+      "label": "structured JSON tool output",
+      "compactHistory": false,
+      "before": 2195,
+      "after": 2195,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "fixtureHash": "59ca05320959d4091da83aca66a0121a4f2fff76ea65b79d30cafe08b5576379",
+      "reconstructionHash": "59ca05320959d4091da83aca66a0121a4f2fff76ea65b79d30cafe08b5576379",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 1,
+      "messages": 1
+    },
+    {
+      "name": "fenced tool output",
+      "label": "fenced tool output",
+      "compactHistory": false,
+      "before": 4302,
+      "after": 4302,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "fixtureHash": "2d6d4db0c508f85bdab22e0783d07d08ee8d0d7ccc3d01b091f2b6243acfeb27",
+      "reconstructionHash": "2d6d4db0c508f85bdab22e0783d07d08ee8d0d7ccc3d01b091f2b6243acfeb27",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 3,
+      "messages": 1
+    },
+    {
+      "name": "medical protected context",
+      "label": "medical protected context",
+      "compactHistory": false,
+      "before": 4301,
+      "after": 4301,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "protected-context",
+      "fixtureHash": "50466da6915245564bd79fe63f66d11a2b9fece8dcc6b9c4a3ae9c44f5990dac",
+      "reconstructionHash": "50466da6915245564bd79fe63f66d11a2b9fece8dcc6b9c4a3ae9c44f5990dac",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 1
+    },
+    {
+      "name": "legal protected context",
+      "label": "legal protected context",
+      "compactHistory": false,
+      "before": 4297,
+      "after": 4297,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "protected-context",
+      "fixtureHash": "d9f0cc904cb605d6c15f8ef07429e2b96e70eaa27902a1aa9aa380ab1988dfc3",
+      "reconstructionHash": "d9f0cc904cb605d6c15f8ef07429e2b96e70eaa27902a1aa9aa380ab1988dfc3",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 1
+    },
+    {
+      "name": "older uncompressed tool output",
+      "label": "older uncompressed tool output",
+      "compactHistory": false,
+      "before": 4318,
+      "after": 4318,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "fixtureHash": "5819719035b4487977088c59a480fbd558ea0dec4883aa31ae483f294b669fc0",
+      "reconstructionHash": "5819719035b4487977088c59a480fbd558ea0dec4883aa31ae483f294b669fc0",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 2
+    },
+    {
+      "name": "ordinary conversation without tool output",
+      "label": "Templated conversation: 40 numbered build turns",
+      "compactHistory": false,
+      "before": 1181,
+      "after": 1181,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "fixtureHash": "9d326a5d013497080f66587f9a0bc7b76d615e5768a6cccaa18c2016c07b980b",
+      "reconstructionHash": "9d326a5d013497080f66587f9a0bc7b76d615e5768a6cccaa18c2016c07b980b",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 0,
+      "messages": 40
+    }
+  ],
+  "packagedHistoryEnabled": [
+    {
+      "name": "600 repeated fixture logs",
+      "label": "600 repeated fixture logs",
+      "compactHistory": true,
+      "before": 4298,
+      "after": 119,
+      "saved": 4179,
+      "savingsPct": 97.23,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "f8d0b798ee39b328d7f46ae74d362507965b354b8f385b7e53641028f8098491",
+      "reconstructionHash": "f8d0b798ee39b328d7f46ae74d362507965b354b8f385b7e53641028f8098491",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 1
+    },
+    {
+      "name": "mixed logs with duplicate runs",
+      "label": "mixed logs with duplicate runs",
+      "compactHistory": true,
+      "before": 3346,
+      "after": 948,
+      "saved": 2398,
+      "savingsPct": 71.67,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "240c0ba567383bb2204b7acb2ff391e6c01557badeea86de8e201e12e74ea8f0",
+      "reconstructionHash": "240c0ba567383bb2204b7acb2ff391e6c01557badeea86de8e201e12e74ea8f0",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 81,
+      "messages": 1
+    },
+    {
+      "name": "custom input_text output block",
+      "label": "custom input_text output block",
+      "compactHistory": true,
+      "before": 4314,
+      "after": 135,
+      "saved": 4179,
+      "savingsPct": 96.87,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "4935c701ea3d826b176bc5d413289c30638d8fc03d5d51da6aecf827cde14c5b",
+      "reconstructionHash": "4935c701ea3d826b176bc5d413289c30638d8fc03d5d51da6aecf827cde14c5b",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 1
+    },
+    {
+      "name": "timestamped non-identical logs",
+      "label": "timestamped non-identical logs",
+      "compactHistory": true,
+      "before": 6088,
+      "after": 3156,
+      "saved": 2932,
+      "savingsPct": 48.16,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "db76f7f01d85fda84eea005249a8ababee78a9fa660c4039e5d5674627914c69",
+      "reconstructionHash": "db76f7f01d85fda84eea005249a8ababee78a9fa660c4039e5d5674627914c69",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 600,
+      "messages": 1
+    },
+    {
+      "name": "dense unique tool output",
+      "label": "dense unique tool output",
+      "compactHistory": true,
+      "before": 4168,
+      "after": 1845,
+      "saved": 2323,
+      "savingsPct": 55.73,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "d6733d083f3f192e6b5b1d706bb0af48b2f2d1dc0b66516d400a26af9391f39b",
+      "reconstructionHash": "d6733d083f3f192e6b5b1d706bb0af48b2f2d1dc0b66516d400a26af9391f39b",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 240,
+      "messages": 1
+    },
+    {
+      "name": "structured JSON tool output",
+      "label": "structured JSON tool output",
+      "compactHistory": true,
+      "before": 2195,
+      "after": 2195,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "fixtureHash": "59ca05320959d4091da83aca66a0121a4f2fff76ea65b79d30cafe08b5576379",
+      "reconstructionHash": "59ca05320959d4091da83aca66a0121a4f2fff76ea65b79d30cafe08b5576379",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 1,
+      "messages": 1
+    },
+    {
+      "name": "fenced tool output",
+      "label": "fenced tool output",
+      "compactHistory": true,
+      "before": 4302,
+      "after": 4302,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "fixtureHash": "2d6d4db0c508f85bdab22e0783d07d08ee8d0d7ccc3d01b091f2b6243acfeb27",
+      "reconstructionHash": "2d6d4db0c508f85bdab22e0783d07d08ee8d0d7ccc3d01b091f2b6243acfeb27",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 3,
+      "messages": 1
+    },
+    {
+      "name": "medical protected context",
+      "label": "medical protected context",
+      "compactHistory": true,
+      "before": 4301,
+      "after": 4301,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "protected-context",
+      "fixtureHash": "50466da6915245564bd79fe63f66d11a2b9fece8dcc6b9c4a3ae9c44f5990dac",
+      "reconstructionHash": "50466da6915245564bd79fe63f66d11a2b9fece8dcc6b9c4a3ae9c44f5990dac",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 1
+    },
+    {
+      "name": "legal protected context",
+      "label": "legal protected context",
+      "compactHistory": true,
+      "before": 4297,
+      "after": 4297,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "protected-context",
+      "fixtureHash": "d9f0cc904cb605d6c15f8ef07429e2b96e70eaa27902a1aa9aa380ab1988dfc3",
+      "reconstructionHash": "d9f0cc904cb605d6c15f8ef07429e2b96e70eaa27902a1aa9aa380ab1988dfc3",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 1
+    },
+    {
+      "name": "older uncompressed tool output",
+      "label": "older uncompressed tool output",
+      "compactHistory": true,
+      "before": 4318,
+      "after": 4318,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "fixtureHash": "5819719035b4487977088c59a480fbd558ea0dec4883aa31ae483f294b669fc0",
+      "reconstructionHash": "5819719035b4487977088c59a480fbd558ea0dec4883aa31ae483f294b669fc0",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 2,
+      "messages": 2
+    },
+    {
+      "name": "ordinary conversation without tool output",
+      "label": "Templated conversation: 40 numbered build turns",
+      "compactHistory": true,
+      "before": 1181,
+      "after": 1037,
+      "saved": 144,
+      "savingsPct": 12.19,
+      "changed": true,
+      "reason": "lossless-history-compaction",
+      "fixtureHash": "9d326a5d013497080f66587f9a0bc7b76d615e5768a6cccaa18c2016c07b980b",
+      "reconstructionHash": "9d326a5d013497080f66587f9a0bc7b76d615e5768a6cccaa18c2016c07b980b",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 0,
+      "messages": 40
+    }
+  ],
+  "supplemental": [
+    {
+      "name": "ISO timestamps, changing IDs and statuses",
+      "label": "ISO timestamps, changing IDs and statuses",
+      "compactHistory": false,
+      "before": 22893,
+      "after": 9797,
+      "saved": 13096,
+      "savingsPct": 57.21,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "cf61a2ce474dcaef7334b783c554c3c75055b3188fc71c0eec3131ce31b1aa13",
+      "reconstructionHash": "cf61a2ce474dcaef7334b783c554c3c75055b3188fc71c0eec3131ce31b1aa13",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 600,
+      "messages": 1
+    },
+    {
+      "name": "unique opaque event payloads",
+      "label": "unique opaque event payloads",
+      "compactHistory": false,
+      "before": 10290,
+      "after": 10290,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "fixtureHash": "79d948e71a0bd865cb8561f0539036a5240a9da44f68a2029a68fdf01df70fc1",
+      "reconstructionHash": "79d948e71a0bd865cb8561f0539036a5240a9da44f68a2029a68fdf01df70fc1",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 240,
+      "messages": 1
+    },
+    {
+      "name": "diverse conversation: 40 different sentences",
+      "label": "diverse conversation: 40 different sentences",
+      "compactHistory": false,
+      "before": 961,
+      "after": 961,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "no-eligible-tool-result",
+      "fixtureHash": "5b8a9e34adef5cc9b101b5b76bcef7ede0cdf96dfdd65edd6f35b8f6e8e33144",
+      "reconstructionHash": "5b8a9e34adef5cc9b101b5b76bcef7ede0cdf96dfdd65edd6f35b8f6e8e33144",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 0,
+      "messages": 40
+    }
+  ],
+  "supplementalHistoryEnabled": [
+    {
+      "name": "ISO timestamps, changing IDs and statuses",
+      "label": "ISO timestamps, changing IDs and statuses",
+      "compactHistory": true,
+      "before": 22893,
+      "after": 9797,
+      "saved": 13096,
+      "savingsPct": 57.21,
+      "changed": true,
+      "reason": "lossless-log-compaction",
+      "fixtureHash": "cf61a2ce474dcaef7334b783c554c3c75055b3188fc71c0eec3131ce31b1aa13",
+      "reconstructionHash": "cf61a2ce474dcaef7334b783c554c3c75055b3188fc71c0eec3131ce31b1aa13",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 600,
+      "messages": 1
+    },
+    {
+      "name": "unique opaque event payloads",
+      "label": "unique opaque event payloads",
+      "compactHistory": true,
+      "before": 10290,
+      "after": 10290,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "fixtureHash": "79d948e71a0bd865cb8561f0539036a5240a9da44f68a2029a68fdf01df70fc1",
+      "reconstructionHash": "79d948e71a0bd865cb8561f0539036a5240a9da44f68a2029a68fdf01df70fc1",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 240,
+      "messages": 1
+    },
+    {
+      "name": "diverse conversation: 40 different sentences",
+      "label": "diverse conversation: 40 different sentences",
+      "compactHistory": true,
+      "before": 961,
+      "after": 961,
+      "saved": 0,
+      "savingsPct": 0,
+      "changed": false,
+      "reason": "unchanged",
+      "fixtureHash": "5b8a9e34adef5cc9b101b5b76bcef7ede0cdf96dfdd65edd6f35b8f6e8e33144",
+      "reconstructionHash": "5b8a9e34adef5cc9b101b5b76bcef7ede0cdf96dfdd65edd6f35b8f6e8e33144",
+      "checks": {
+        "exactRequestReconstruction": true,
+        "uniqueLinesPreserved": true,
+        "inputNotMutated": true,
+        "structurePreserved": true,
+        "recentConversationPreserved": true,
+        "currentUserPreserved": true,
+        "expectedPassThrough": true,
+        "protectedWhenExpected": true,
+        "noTokenGrowth": true
+      },
+      "uniqueLines": 0,
+      "messages": 40
+    }
+  ]
+}

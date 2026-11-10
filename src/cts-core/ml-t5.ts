@@ -6,6 +6,7 @@
  */
 
 import { join } from 'node:path'
+import { loadTransformersRuntime } from './transformers-runtime'
 
 type TransformerEnv = {
   localModelPath: string
@@ -48,8 +49,7 @@ async function getPipeline(): Promise<PipelineFn> {
     setHealth('loading')
     _inflightLoad = (async () => {
       try {
-        const loadModule = new Function("return import('@xenova/transformers')") as () => Promise<Record<string, unknown>>
-        const mod = await loadModule()
+        const mod = await loadTransformersRuntime()
         const pipelineFactory = mod.pipeline as (task: string, model: string, options?: Record<string, unknown>) => Promise<unknown>
         const envRef = mod.env as TransformerEnv
         envRef.localModelPath = join(process.cwd(), 'ml')
