@@ -95,9 +95,11 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 
 async function sendApiKeyEmail(email: string, key: string, name: string): Promise<boolean> {
   if (!resend) return false
+  const fromEmail = process.env.CTS_FROM_EMAIL || 'EchoRegent <notifications@echoregent.ai>'
+  const publicUrl = process.env.CTS_PUBLIC_URL || 'https://echoregent.ai'
   try {
     const { error } = await resend.emails.send({
-      from: 'CTS <onboarding@yudi.co.in>',
+      from: fromEmail,
       to: [email],
       subject: 'Your CTS API Key is ready',
       html: `
@@ -107,7 +109,7 @@ async function sendApiKeyEmail(email: string, key: string, name: string): Promis
           <div style="background: #f4f4f5; padding: 16px; border-radius: 8px; font-family: monospace; font-size: 16px; margin: 24px 0;">
             ${key}
           </div>
-          <p>Get started with the <a href="https://cts.yudi.co.in">documentation</a> or check your usage at the bottom of the homepage.</p>
+          <p>Get started with the <a href="${publicUrl}">documentation</a> or check your usage at the bottom of the homepage.</p>
           <p>Cheers,<br>The CTS Team</p>
         </div>
       `,

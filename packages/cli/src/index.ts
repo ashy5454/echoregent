@@ -30,6 +30,8 @@ async function main() {
   const { values, positionals } = parseArgs({ args: argv, allowPositionals: true, options: {
     upstream: { type: 'string' }, port: { type: 'string' }, url: { type: 'string' },
     'compact-history': { type: 'boolean', default: false },
+    'local-token': { type: 'string' },
+    'inject-memory': { type: 'boolean', default: false },
     memory: { type: 'string', default: 'off' }, 'memory-dir': { type: 'string' },
     'retention-days': { type: 'string' }, project: { type: 'string' }, session: { type: 'string' },
     probe: { type: 'boolean' }, model: { type: 'string' }, help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'V' },
@@ -39,6 +41,7 @@ async function main() {
   const command = positionals[0]
   const upstream = values.upstream ?? process.env.ECHOREGENT_UPSTREAM ?? 'https://api.openai.com/v1'
   const key = process.env.ECHOREGENT_PROVIDER_KEY ?? process.env.OPENAI_API_KEY
+  const localToken = values['local-token'] ?? process.env.ECHOREGENT_LOCAL_TOKEN
   if (command === 'wrap') {
     if (positionals[1] !== 'codex') throw new Error('Only the Codex Responses launcher is implemented; other agents are not advertised')
     process.exitCode = await wrapCodex([...positionals.slice(2), ...forwarded], { upstream, key, compactHistory: values['compact-history'] })
@@ -69,13 +72,13 @@ async function main() {
     else if (values.memory === 'file' && values['memory-dir']) memory = { mode: 'file', directory: values['memory-dir'], retentionMs: days * 86_400_000 }
     else throw new Error('Use --memory off|ephemeral|file; file mode requires --memory-dir')
   }
-  const engine = new EchoRegent({ memory, compactHistory: values['compact-history'] })
+  const engine = new EchoRegent({ memory, compactHistory: values['compact-history'], injectMemory: values['inject-memory'] } as any)
   const scope = { project: resolve(values.project ?? process.cwd()), session: values.session ?? randomUUID() }
   if (command === 'mcp') { await runMcp(engine, scope); return }
   if (command === 'proxy') {
     const port = Number(values.port ?? 8787)
     if (!Number.isInteger(port) || port < 0 || port > 65535) throw new Error('Port must be an integer from 0 to 65535')
-    const proxy = await startProxy({ upstream, port, engine, scope: memory.mode === 'off' ? undefined : scope })
+    const proxy = await startProxy({ upstream, port, engine, scope: memory.mode === 'off' ? undefined : scope, localToken })
     console.error(`EchoRegent proxy: ${proxy.baseUrl}; memory ${memory.mode}; telemetry off`)
     let closing = false
     const close = async () => { if (closing) return; closing = true; await proxy.close() }

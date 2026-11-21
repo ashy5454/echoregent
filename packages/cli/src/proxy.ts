@@ -35,7 +35,11 @@ export async function startProxy(options: ProxyOptions) {
     try { url = new URL(req.url ?? '/', 'http://127.0.0.1') }
     catch { json(res, 400, { error: 'Invalid HTTP request target' }); return }
     // Browser origins are not CLI/API clients; keep the local control surface private.
-    if (req.headers.origin) { json(res, 403, { error: 'Browser origins are not allowed' }); return }
+    const secFetchSite = req.headers['sec-fetch-site']
+    if (req.headers.origin !== undefined || (secFetchSite !== undefined && secFetchSite !== 'none')) {
+      json(res, 403, { error: 'Browser origins are not allowed' })
+      return
+    }
     if (options.localToken && req.headers['x-echoregent-local-token'] !== options.localToken) { json(res, 401, { error: 'Local token required' }); return }
     if (req.method === 'GET' && url.pathname === '/health') {
       json(res, 200, { product: 'echoregent', version: '0.4.0', mode: 'deterministic', telemetry: false, models: [], stats })
@@ -81,7 +85,10 @@ export async function startProxy(options: ProxyOptions) {
       }
       headers.set('content-type', 'application/json')
       const endpoint = new URL(target)
-      endpoint.pathname += route.slice('/v1'.length)
+      const basePath = target.pathname.replace(/\/+$/, '')
+      endpoint.pathname = basePath.endsWith('/v1')
+        ? `${basePath}${route.slice('/v1'.length)}`
+        : `${basePath}${route}`
       endpoint.search = url.search
       const response = await fetch(endpoint, {
         method: 'POST', headers, body: result.changed ? JSON.stringify(result.request) : new Uint8Array(original),

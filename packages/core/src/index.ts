@@ -2,31 +2,56 @@ import { evaluatePolicy, type PolicyDecision } from './policy.js'
 import { compressLogs } from './compression.js'
 import { payloadTokens, smallerText } from './token-count.js'
 import { compactOlderHistory } from './history.js'
-import { ScopedMemory, scopeKey, type MemoryScope, type MemorySettings, type FactInput } from './memory.js'
+import { ScopedMemory, scopeKey, type MemoryScope, type MemorySettings, type FactInput, type MemoryFact } from './memory.js'
+import { WikiMemory } from './wiki-memory.js'
 import { createHash } from 'node:crypto'
 
 export { classify } from './classifier.js'
 export { evaluatePolicy } from './policy.js'
 export { compressRepeatedLines, compressLogs, decompressText } from './compression.js'
 export { restoreCompressedRequest } from './history.js'
+export { ScopedMemory, scopeKey } from './memory.js'
+export { WikiMemory } from './wiki-memory.js'
+export {
+  AdaptiveCompressionLearner,
+  type AdaptiveCompressorOptions,
+  type AdaptiveCompressorState,
+  type TurnObservation,
+  type ToolCallItem,
+} from './adaptive-compressor.js'
 export type { PolicyDecision } from './policy.js'
 export type { MemoryScope, MemorySettings, FactInput, MemoryFact } from './memory.js'
 export type { RoutingFrame } from './types.js'
 
 export type Protocol = 'responses' | 'chat-completions'
-export interface EngineOptions { memory?: MemorySettings; now?: () => number; compressor?: (text: string) => string; compactHistory?: boolean }
+export interface EngineOptions {
+  memory?: MemorySettings
+  now?: () => number
+  compressor?: (text: string) => string
+  compactHistory?: boolean
+  injectMemory?: boolean
+}
 export interface ProcessResult<T> { request: T; policy: PolicyDecision; changed: boolean; reason: string; charactersRemoved: number }
 
 export class EchoRegent {
-  private readonly memory: ScopedMemory
+  readonly memory: ScopedMemory
+  readonly wikiMemory: WikiMemory
   private readonly compressor: (text: string) => string
   private readonly compactHistory: boolean
+  private readonly injectMemory: boolean
   // Hashes only: no original/condensed content is retained between requests.
   private readonly priorTransforms = new Map<string, { outputHash: string; expiresAt: number }>()
+
   constructor(options: EngineOptions = {}) {
     this.memory = new ScopedMemory(options.memory, options.now)
+    this.wikiMemory = new WikiMemory(this.memory)
     this.compressor = options.compressor ?? compressLogs
     this.compactHistory = options.compactHistory ?? false
+    this.injectMemory = options.injectMemory ?? false
+  }
+
+  compileContextBlock(scope: MemoryScope, queryText: string, maxFacts = 5): string {
+    return this.wikiMemory.compileContextBlock(scope, queryText, maxFacts)
   }
 
   process<T extends Record<string, any>>(request: T, protocol: Protocol, scope?: MemoryScope): ProcessResult<T> {
@@ -37,6 +62,32 @@ export class EchoRegent {
     const field = protocol === 'responses' ? 'input' : 'messages'
     const items = request[field]
     if (!Array.isArray(items) || !items.length) return original('no-eligible-tool-result')
+
+    let memoryInjected = false
+    let injectedItem: any = null
+
+    if (this.injectMemory && scope && !policy.protected) {
+      const userItem = [...items].reverse().find((item) => item?.role === 'user')
+      let userQuery = ''
+      if (userItem) {
+        if (typeof userItem.content === 'string') {
+          userQuery = userItem.content
+        } else if (Array.isArray(userItem.content)) {
+          userQuery = userItem.content
+            .filter((part: any) => part && typeof part.text === 'string')
+            .map((part: any) => part.text)
+            .join('\n')
+        }
+      }
+      const contextBlock = this.compileContextBlock(scope, userQuery)
+      if (contextBlock) {
+        memoryInjected = true
+        injectedItem = protocol === 'responses'
+          ? { role: 'developer', content: contextBlock }
+          : { role: 'system', content: contextBlock }
+      }
+    }
+
     try {
       let charactersRemoved = 0
       let eligible = false
@@ -77,13 +128,25 @@ export class EchoRegent {
         next = history.items
         charactersRemoved += history.charactersRemoved
       }
-      if (!charactersRemoved) return original(eligible || this.compactHistory ? 'unchanged' : 'no-eligible-tool-result')
+      if (memoryInjected && injectedItem) {
+        next = [injectedItem, ...next]
+      }
+      if (!charactersRemoved && !memoryInjected) return original(eligible || this.compactHistory ? 'unchanged' : 'no-eligible-tool-result')
       const updatedRequest = { ...request, [field]: next }
-      if (payloadTokens(updatedRequest) >= payloadTokens(request)) return original('no-token-savings')
+      if (!memoryInjected && payloadTokens(updatedRequest) >= payloadTokens(request)) return original('no-token-savings')
       for (const [key, value] of pendingTransforms) this.priorTransforms.set(key, value)
       while (this.priorTransforms.size > 2048) this.priorTransforms.delete(this.priorTransforms.keys().next().value!)
-      const reason = charactersRemoved === logCharactersRemoved ? 'lossless-log-compaction'
-        : logCharactersRemoved ? 'lossless-context-compaction' : 'lossless-history-compaction'
+      
+      let reason = ''
+      if (memoryInjected && charactersRemoved > 0) {
+        reason = charactersRemoved === logCharactersRemoved ? 'lossless-log-compaction'
+          : logCharactersRemoved ? 'lossless-context-compaction' : 'lossless-history-compaction'
+      } else if (memoryInjected) {
+        reason = 'memory-injected'
+      } else {
+        reason = charactersRemoved === logCharactersRemoved ? 'lossless-log-compaction'
+          : logCharactersRemoved ? 'lossless-context-compaction' : 'lossless-history-compaction'
+      }
       return { request: updatedRequest, policy, changed: true, reason, charactersRemoved }
     } catch { return original('compression-error') }
   }
