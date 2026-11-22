@@ -23,7 +23,7 @@
   <a href="#quickstart">Quickstart</a> • <a href="#measured-proof">Measured Proof</a> • <a href="#llm-wiki-memory">LLM-Wiki Memory</a> • <a href="#continual-learning">Continual Learning</a> • <a href="#works-in-your-agent">Works In Your Agent</a>
 </p>
 
-- **Cut Agent Token Burn by 37% to 97%:** Losslessly compacts repetitive compiler diagnostics, test cascades, and git diffs in `<2 ms` before they hit upstream LLM APIs.
+- **37.7% Average Token Cost Reduction (Up to 55.7%):** Losslessly compacts repetitive compiler diagnostics, test cascades, and structured tool logs in `<2 ms` before they hit upstream LLM APIs (up to 55.7% on structured tool logs and multi-turn agent runs).
 - **Zero-Token-Tax Continual Memory:** Karpathy-style Git-versionable Markdown wiki that remembers architectural decisions across sessions without burning extra LLM calls.
 - **100% Local-First & Zero Telemetry:** Pure MIT licensed runtime with zero analytics beacons, zero bundled weights, and fail-closed safety guardrails for sensitive contexts.
 
@@ -182,16 +182,16 @@ const { items, turnsCompacted } = compactConversationTurns(messages, { keepRecen
 
 ### Measured Empirical Token Savings
 
-All token measurements are generated locally using exact `o200k_base` BPE token counters and verified with byte-exact inverse reconstruction tests. Every compressed payload is proven mathematically lossless: **Reconstruction Error: 0.00%**.
+All token measurements are generated locally using exact `o200k_base` BPE token counters and verified with byte-exact inverse reconstruction tests. Across realistic multi-turn agent runs and structured tool outputs, EchoRegent delivers a **37.7% average token cost reduction (up to 55.7% on dense numeric and timestamped logs)**. Every compressed payload is proven mathematically lossless: **Reconstruction Error: 0.00%**.
 
 | Workload Type / Benchmark Fixture | Original Tokens | EchoRegent Tokens | Token Reduction | Exact Reversibility |
 |---|---:|---:|---:|:---:|
-| **600 Repeated Fixture Logs** | 4,298 | 119 | **97.23%** | :white_check_mark: Exact Byte Match |
-| **Custom input_text Output Block** | 4,314 | 135 | **96.87%** | :white_check_mark: Exact Byte Match |
+| **600 Repeated Fixture Logs (Duplicate-line run-length collapse)** | 4,298 | 119 | **97.23%** | :white_check_mark: Exact Byte Match |
+| **Custom input_text Output Block (Duplicate run collapse)** | 4,314 | 135 | **96.87%** | :white_check_mark: Exact Byte Match |
 | **Mixed Logs with Duplicate Runs** | 3,346 | 948 | **71.67%** | :white_check_mark: Exact Byte Match |
 | **Dense Numeric Tool Output** | 4,168 | 1,845 | **55.73%** | :white_check_mark: Exact Byte Match |
 | **Timestamped Non-Identical Logs** | 6,088 | 3,156 | **48.16%** | :white_check_mark: Exact Byte Match |
-| **Selected Multi-Turn Mixture Total** | **42,808** | **26,653** | **37.74%** | :white_check_mark: Exact Byte Match |
+| **Selected Multi-Turn Mixture Total (Realistic Agent Workload)** | **42,808** | **26,653** | **37.74% (avg)** | :white_check_mark: Exact Byte Match |
 
 > **Reproduce Locally:** Run the verification benchmark suite directly:
 > ```bash
@@ -213,7 +213,7 @@ $$\text{Net Billed Tokens } T_{\text{net}} = T_{\text{in}} - T_{\text{comp}} + T
 | Architecture & Component | EchoRegent (`@echoregent`) | Mem0 + OpenMemory | Supermemory | RTK + ICM (`rtk-ai`) |
 |---|:---:|:---:|:---:|:---:|
 | **Raw Input Tokens ($T_{\text{in}}$)** | 150,000 | 150,000 | 150,000 | 150,000 |
-| **Tool / History Compaction ($T_{\text{comp}}$)** | **-25,940** (-37.7% to -97.2%) | 0 (No input compression) | 0 (No input compression) | -18,000 (Lossy filtering) |
+| **Tool / History Compaction ($T_{\text{comp}}$)** | **-25,940** (-37.7% avg, up to -55.7%) | 0 (No input compression) | 0 (No input compression) | -18,000 (Lossy filtering) |
 | **Memory Write Overhead ($T_{\text{memw}}$)** | **0 tokens (0 LLM calls)** | **+18,000** (1.2k tokens/write) | **+25,000** (Background dreaming) | 0 (SQLite local) |
 | **Memory Injection ($T_{\text{memr}}$)** | **+1,200** (Scoped top-3 facts) | +4,000 (Uncompressed vectors) | +6,000 (Graph expansions) | **+100,000** (31 MCP tool schemas) |
 | **Net Billed Tokens ($T_{\text{net}}$)** | **125,260** | **172,000** | **181,000** | **232,000** (with tools) / 132k (no mem) |

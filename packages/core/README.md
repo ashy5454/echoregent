@@ -1,7 +1,7 @@
 # @echoregent/core
 
 > **EchoRegent — The Token Management Layer & Continual LLM-Wiki Memory Engine for AI Agents.**  
-> Cuts prompt tokens by **30% to 60%** with sub-5ms deterministic template factoring, turn $t+1$ regret feedback learning, and an append-only, zero-LLM-cost Markdown knowledge wiki.
+> Delivers **37.7% average token cost reduction (up to 55.7% on structured tool logs and multi-turn agent runs)** with sub-5ms deterministic template factoring, turn $t+1$ regret feedback learning, and an append-only, zero-LLM-cost Markdown knowledge wiki.
 
 [![npm version](https://img.shields.io/npm/v/@echoregent/core?color=cb3837)](https://www.npmjs.com/package/@echoregent/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ashy5454/echoregent/blob/main/LICENSE)
@@ -63,7 +63,7 @@ const response = await fetch('https://api.openai.com/v1/chat/completions', {
 })
 ```
 
-`engine.process()` supports OpenAI Responses API (`'responses'`), OpenAI Chat Completions (`'chat-completions'`), and native Anthropic Messages API (`POST /v1/messages` via `'chat-completions'`). It inspects tool outputs (e.g. CI logs, tracebacks, git diffs, Anthropic `tool_result` content blocks) and compacts them into lossless numeric templates in under 5ms, saving **30% to 60% of prompt tokens** while preserving streaming events, tool call IDs, and exact line counts.
+`engine.process()` supports OpenAI Responses API (`'responses'`), OpenAI Chat Completions (`'chat-completions'`), and native Anthropic Messages API (`POST /v1/messages` via `'chat-completions'`). It inspects tool outputs (e.g. CI logs, tracebacks, git diffs, Anthropic `tool_result` content blocks) and compacts them into lossless numeric templates in under 5ms, saving **37.7% average token cost (up to 55.7% on structured tool logs and multi-turn agent runs)** while preserving streaming events, tool call IDs, and exact line counts.
 
 ---
 

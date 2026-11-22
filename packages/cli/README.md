@@ -1,7 +1,7 @@
 # @echoregent/cli
 
 > **EchoRegent — The Token Management Layer & Continual LLM-Wiki Memory Engine for AI Agents.**  
-> Local HTTP proxy, transparent coding-agent launcher, diagnostics suite, and Model Context Protocol (MCP) server. Cuts prompt tokens by 30% to 60% with zero-overhead deterministic template factoring, transparent SSE streaming, and local source-cited memory.
+> Local HTTP proxy, transparent coding-agent launcher, diagnostics suite, and Model Context Protocol (MCP) server. Delivers **37.7% average token cost reduction (up to 55.7% upper end on structured tool logs and agent sessions)** with zero-overhead deterministic template factoring, transparent SSE streaming, and local source-cited memory.
 
 [![npm version](https://img.shields.io/npm/v/@echoregent/cli?color=cb3837)](https://www.npmjs.com/package/@echoregent/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ashy5454/echoregent/blob/main/LICENSE)
