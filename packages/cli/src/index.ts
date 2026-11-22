@@ -34,6 +34,7 @@ async function main() {
     'inject-memory': { type: 'boolean', default: false },
     'adaptive-compression': { type: 'boolean', default: false },
     'project-memory': { type: 'boolean', default: false },
+    'auto-memory': { type: 'boolean', default: false },
     memory: { type: 'string', default: 'off' }, 'memory-dir': { type: 'string' },
     'retention-days': { type: 'string' }, project: { type: 'string' }, session: { type: 'string' },
     probe: { type: 'boolean' }, model: { type: 'string' }, help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'V' },
@@ -75,6 +76,7 @@ async function main() {
     injectMemory: values['inject-memory'],
     adaptiveCompression: values['adaptive-compression'],
     projectWideMemory: values['project-memory'],
+    autoLearnMemory: values['auto-memory'],
   } as any)
   const scope = { project: resolve(values.project ?? process.cwd()), session: values.session ?? randomUUID() }
   if (command === 'wrap') {

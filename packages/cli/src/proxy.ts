@@ -46,7 +46,7 @@ export async function startProxy(options: ProxyOptions) {
       return
     }
     const route = url.pathname.replace(/\/$/, '')
-    const providerRoute = route === '/v1/responses' || route === '/v1/chat/completions'
+    const providerRoute = route === '/v1/responses' || route === '/v1/chat/completions' || route === '/v1/messages'
     const localRoute = ['/compress', '/classify', '/memory/remember', '/memory/recall', '/memory/update', '/memory/forget', '/memory/purge'].includes(route)
     if (req.method !== 'POST' || (!providerRoute && !localRoute)) { json(res, 404, { error: 'Unsupported route' }); return }
     const controller = new AbortController()

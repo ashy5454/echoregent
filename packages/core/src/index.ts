@@ -50,6 +50,7 @@ export interface EngineOptions {
   injectMemory?: boolean
   adaptiveCompression?: boolean
   projectWideMemory?: boolean
+  autoLearnMemory?: boolean
 }
 export interface ProcessResult<T> { request: T; policy: PolicyDecision; changed: boolean; reason: string; charactersRemoved: number }
 
@@ -67,6 +68,7 @@ export class EchoRegent {
   private readonly injectMemory: boolean
   private readonly adaptiveCompression: boolean
   private readonly projectWideMemory: boolean
+  private readonly autoLearnMemory: boolean
   // Hashes only: no original/condensed content is retained between requests.
   private readonly priorTransforms = new Map<string, { outputHash: string; expiresAt: number }>()
   private readonly learners = new Map<string, ScopeLearnerContext>()
@@ -79,6 +81,7 @@ export class EchoRegent {
     this.injectMemory = options.injectMemory ?? false
     this.adaptiveCompression = options.adaptiveCompression ?? false
     this.projectWideMemory = options.projectWideMemory ?? false
+    this.autoLearnMemory = options.autoLearnMemory ?? false
   }
 
   private resolveScope(scope?: MemoryScope): MemoryScope | undefined {
@@ -147,28 +150,68 @@ export class EchoRegent {
           return !(typeof item.content === 'string' && item.content.startsWith('[EchoRegent LLM-Wiki Memory Context]'))
         })
       : rawItems
-    const priorMemoryStripped = items.length !== rawItems.length
+    let priorMemoryStripped = items.length !== rawItems.length
 
-    const userItem = [...items].reverse().find((item) => item?.role === 'user')
+    // Detect Anthropic Messages API shape (top-level `system` or `tool_result` / `tool_use` content blocks)
+    const isAnthropicShape =
+      protocol === 'chat-completions' &&
+      ('system' in request ||
+        items.some(
+          (m) =>
+            Array.isArray(m?.content) &&
+            m.content.some((p: any) => p && ['tool_result', 'tool_use'].includes(p.type)),
+        ))
+
+    let cleanedTopSystem: unknown = request.system
+    if (this.injectMemory && isAnthropicShape && typeof request.system === 'string') {
+      if (request.system.startsWith('[EchoRegent LLM-Wiki Memory Context]')) {
+        const splitIdx = request.system.indexOf('\n\n')
+        cleanedTopSystem = splitIdx >= 0 ? request.system.slice(splitIdx + 2) : undefined
+        priorMemoryStripped = true
+      }
+    }
+
+    const userItem = [...items].reverse().find((item) => {
+      if (item?.role !== 'user') return false
+      if (typeof item.content === 'string') return true
+      if (Array.isArray(item.content)) {
+        return item.content.some((part: any) => part && ['input_text', 'text'].includes(part.type) && typeof part.text === 'string')
+      }
+      return false
+    })
     let userQuery = ''
     if (userItem) {
       if (typeof userItem.content === 'string') {
         userQuery = userItem.content
       } else if (Array.isArray(userItem.content)) {
         userQuery = userItem.content
-          .filter((part: any) => part && typeof part.text === 'string')
+          .filter((part: any) => part && ['input_text', 'text'].includes(part.type) && typeof part.text === 'string')
           .map((part: any) => part.text)
           .join('\n')
       }
+    }
+
+    // Autonomous zero-LLM-call fact learning from incoming user turns
+    if (this.autoLearnMemory && effectiveScope && !policy.protected && userQuery) {
+      this.wikiMemory.autoIngestTurnSync(effectiveScope, userQuery)
     }
 
     const currentToolCalls: ToolCallItem[] = []
     for (const item of items) {
       if (protocol === 'responses' && ['function_call', 'custom_tool_call'].includes(item?.type)) {
         currentToolCalls.push({ name: item.name, args: item.arguments ?? item.input })
-      } else if (protocol === 'chat-completions' && item?.role === 'assistant' && Array.isArray(item.tool_calls)) {
-        for (const tc of item.tool_calls) {
-          currentToolCalls.push({ name: tc?.function?.name ?? tc?.name, args: tc?.function?.arguments ?? tc?.args })
+      } else if (protocol === 'chat-completions' && item?.role === 'assistant') {
+        if (Array.isArray(item.tool_calls)) {
+          for (const tc of item.tool_calls) {
+            currentToolCalls.push({ name: tc?.function?.name ?? tc?.name, args: tc?.function?.arguments ?? tc?.args })
+          }
+        }
+        if (Array.isArray(item.content)) {
+          for (const part of item.content) {
+            if (part?.type === 'tool_use') {
+              currentToolCalls.push({ name: part.name, args: part.input })
+            }
+          }
         }
       }
     }
@@ -187,14 +230,22 @@ export class EchoRegent {
 
     let memoryInjected = false
     let injectedItem: any = null
+    let injectedTopSystem: string | undefined
 
     if (this.injectMemory && effectiveScope && !policy.protected) {
       const contextBlock = this.compileContextBlock(effectiveScope, userQuery)
       if (contextBlock) {
         memoryInjected = true
-        injectedItem = protocol === 'responses'
-          ? { role: 'developer', content: contextBlock }
-          : { role: 'system', content: contextBlock }
+        if (isAnthropicShape) {
+          injectedTopSystem =
+            typeof cleanedTopSystem === 'string' && cleanedTopSystem.trim()
+              ? `${contextBlock}\n\n${cleanedTopSystem}`
+              : contextBlock
+        } else {
+          injectedItem = protocol === 'responses'
+            ? { role: 'developer', content: contextBlock }
+            : { role: 'system', content: contextBlock }
+        }
       }
     }
 
@@ -206,7 +257,17 @@ export class EchoRegent {
       const hash = (text: string) => createHash('sha256').update(text).digest('hex')
       const scopeId = effectiveScope ? scopeKey(effectiveScope) : 'unscoped'
       let next = items.map((item, index) => {
-        const contentField = protocol === 'responses' && ['function_call_output', 'custom_tool_call_output'].includes(item?.type) ? 'output' : protocol === 'chat-completions' && item?.role === 'tool' ? 'content' : null
+        const isAnthropicToolResult =
+          protocol === 'chat-completions' &&
+          item?.role === 'user' &&
+          Array.isArray(item?.content) &&
+          item.content.some((p: any) => p?.type === 'tool_result')
+        const contentField =
+          protocol === 'responses' && ['function_call_output', 'custom_tool_call_output'].includes(item?.type)
+            ? 'output'
+            : protocol === 'chat-completions' && (item?.role === 'tool' || isAnthropicToolResult)
+              ? 'content'
+              : null
         if (!contentField) return item
         const transform = (text: string, partIndex: number) => {
           const key = hash(JSON.stringify([scopeId, protocol, item.call_id ?? item.tool_call_id ?? item.id ?? index, partIndex, text]))
@@ -246,9 +307,26 @@ export class EchoRegent {
         let updated: unknown = content
         if (typeof content === 'string') updated = transform(content, 0)
         else if (Array.isArray(content)) updated = content.map((part, partIndex) => {
-          if (!part || !['input_text', 'text'].includes(part.type) || typeof part.text !== 'string') return part
-          const text = transform(part.text, partIndex)
-          return text === part.text ? part : { ...part, text }
+          if (!part) return part
+          if (['input_text', 'text'].includes(part.type) && typeof part.text === 'string') {
+            const text = transform(part.text, partIndex)
+            return text === part.text ? part : { ...part, text }
+          }
+          if (part.type === 'tool_result') {
+            if (typeof part.content === 'string') {
+              const text = transform(part.content, partIndex)
+              return text === part.content ? part : { ...part, content: text }
+            }
+            if (Array.isArray(part.content)) {
+              const subUpdated = part.content.map((sub: any, subIdx: number) => {
+                if (!sub || sub.type !== 'text' || typeof sub.text !== 'string') return sub
+                const text = transform(sub.text, partIndex * 100 + subIdx)
+                return text === sub.text ? sub : { ...sub, text }
+              })
+              return subUpdated.every((s: any, idx: number) => s === part.content[idx]) ? part : { ...part, content: subUpdated }
+            }
+          }
+          return part
         })
         if (typeof content === 'string' ? updated === content : Array.isArray(content) && (updated as unknown[]).every((part, partIndex) => part === content[partIndex])) return item
         return { ...item, [contentField]: updated }
@@ -275,7 +353,15 @@ export class EchoRegent {
         next = [injectedItem, ...next]
       }
       if (!charactersRemoved && !memoryInjected && !priorMemoryStripped) return original(eligible || this.compactHistory ? 'unchanged' : 'no-eligible-tool-result')
-      const updatedRequest = { ...request, [field]: next }
+      const updatedRequest = {
+        ...request,
+        [field]: next,
+        ...(injectedTopSystem !== undefined
+          ? { system: injectedTopSystem }
+          : priorMemoryStripped && isAnthropicShape && cleanedTopSystem !== undefined
+            ? { system: cleanedTopSystem }
+            : {}),
+      }
       if (!memoryInjected && !priorMemoryStripped && payloadTokens(updatedRequest) >= payloadTokens(request)) return original('no-token-savings')
       for (const [key, value] of pendingTransforms) this.priorTransforms.set(key, value)
       while (this.priorTransforms.size > 2048) this.priorTransforms.delete(this.priorTransforms.keys().next().value!)

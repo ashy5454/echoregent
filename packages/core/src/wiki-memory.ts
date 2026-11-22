@@ -148,6 +148,77 @@ export class WikiMemory {
     return formatContextBlock(ranked)
   }
 
+  /**
+   * Autonomous zero-LLM-call continual fact extraction from incoming user turns.
+   * Extracts durable architectural decisions, stack preferences, ports, migrations,
+   * and explicit "remember that..." statements, and automatically supersedes
+   * older conflicting facts on the same subject.
+   */
+  autoIngestTurnSync(scope: MemoryScope, userText: string, sourceTag = 'auto:conversation'): MemoryFact[] {
+    if (this.memory.settings.mode === 'off' || !userText || !userText.trim()) return []
+    if (this.memory.isProtected(scope) || !evaluatePolicy(userText).memory) return []
+
+    const DURABLE_FACT_PATTERN = /\b(?:remember that|note that|we use|we are using|our (?:primary |main )?(?:database|db|cache|caching|auth|authentication|stack|backend|frontend|api|port|server|deployment|provider|framework|runtime|queue|broker|storage)|primary (?:database|db|cache|auth|storage)|cache layer|authentication uses|deployment target|migrated (?:to|from)|switched (?:to|from)|upgraded to|replaced .* with|always use|never use|configured (?:with|on|to))\b/i
+    const UPDATE_SIGNAL_PATTERN = /\b(?:migrated|switched|moved|upgraded|changed|replaced|instead of|no longer)\b/i
+    const QUESTION_START_PATTERN = /^(?:what|how|why|where|when|who|which|can you|could you|would you|do we|does our|is our|are we|show me|tell me|write|explain|list)\b/i
+
+    const sentences = userText
+      .split(/(?:(?:\.(?!\d)|[!\n])+|\s+;\s+)/)
+      .map((s) => s.trim())
+      .filter((s) => s.length >= 16 && s.length <= 280)
+
+    const learned: MemoryFact[] = []
+
+    for (const rawSentence of sentences) {
+      if (rawSentence.endsWith('?') || QUESTION_START_PATTERN.test(rawSentence)) continue
+      if (!DURABLE_FACT_PATTERN.test(rawSentence)) continue
+      const clean = rawSentence.replace(/^(?:please\s+)?(?:remember|note)\s+that\s+/i, '').trim()
+      if (clean.length < 12 || !evaluatePolicy(clean).memory) continue
+
+      const activeFacts = this.memory.getActiveFactsSync(scope)
+      if (activeFacts.some((f) => f.content.toLowerCase() === clean.toLowerCase())) continue
+
+      // Check if this statement updates/supersedes an existing active fact on the same subject
+      let relation: 'updates' | 'extends' | undefined
+      let supersedesId: string | undefined
+
+      const subjectBuckets = [
+        /\b(?:database|db|mysql|postgres|postgresql|sqlite|mongodb|pgbouncer)\b/i,
+        /\b(?:cache|caching|redis|memcached)\b/i,
+        /\b(?:auth|authentication|jwt|cookie|cookies|oauth|session)\b/i,
+        /\b(?:deploy|deployment|aws|gcp|ECS|kubernetes|k8s|railway|docker)\b/i,
+        /\b(?:payment|stripe|billing|checkout)\b/i,
+      ]
+
+      const matchingBucket = subjectBuckets.find((rx) => rx.test(clean))
+      if (matchingBucket) {
+        const priorInBucket = [...activeFacts].reverse().find((f) => matchingBucket.test(f.content))
+        if (priorInBucket) {
+          if (UPDATE_SIGNAL_PATTERN.test(clean)) {
+            relation = 'updates'
+            supersedesId = priorInBucket.id
+          } else {
+            relation = 'extends'
+            supersedesId = priorInBucket.id
+          }
+        }
+      }
+
+      try {
+        const saved = this.memory.rememberSync(scope, {
+          content: clean,
+          sources: [sourceTag],
+          ...(relation ? { relation, supersedesId } : {}),
+        })
+        learned.push(saved)
+      } catch {
+        // Ignore if protected or busy
+      }
+    }
+
+    return learned
+  }
+
   static syncWiki(
     directory: string,
     scopeKey: string,

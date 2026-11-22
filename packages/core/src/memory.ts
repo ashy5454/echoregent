@@ -159,6 +159,59 @@ export class ScopedMemory {
     return new WikiMemory(this).compileContextBlock(scope, queryText, maxFacts)
   }
 
+  rememberSync(scope: MemoryScope, input: FactInput): MemoryFact {
+    this.validateFact(input)
+    if (this.settings.mode === 'off') throw new Error('Memory disabled; enable it explicitly')
+    if (this.isProtected(scope)) throw new Error('Protected session cannot write memory')
+    const key = scopeKey(scope)
+    const now = this.now()
+    const retentionMs = this.settings.retentionMs
+    const facts = this.getAllFactsSync(scope)
+
+    // Deduplicate if identical active fact already exists
+    const existingIdentical = facts.find(
+      (item) => !item.supersededBy && item.content.toLowerCase() === input.content.trim().toLowerCase(),
+    )
+    if (existingIdentical) return existingIdentical
+
+    const newFact: MemoryFact = {
+      ...structuredClone(input),
+      content: input.content.trim(),
+      id: randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+      expiresAt: now + retentionMs,
+    }
+    if (input.relation === 'updates' && input.supersedesId) {
+      const oldFact = facts.find((item) => item.id === input.supersedesId)
+      if (oldFact) {
+        oldFact.supersededBy = newFact.id
+        oldFact.updatedAt = now
+      }
+    }
+    facts.push(newFact)
+
+    if (this.settings.mode === 'ephemeral') {
+      this.volatile.set(key, facts)
+    } else if (this.settings.mode === 'file') {
+      mkdirSync(this.settings.directory, { recursive: true, mode: 0o700 })
+      const path = join(this.settings.directory, `${key}.json`)
+      const temporary = `${path}.${randomUUID()}.tmp`
+      try {
+        writeFileSync(temporary, JSON.stringify(facts, null, 2), { mode: 0o600, flag: 'wx' })
+        renameSync(temporary, path)
+      } finally {
+        rmSync(temporary, { force: true })
+      }
+      WikiMemory.syncWiki(this.settings.directory, key, facts, {
+        type: 'remember',
+        fact: newFact,
+        now,
+      })
+    }
+    return structuredClone(newFact)
+  }
+
   async remember(scope: MemoryScope, input: FactInput): Promise<MemoryFact> {
     this.validateFact(input)
     const fact = await this.transact(scope, (facts) => {
