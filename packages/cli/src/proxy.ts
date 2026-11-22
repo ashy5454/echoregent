@@ -74,7 +74,10 @@ export async function startProxy(options: ProxyOptions) {
         json(res, 200, result)
         return
       }
-      const result = engine.process(body, route === '/v1/responses' ? 'responses' : 'chat-completions', options.scope)
+      const headerProject = typeof req.headers['x-echoregent-project'] === 'string' ? req.headers['x-echoregent-project'].trim() : ''
+      const headerSession = typeof req.headers['x-echoregent-session'] === 'string' ? req.headers['x-echoregent-session'].trim() : ''
+      const dynamicScope = headerProject && headerSession ? { project: headerProject, session: headerSession } : undefined
+      const result = engine.process(body, route === '/v1/responses' ? 'responses' : 'chat-completions', options.scope ?? dynamicScope)
       stats.requests++
       if (result.changed) stats.compressed++
       if (result.policy.protected) stats.protected++

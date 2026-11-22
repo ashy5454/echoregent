@@ -336,5 +336,47 @@ describe('End-to-End Multi-Turn Adaptive Compression Learning Loop Suite', () =>
         await rm(directory, { recursive: true, force: true })
       }
     })
+
+    it('compacts timestamped/numeric unprotected log blocks via template factoring alongside verbatim protected error lines', () => {
+      const engine = new EchoRegent({ adaptiveCompression: true })
+      const scope: MemoryScope = { project: '/sys/template-mix', session: 's1' }
+      const learner = engine.getAdaptiveLearner(scope)
+
+      const fatalLine = '[ERROR] Ledger deadlock on tx=991'
+      const fatalSig = extractSignature(fatalLine)
+      learner.updateUtility(fatalSig, 0.0)
+      learner.updateUtility(fatalSig, 0.0)
+      expect(learner.isProtected(fatalSig)).toBe(true)
+
+      // 60 unprotected timestamped lines with changing numbers + 5 protected fatal lines
+      const varyingInfoLines = Array.from(
+        { length: 60 },
+        (_, i) => `[INFO] timestamp=${1700000000 + i} worker=${i % 4} latency=${10 + i}ms status=200`,
+      )
+      const mixedOutput = [
+        ...varyingInfoLines,
+        ...Array(5).fill(fatalLine),
+      ].join('\n')
+
+      const res = engine.process(
+        {
+          model: 'gpt-4o',
+          input: [
+            { role: 'user', content: 'Check worker latency and deadlocks' },
+            { type: 'function_call_output', call_id: 'c_mix', output: mixedOutput },
+          ],
+        },
+        'responses',
+        scope,
+      )
+
+      expect(res.changed).toBe(true)
+      const out = res.request.input[1].output
+      // Unprotected varying timestamped lines are template-factored:
+      expect(out).toContain('[EchoRegent lossless logs v1')
+      // Protected fatal lines survive 100% verbatim (all 5 occurrences):
+      const fatalMatches = out.split('\n').filter((l: string) => l === fatalLine)
+      expect(fatalMatches).toHaveLength(5)
+    })
   })
 })

@@ -49,6 +49,7 @@ export interface EngineOptions {
   compactHistory?: boolean
   injectMemory?: boolean
   adaptiveCompression?: boolean
+  projectWideMemory?: boolean
 }
 export interface ProcessResult<T> { request: T; policy: PolicyDecision; changed: boolean; reason: string; charactersRemoved: number }
 
@@ -65,6 +66,7 @@ export class EchoRegent {
   private readonly compactHistory: boolean
   private readonly injectMemory: boolean
   private readonly adaptiveCompression: boolean
+  private readonly projectWideMemory: boolean
   // Hashes only: no original/condensed content is retained between requests.
   private readonly priorTransforms = new Map<string, { outputHash: string; expiresAt: number }>()
   private readonly learners = new Map<string, ScopeLearnerContext>()
@@ -76,6 +78,13 @@ export class EchoRegent {
     this.compactHistory = options.compactHistory ?? false
     this.injectMemory = options.injectMemory ?? false
     this.adaptiveCompression = options.adaptiveCompression ?? false
+    this.projectWideMemory = options.projectWideMemory ?? false
+  }
+
+  private resolveScope(scope?: MemoryScope): MemoryScope | undefined {
+    if (!scope) return undefined
+    scopeKey(scope)
+    return this.projectWideMemory ? { project: scope.project, session: '__project__' } : scope
   }
 
   private getLearnerContext(scope?: MemoryScope): ScopeLearnerContext {
@@ -114,21 +123,31 @@ export class EchoRegent {
   }
 
   getAdaptiveLearner(scope?: MemoryScope): AdaptiveCompressionLearner {
-    return this.getLearnerContext(scope).learner
+    return this.getLearnerContext(this.resolveScope(scope)).learner
   }
 
   compileContextBlock(scope: MemoryScope, queryText: string, maxFacts = 5): string {
-    return this.wikiMemory.compileContextBlock(scope, queryText, maxFacts)
+    return this.wikiMemory.compileContextBlock(this.resolveScope(scope)!, queryText, maxFacts)
   }
 
   process<T extends Record<string, any>>(request: T, protocol: Protocol, scope?: MemoryScope): ProcessResult<T> {
-    const policy = this.classify(JSON.stringify(request), scope)
+    const effectiveScope = this.resolveScope(scope)
+    const policy = this.classify(JSON.stringify(request), effectiveScope)
     const original = (reason: string): ProcessResult<T> => ({ request, policy, changed: false, reason, charactersRemoved: 0 })
     if (policy.protected) return original('protected-context')
-    if (request.previous_response_id && !scope) return original('unavailable-server-side-context')
+    if (request.previous_response_id && !effectiveScope) return original('unavailable-server-side-context')
     const field = protocol === 'responses' ? 'input' : 'messages'
-    const items = request[field]
-    if (!Array.isArray(items) || !items.length) return original('no-eligible-tool-result')
+    const rawItems = request[field]
+    if (!Array.isArray(rawItems) || !rawItems.length) return original('no-eligible-tool-result')
+
+    // Deduplicate prior turn's injected [EchoRegent LLM-Wiki Memory Context] block when client resends history
+    const items = this.injectMemory
+      ? rawItems.filter((item) => {
+          if (!item || !['system', 'developer'].includes(item.role)) return true
+          return !(typeof item.content === 'string' && item.content.startsWith('[EchoRegent LLM-Wiki Memory Context]'))
+        })
+      : rawItems
+    const priorMemoryStripped = items.length !== rawItems.length
 
     const userItem = [...items].reverse().find((item) => item?.role === 'user')
     let userQuery = ''
@@ -154,7 +173,7 @@ export class EchoRegent {
       }
     }
 
-    const learnerCtx = this.adaptiveCompression ? this.getLearnerContext(scope) : null
+    const learnerCtx = this.adaptiveCompression ? this.getLearnerContext(effectiveScope) : null
     if (learnerCtx && learnerCtx.pendingSignatures.length > 0) {
       learnerCtx.learner.observeTurn({
         signatures: learnerCtx.pendingSignatures,
@@ -163,14 +182,14 @@ export class EchoRegent {
         previousToolCalls: learnerCtx.lastToolCalls,
       })
       learnerCtx.pendingSignatures = []
-      this.saveLearnerContext(scope, learnerCtx)
+      this.saveLearnerContext(effectiveScope, learnerCtx)
     }
 
     let memoryInjected = false
     let injectedItem: any = null
 
-    if (this.injectMemory && scope && !policy.protected) {
-      const contextBlock = this.compileContextBlock(scope, userQuery)
+    if (this.injectMemory && effectiveScope && !policy.protected) {
+      const contextBlock = this.compileContextBlock(effectiveScope, userQuery)
       if (contextBlock) {
         memoryInjected = true
         injectedItem = protocol === 'responses'
@@ -185,7 +204,7 @@ export class EchoRegent {
       const pendingTransforms: Array<[string, { outputHash: string; expiresAt: number }]> = []
       const turnCompressedSignatures = new Set<string>()
       const hash = (text: string) => createHash('sha256').update(text).digest('hex')
-      const scopeId = scope ? scopeKey(scope) : 'unscoped'
+      const scopeId = effectiveScope ? scopeKey(effectiveScope) : 'unscoped'
       let next = items.map((item, index) => {
         const contentField = protocol === 'responses' && ['function_call_output', 'custom_tool_call_output'].includes(item?.type) ? 'output' : protocol === 'chat-completions' && item?.role === 'tool' ? 'content' : null
         if (!contentField) return item
@@ -239,7 +258,7 @@ export class EchoRegent {
           learnerCtx.pendingSignatures = Array.from(turnCompressedSignatures)
         }
         learnerCtx.lastToolCalls = currentToolCalls
-        this.saveLearnerContext(scope, learnerCtx)
+        this.saveLearnerContext(effectiveScope, learnerCtx)
       }
       const logCharactersRemoved = charactersRemoved
       if (this.compactHistory) {
@@ -255,9 +274,9 @@ export class EchoRegent {
       if (memoryInjected && injectedItem) {
         next = [injectedItem, ...next]
       }
-      if (!charactersRemoved && !memoryInjected) return original(eligible || this.compactHistory ? 'unchanged' : 'no-eligible-tool-result')
+      if (!charactersRemoved && !memoryInjected && !priorMemoryStripped) return original(eligible || this.compactHistory ? 'unchanged' : 'no-eligible-tool-result')
       const updatedRequest = { ...request, [field]: next }
-      if (!memoryInjected && payloadTokens(updatedRequest) >= payloadTokens(request)) return original('no-token-savings')
+      if (!memoryInjected && !priorMemoryStripped && payloadTokens(updatedRequest) >= payloadTokens(request)) return original('no-token-savings')
       for (const [key, value] of pendingTransforms) this.priorTransforms.set(key, value)
       while (this.priorTransforms.size > 2048) this.priorTransforms.delete(this.priorTransforms.keys().next().value!)
       
@@ -307,17 +326,20 @@ export class EchoRegent {
   }
 
   async remember(scope: MemoryScope, fact: FactInput, context = '') {
-    if (!this.memoryAllowed(scope, context)) throw new Error('Protected session cannot write memory')
-    return this.memory.remember(scope, fact)
+    const s = this.resolveScope(scope)!
+    if (!this.memoryAllowed(s, context)) throw new Error('Protected session cannot write memory')
+    return this.memory.remember(s, fact)
   }
   async recall(scope: MemoryScope, query: string, context = '') {
-    if (!this.memoryAllowed(scope, context)) return []
-    return this.memory.recall(scope, query)
+    const s = this.resolveScope(scope)!
+    if (!this.memoryAllowed(s, context)) return []
+    return this.memory.recall(s, query)
   }
   async update(scope: MemoryScope, id: string, fact: FactInput, context = '') {
-    if (!this.memoryAllowed(scope, context)) throw new Error('Protected session cannot write memory')
-    return this.memory.update(scope, id, fact)
+    const s = this.resolveScope(scope)!
+    if (!this.memoryAllowed(s, context)) throw new Error('Protected session cannot write memory')
+    return this.memory.update(s, id, fact)
   }
-  forget(scope: MemoryScope, id: string) { return this.memory.forget(scope, id) }
-  purge(scope: MemoryScope) { return this.memory.purge(scope) }
+  forget(scope: MemoryScope, id: string) { return this.memory.forget(this.resolveScope(scope)!, id) }
+  purge(scope: MemoryScope) { return this.memory.purge(this.resolveScope(scope)!) }
 }

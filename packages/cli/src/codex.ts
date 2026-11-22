@@ -74,10 +74,21 @@ export function buildCodexArgs(baseUrl: string, tokenEnv: string, args: string[]
   return [...overrides.flatMap((override) => ['-c', override]), ...args]
 }
 
-export async function wrapCodex(args: string[], options: { upstream: string; key?: string; command?: string; compactHistory?: boolean }) {
+export async function wrapCodex(
+  args: string[],
+  options: {
+    upstream: string
+    key?: string
+    command?: string
+    compactHistory?: boolean
+    engine?: EchoRegent
+    scope?: { project: string; session: string }
+  },
+) {
   if (!options.key) throw new Error('Set OPENAI_API_KEY or ECHOREGENT_PROVIDER_KEY for your Responses provider. ChatGPT subscription login is not supported by this launcher.')
-  const scope = { project: resolve(process.cwd()), session: randomUUID() }
-  const proxy = await startProxy({ upstream: options.upstream, engine: new EchoRegent({ compactHistory: options.compactHistory }), scope })
+  const scope = options.scope ?? { project: resolve(process.cwd()), session: randomUUID() }
+  const engine = options.engine ?? new EchoRegent({ compactHistory: options.compactHistory })
+  const proxy = await startProxy({ upstream: options.upstream, engine, scope })
   try {
     const health = await fetch(proxy.baseUrl.replace(/\/v1$/, '/health'))
     if (!health.ok || (await health.json()).product !== 'echoregent') throw new Error('Local routing verification failed')

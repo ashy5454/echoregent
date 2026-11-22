@@ -610,4 +610,83 @@ describe('End-to-End Multi-Session Continual Memory Evolution & Context-Wipe Tes
       await rm(directory, { recursive: true, force: true })
     }
   })
+
+  it('Test 4: True Cross-Session Project-Wide Memory (session-monday -> session-tuesday -> session-wednesday) & Non-Stacking Multi-Turn Injection', async () => {
+    const directory = await mkdtemp(join(tmpdir(), 'echoregent-projwide-'))
+    try {
+      const mondayScope: MemoryScope = { project: '/workspace/checkout-api', session: 'session-monday-101' }
+      const tuesdayScope: MemoryScope = { project: '/workspace/checkout-api', session: 'session-tuesday-202' }
+      const wednesdayScope: MemoryScope = { project: '/workspace/checkout-api', session: 'session-wednesday-303' }
+
+      // Monday Session: store initial fact under session-monday-101 with projectWideMemory: true
+      const mondayEngine = new EchoRegent({
+        memory: { mode: 'file', directory, retentionMs: 86_400_000 },
+        injectMemory: true,
+        projectWideMemory: true,
+      })
+      const f1 = await mondayEngine.remember(mondayScope, {
+        content: 'Checkout service uses Stripe PaymentIntents API v2026-08',
+        sources: ['src/billing/stripe.ts:12'],
+      })
+
+      // Tuesday Session (completely different session ID in the same project!): supersede f1
+      const tuesdayEngine = new EchoRegent({
+        memory: { mode: 'file', directory, retentionMs: 86_400_000 },
+        injectMemory: true,
+        projectWideMemory: true,
+      })
+      const recalledOnTuesday = await tuesdayEngine.recall(tuesdayScope, 'Stripe')
+      expect(recalledOnTuesday).toHaveLength(1)
+      expect(recalledOnTuesday[0].id).toBe(f1.id)
+
+      await tuesdayEngine.remember(tuesdayScope, {
+        content: 'Checkout service migrated to Stripe PaymentIntents API v2026-11 with idempotency keys',
+        sources: ['src/billing/stripe.ts:44'],
+        relation: 'updates',
+        supersedesId: f1.id,
+      })
+
+      // Wednesday Session (3rd distinct session ID): verify multi-turn resending never stacks duplicate memory blocks
+      const wednesdayEngine = new EchoRegent({
+        memory: { mode: 'file', directory, retentionMs: 86_400_000 },
+        injectMemory: true,
+        projectWideMemory: true,
+      })
+
+      const turn1 = wednesdayEngine.process(
+        {
+          model: 'gpt-4o',
+          messages: [{ role: 'user', content: 'How does the Checkout service call Stripe?' }],
+        },
+        'chat-completions',
+        wednesdayScope,
+      )
+      expect(turn1.changed).toBe(true)
+      expect(turn1.request.messages).toHaveLength(2)
+      expect(turn1.request.messages[0].content).toContain('v2026-11 with idempotency keys')
+      expect(turn1.request.messages[0].content).not.toContain('v2026-08')
+
+      // Client resends Turn 1's messages (including the injected system block!) plus assistant reply and Turn 2 user message
+      const turn2 = wednesdayEngine.process(
+        {
+          model: 'gpt-4o',
+          messages: [
+            ...turn1.request.messages,
+            { role: 'assistant', content: 'It uses PaymentIntents v2026-11.' },
+            { role: 'user', content: 'Show me the Stripe idempotency header format for Checkout' },
+          ],
+        },
+        'chat-completions',
+        wednesdayScope,
+      )
+      const wikiBlocks = turn2.request.messages.filter(
+        (m: any) => typeof m.content === 'string' && m.content.startsWith('[EchoRegent LLM-Wiki Memory Context]'),
+      )
+      // Must be exactly 1 injected memory block, NEVER stacked to 2!
+      expect(wikiBlocks).toHaveLength(1)
+      expect(turn2.request.messages).toHaveLength(4)
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
 })

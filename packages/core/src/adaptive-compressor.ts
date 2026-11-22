@@ -6,6 +6,9 @@
  * patterns to protected status without backpropagation or extra LLM calls.
  */
 
+import { compressLogs } from './compression.js'
+import { smallerText } from './token-count.js'
+
 export interface AdaptiveCompressorOptions {
   /** Learning rate η for utility update (default: 0.35) */
   learningRate?: number
@@ -300,16 +303,45 @@ export class AdaptiveCompressionLearner {
       }
 
       const runLength = end - index
-      output.push(line)
       if (runLength >= minRepeats) {
+        output.push(line)
         output.push(`[EchoRegent: previous line repeated ${runLength - 1} additional times]`)
         compressedSigs.add(sig)
-      } else {
-        for (let r = index + 1; r < end; r++) {
-          output.push(lines[r])
+        index = end
+        continue
+      }
+
+      // Check contiguous unprotected block with varying numbers/timestamps (e.g. [INFO] ts=1, [INFO] ts=2)
+      let blockEnd = index
+      while (blockEnd < lines.length && this.shouldCompressSignature(extractSignature(lines[blockEnd]))) {
+        blockEnd++
+      }
+      if (blockEnd - index >= minRepeats) {
+        const blockLines = lines.slice(index, blockEnd)
+        // Check if any exact consecutive run >= minRepeats exists inside this block
+        let hasExactRun = false
+        for (let i = 0; i < blockLines.length; ) {
+          let j = i + 1
+          while (j < blockLines.length && blockLines[j] === blockLines[i]) j++
+          if (j - i >= minRepeats) { hasExactRun = true; break }
+          i = j
+        }
+        if (!hasExactRun) {
+          const blockText = blockLines.join(newline)
+          const templated = compressLogs(blockText)
+          if (templated !== blockText && smallerText(blockText, templated)) {
+            output.push(templated)
+            for (const bl of blockLines) compressedSigs.add(extractSignature(bl))
+            index = blockEnd
+            continue
+          }
         }
       }
 
+      output.push(line)
+      for (let r = index + 1; r < end; r++) {
+        output.push(lines[r])
+      }
       index = end
     }
 
