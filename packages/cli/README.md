@@ -1,7 +1,7 @@
 # @echoregent/cli
 
-> **Local HTTP proxy, transparent coding-agent launcher, diagnostics suite, and Model Context Protocol (MCP) server for EchoRegent.**  
-> Cuts prompt tokens by 30% to 60% with zero-overhead deterministic template factoring, transparent SSE streaming, and local source-cited memory.
+> **EchoRegent — The Token Management Layer & Continual LLM-Wiki Memory Engine for AI Agents.**  
+> Local HTTP proxy, transparent coding-agent launcher, diagnostics suite, and Model Context Protocol (MCP) server. Cuts prompt tokens by 30% to 60% with zero-overhead deterministic template factoring, transparent SSE streaming, and local source-cited memory.
 
 [![npm version](https://img.shields.io/npm/v/@echoregent/cli?color=cb3837)](https://www.npmjs.com/package/@echoregent/cli)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ashy5454/echoregent/blob/main/LICENSE)
@@ -40,8 +40,8 @@ npx @echoregent/cli@next wrap codex
 
 | Command | Syntax | Description |
 |---|---|---|
-| **`wrap codex`** | `echoregent wrap codex [options] [-- <args>]` | Spawns an ephemeral loopback proxy, configures Codex via per-launch `-c` flags, and reports exit routing telemetry. |
-| **`proxy`** | `echoregent proxy [options]` | Runs a standalone loopback HTTP proxy (`/v1/responses`, `/v1/chat/completions`) and REST context API on `127.0.0.1`. |
+| **`wrap codex`** | `echoregent wrap codex [--upstream URL] [--compact-history] [--inject-memory] [--adaptive-compression] [--auto-memory] [--project-memory] [-- <codex args>]` | Spawns an ephemeral loopback proxy, configures Codex via per-launch `-c` flags, and reports exit routing telemetry. |
+| **`proxy`** | `echoregent proxy [--port 8787] [--upstream URL] [--compact-history] [--inject-memory] [--adaptive-compression] [--auto-memory] [--project-memory] [--local-token SECRET]` | Runs a standalone loopback HTTP proxy (`/v1/responses`, `/v1/chat/completions`, `/v1/messages`) and REST context API on `127.0.0.1`. |
 | **`mcp`** | `echoregent mcp [options]` | Runs a Model Context Protocol (MCP) stdio server exposing 7 compression and memory tools to agent IDEs. |
 | **`doctor`** | `echoregent doctor [--url <url>] [--probe --model <name>]` | Verifies local proxy health, deterministic mode, and optionally executes a live billable upstream routing probe. |
 | **`models`** | `echoregent models` | Confirms engine rule status and verifies zero local model weights are required or installed. |
@@ -63,6 +63,9 @@ echoregent wrap codex --compact-history -- exec "Run the test suite and fix fail
 
 # Point to an alternate Responses-compatible upstream provider
 echoregent wrap codex --upstream "https://api.openai.com/v1" --compact-history --inject-memory
+
+# Launch fully autonomous mode (compaction + memory injection + plasticity + auto-learning + project memory)
+echoregent wrap codex --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory
 ```
 
 ### CLI Flags
@@ -72,6 +75,9 @@ echoregent wrap codex --upstream "https://api.openai.com/v1" --compact-history -
 | `--upstream <URL>` | `https://api.openai.com/v1` | Upstream Responses-compatible provider base URL (or env `ECHOREGENT_UPSTREAM`). |
 | `--compact-history` | `false` | Enables lossless template factoring across older conversation turns (preserves latest user turn and >= 8 items). |
 | `--inject-memory` | `false` | Enables automatic source-cited memory retrieval and prompt injection from the active project/session scope. |
+| `--adaptive-compression` | `false` | Enables online synaptic plasticity learning via Local Delta Rule; auto-protects patterns that trigger downstream regret. |
+| `--auto-memory` | `false` | Enables autonomous zero-LLM-call fact learning from incoming user prompts into the scoped LLM-Wiki. |
+| `--project-memory` | `false` | Scopes memory across all sessions in the project root (`session: '__project__'`). |
 | `-- <codex args>` | `[]` | Forward all remaining flags and arguments directly to the Codex CLI child process. |
 
 ### Per-Launch Non-Destructive Configuration
@@ -116,10 +122,13 @@ Run a high-throughput, standalone reverse proxy and local context API server on 
 # Start proxy with default settings on port 8787
 echoregent proxy --port 8787
 
-# Start proxy with history compaction and persistent file memory
+# Start proxy with history compaction, adaptive plasticity, and persistent file memory
 echoregent proxy --port 8787 \
   --compact-history \
   --inject-memory \
+  --adaptive-compression \
+  --auto-memory \
+  --project-memory \
   --memory file \
   --memory-dir ~/.echoregent/memory \
   --retention-days 14 \
@@ -133,9 +142,12 @@ echoregent proxy --port 8787 \
 | Flag | Default | Description |
 |---|---|---|
 | `--port <number>` | `8787` | Port to bind on `127.0.0.1` (integer `0`-`65535`). |
-| `--upstream <URL>` | `https://api.openai.com/v1` | Target provider base URL (or env `ECHOREGENT_UPSTREAM`). |
+| `--upstream <URL>` | `https://api.openai.com/v1` | Target provider base URL (or env `ECHOREGENT_UPSTREAM`). Supports OpenAI and Anthropic (`POST /v1/messages`). |
 | `--compact-history` | `false` | Enables template factoring of older conversation turns. |
 | `--inject-memory` | `false` | Automatically injects relevant memories into proxied prompts. |
+| `--adaptive-compression` | `false` | Enables online synaptic plasticity learning across proxied turns; saves state to disk in file mode. |
+| `--auto-memory` | `false` | Enables autonomous zero-LLM-call fact learning from incoming user prompts into the scoped LLM-Wiki. |
+| `--project-memory` | `false` | Scopes memory across all sessions in the project root (`session: '__project__'`). |
 | `--memory <mode>` | `off` | Memory storage mode: `off`, `ephemeral` (in-memory), or `file` (Markdown wiki). |
 | `--memory-dir <path>` | *(none)* | Storage directory for Markdown memory files (required for `--memory file`). |
 | `--retention-days <days>` | *(none)* | Fact retention window in days (required if memory is enabled). |
@@ -153,6 +165,7 @@ The proxy exposes both upstream provider pass-through routes and local context/m
 |---|---|:---:|
 | `POST /v1/responses` | OpenAI Responses API proxy with transparent tool-output and history compaction | Yes |
 | `POST /v1/chat/completions` | OpenAI Chat Completions API proxy with transparent compaction | Yes |
+| `POST /v1/messages` | Anthropic Messages API proxy (Claude Code, Anthropic SDK) with transparent `tool_result` compaction and top-level `system` memory injection | Yes |
 | `POST /compress` | Explicit lossless text/log compaction via deterministic template factoring | No |
 | `POST /classify` | Deterministic domain classification & fail-closed policy evaluation | No |
 | `POST /memory/remember` | Store a source-cited fact into the active project/session scope | No |
@@ -166,7 +179,7 @@ The proxy exposes both upstream provider pass-through routes and local context/m
 
 ### Injected Response Headers
 
-All proxied provider requests (`/v1/responses` and `/v1/chat/completions`) return transparent upstream responses augmented with real-time audit headers:
+All proxied provider requests (`/v1/responses`, `/v1/chat/completions`, and `/v1/messages`) return transparent upstream responses augmented with real-time audit headers:
 
 | Header Name | Type | Description | Example |
 |---|---|---|---|
@@ -174,6 +187,16 @@ All proxied provider requests (`/v1/responses` and `/v1/chat/completions`) retur
 | `x-echoregent-protected` | `boolean` | Indicates whether policy detected sensitive domains and bypassed compaction. | `false` |
 | `x-echoregent-reason` | `string` | Specific policy rule or transform applied. | `tool-output-compaction` |
 | `x-echoregent-characters-removed` | `integer` | Exact count of characters eliminated from the outbound prompt. | `4120` |
+
+---
+
+### Dynamic Memory Scope Headers (`x-echoregent-project` & `x-echoregent-session`)
+
+When running a shared `echoregent proxy` daemon, individual HTTP client requests to `/v1/responses`, `/v1/chat/completions`, or `/v1/messages` can dynamically supply or override memory scopes via HTTP request headers:
+- `x-echoregent-project: <directory-path>` (e.g. `/workspace/repo-a`)
+- `x-echoregent-session: <session-id>` (e.g. `agent-session-42`)
+
+When both headers are provided, EchoRegent routes memory lookups and ingestion directly to that designated scope instead of server defaults. This allows a single local proxy instance to serve multiple git repositories, editor tabs, and concurrent coding agent sessions with strict namespace isolation.
 
 ---
 
@@ -202,7 +225,7 @@ Standard Chat Completions format with identical compaction and SSE pass-through:
 ```bash
 curl -X POST http://127.0.0.1:8787/v1/chat/completions \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $OPENAI_API_KEY" \
+  -H "Authorization: Bearer ***" \
   -d '{
     "model": "gpt-4o-mini",
     "messages": [
@@ -212,7 +235,36 @@ curl -X POST http://127.0.0.1:8787/v1/chat/completions \
   }'
 ```
 
-#### 3. Explicit Compaction: `POST /compress`
+#### 3. Provider Proxy: `POST /v1/messages` (Claude Code / Anthropic Messages API)
+Intercepts Anthropic Messages payloads, losslessly compacts `tool_result` content blocks, and injects cited memory into the top-level `system` prompt:
+
+```bash
+curl -X POST http://127.0.0.1:8787/v1/messages \
+  -H "Content-Type: application/json" \
+  -H "x-api-key: $ANTHROPIC_API_KEY" \
+  -H "anthropic-version: 2023-06-01" \
+  -H "x-echoregent-project: $(pwd)" \
+  -H "x-echoregent-session: claude-session-1" \
+  -d '{
+    "model": "claude-3-7-sonnet-20250219",
+    "max_tokens": 1024,
+    "system": "You are a coding assistant.",
+    "messages": [
+      {
+        "role": "user",
+        "content": [
+          {
+            "type": "tool_result",
+            "tool_use_id": "toolu_01",
+            "content": "[10:00:01] PASS tests/auth.test.ts (2ms)\n[10:00:02] PASS tests/db.test.ts (3ms)\n[10:00:03] PASS tests/api.test.ts (2ms)"
+          }
+        ]
+      }
+    ]
+  }'
+```
+
+#### 4. Explicit Compaction: `POST /compress`
 Losslessly compacts repetitive logs or tabular outputs using 0 LLM tokens:
 
 ```bash
@@ -233,7 +285,7 @@ curl -X POST http://127.0.0.1:8787/compress \
 }
 ```
 
-#### 4. Safety Policy Check: `POST /classify`
+#### 5. Safety Policy Check: `POST /classify`
 Evaluates deterministic domain routing and fail-closed protection (Medical, Legal, Crisis):
 
 ```bash
@@ -257,7 +309,7 @@ curl -X POST http://127.0.0.1:8787/classify \
 }
 ```
 
-#### 5. Scoped Memory: `POST /memory/remember`
+#### 6. Scoped Memory: `POST /memory/remember`
 Writes an atomic, human-auditable fact with mandatory source citations (0 LLM write cost):
 
 ```bash
@@ -283,7 +335,7 @@ curl -X POST http://127.0.0.1:8787/memory/remember \
 }
 ```
 
-#### 6. Scoped Memory: `POST /memory/recall`
+#### 7. Scoped Memory: `POST /memory/recall`
 Queries facts strictly scoped to the active project and session:
 
 ```bash
@@ -308,7 +360,7 @@ curl -X POST http://127.0.0.1:8787/memory/recall \
 ]
 ```
 
-#### 7. Scoped Memory: `POST /memory/update`
+#### 8. Scoped Memory: `POST /memory/update`
 Updates fact content and citations while preserving original creation timestamp:
 
 ```bash
@@ -323,7 +375,7 @@ curl -X POST http://127.0.0.1:8787/memory/update \
   }'
 ```
 
-#### 8. Scoped Memory: `POST /memory/forget`
+#### 9. Scoped Memory: `POST /memory/forget`
 Deletes a specific fact by ID:
 
 ```bash
@@ -341,7 +393,7 @@ curl -X POST http://127.0.0.1:8787/memory/forget \
 }
 ```
 
-#### 9. Scoped Memory: `POST /memory/purge`
+#### 10. Scoped Memory: `POST /memory/purge`
 Purges all facts and index files in the current scope:
 
 ```bash
@@ -357,7 +409,7 @@ curl -X POST http://127.0.0.1:8787/memory/purge \
 }
 ```
 
-#### 10. Health Status: `GET /health`
+#### 11. Health Status: `GET /health`
 Returns proxy status, deterministic engine flag, and live telemetry statistics:
 
 ```bash
@@ -417,6 +469,15 @@ echoregent mcp \
 ### Copy-Pasteable Client Configurations
 
 #### Claude Code
+
+**Mode 1 — Native HTTP Proxy Mode (Zero Client Edits):**  
+Start the proxy in autonomous mode (`echoregent proxy --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory`), then launch Claude Code:
+```bash
+ANTHROPIC_BASE_URL=http://127.0.0.1:8787 claude
+```
+EchoRegent transparently intercepts `POST /v1/messages`, compacts verbose `tool_result` blocks in `<5ms`, injects cited project memory into top-level `system`, and adapts pattern weights online.
+
+**Mode 2 — Stdio MCP Server:**  
 Add via Claude Code CLI:
 ```bash
 claude mcp add echoregent -- echoregent mcp --memory file --memory-dir ~/.echoregent/memory --retention-days 14

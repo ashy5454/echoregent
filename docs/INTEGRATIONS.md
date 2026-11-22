@@ -22,8 +22,8 @@
   - [Configuration Flags & Mechanics](#14-configuration-flags--mechanics)
   - [Exit Telemetry & Verification](#15-exit-telemetry--verification)
 - [Recipe 2: Claude Code](#recipe-2-claude-code)
-  - [Mode A: Model Context Protocol (MCP) Integration](#21-mode-a-model-context-protocol-mcp-integration)
-  - [Mode B: Local HTTP Proxy Mode](#22-mode-b-local-http-proxy-mode)
+  - [Mode A: Native HTTP Proxy Mode (`ANTHROPIC_BASE_URL`)](#21-mode-a-native-http-proxy-mode-anthropic_base_url)
+  - [Mode B: Model Context Protocol (MCP) Integration](#22-mode-b-model-context-protocol-mcp-integration)
   - [Verifying Compaction & Tool Execution](#23-verifying-compaction--tool-execution)
 - [Recipe 3: Cursor & Windsurf IDEs](#recipe-3-cursor--windsurf-ides)
   - [Mode A: MCP Server Setup (Cursor & Windsurf)](#31-mode-a-mcp-server-setup-cursor--windsurf)
@@ -96,8 +96,8 @@ EchoRegent operates as a **local, private context management layer** positioned 
 
 | Agent / SDK | Primary Modality | Secondary Modality | Tool Compression | Memory Injection | Auto-Compaction |
 |---|---|---|:---:|:---:|:---:|
-| **OpenAI Codex CLI** | `echoregent wrap codex` | `echoregent proxy` | Yes (Lossless) | Yes (`--inject-memory`) | Yes (`--compact-history`) |
-| **Claude Code** | MCP (`claude mcp add`) | Proxy (`ANTHROPIC_BASE_URL`) | Yes (MCP & Proxy) | Yes (Wiki memory) | Yes (Proxy mode) |
+| **OpenAI Codex CLI** | `echoregent wrap codex` | `echoregent proxy` | Yes (Lossless) | Yes (`--inject-memory`) | Yes (`--compact-history` + `--adaptive-compression`) |
+| **Claude Code** | Native Proxy (`ANTHROPIC_BASE_URL`) | MCP (`claude mcp add`) | Yes (Proxy & MCP) | Yes (Wiki memory) | Yes (Proxy mode) |
 | **Cursor IDE** | Base URL override | MCP (`.cursor/mcp.json`) | Yes (Proxy) | Yes (MCP) | Yes (Proxy mode) |
 | **Windsurf IDE** | Base URL override | MCP (`mcp_config.json`) | Yes (Proxy) | Yes (MCP) | Yes (Proxy mode) |
 | **Hermes Agent** | MCP (`config.yaml`) | Custom provider endpoint | Yes (MCP & Proxy) | Yes (Wiki memory) | Yes (Proxy mode) |
@@ -132,20 +132,25 @@ The official OpenAI Codex CLI operates against the OpenAI Responses API wire pro
 
 ### 1.2 Interactive Session
 
-Launch interactive Codex with history compaction and scoped memory injection:
+Launch interactive Codex with history compaction, scoped memory injection, online adaptive plasticity, auto-learning, and project-wide memory:
 
 ```bash
 # Set your OpenAI API key
 export OPENAI_API_KEY="sk-..."
 
-# Launch wrapped Codex session
-echoregent wrap codex --compact-history --inject-memory
+# Launch wrapped Codex session with full autonomous context optimization
+echoregent wrap codex \
+  --compact-history \
+  --inject-memory \
+  --adaptive-compression \
+  --auto-memory \
+  --project-memory
 ```
 
 On Windows (Git Bash / Command Prompt / PowerShell):
 ```powershell
 $env:OPENAI_API_KEY="sk-..."
-echoregent wrap codex --compact-history --inject-memory
+echoregent wrap codex --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory
 ```
 
 ### 1.3 Non-Interactive & Batch Tasks
@@ -154,11 +159,11 @@ Pass flags and subcommands directly to Codex using the `--` separator:
 
 ```bash
 # Execute a specific coding task
-echoregent wrap codex --compact-history --inject-memory -- \
+echoregent wrap codex --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory -- \
   exec "Run npm test, fix all type errors in src/, and verify tests pass"
 
 # Pass custom model and approval flags
-echoregent wrap codex --compact-history -- \
+echoregent wrap codex --compact-history --adaptive-compression -- \
   --model o3-mini --full-auto exec "Refactor packages/core/src/classifier.ts"
 ```
 
@@ -169,6 +174,9 @@ echoregent wrap codex --compact-history -- \
 | `--upstream <URL>` | `https://api.openai.com/v1` | Upstream Responses API endpoint (or `ECHOREGENT_UPSTREAM`). |
 | `--compact-history` | `false` | Enables lossless template factoring across older conversation turns. Always preserves the latest user turn and at least the last 8 items verbatim. |
 | `--inject-memory` | `false` | Injects active source-cited facts from the project/session scope as a developer message in the Responses input array. |
+| `--adaptive-compression` | `false` | Enables online synaptic plasticity learning via Local Delta Rule; auto-protects patterns with downstream regret. |
+| `--auto-memory` | `false` | Enables autonomous zero-LLM-call fact learning from user turns into the scoped LLM-Wiki. |
+| `--project-memory` | `false` | Scopes memory across all sessions in the project root (`session: '__project__'`). |
 | `-- <codex args>` | `[]` | Forwards all trailing arguments to the underlying Codex executable. |
 
 ### 1.5 Exit Telemetry & Verification
@@ -187,11 +195,65 @@ If Codex terminates with exit code 0 without routing any requests through the pr
 
 ## Recipe 2: Claude Code
 
-Claude Code can be integrated in two ways:
-1. **Mode A (MCP Mode)**: Exposes EchoRegent's 7 compression, classification, and memory tools directly to Claude Code.
-2. **Mode B (Proxy Mode)**: Intercepts raw API requests to transparently compress logs and inject context.
+Claude Code can be integrated in two powerful modalities:
+1. **Mode A (Native HTTP Proxy Mode — Recommended)**: Transparently routes Claude Code's Anthropic Messages API requests (`POST /v1/messages`) through EchoRegent via `ANTHROPIC_BASE_URL=http://127.0.0.1:8787`. Zero configuration file edits, lossless compaction of `tool_result` content blocks, online adaptive plasticity, autonomous fact learning, and project-wide memory.
+2. **Mode B (Model Context Protocol / MCP Mode)**: Exposes EchoRegent's 7 compression, classification, and memory tools directly to Claude Code as native MCP tool calls.
 
-### 2.1 Mode A: Model Context Protocol (MCP) Integration
+### 2.1 Mode A: Native HTTP Proxy Mode (`ANTHROPIC_BASE_URL`)
+
+Claude Code natively supports overriding its Anthropic API endpoint via the standard `ANTHROPIC_BASE_URL` environment variable. Because EchoRegent includes native proxy support for Anthropic's `POST /v1/messages` protocol, Claude Code can run through EchoRegent with zero extra bridges or gateways.
+
+#### Step 1: Start the Local Proxy with Autonomous Context Management
+
+In your project directory or in a background terminal, launch `echoregent proxy`:
+
+```bash
+echoregent proxy --port 8787 \
+  --compact-history \
+  --inject-memory \
+  --adaptive-compression \
+  --auto-memory \
+  --project-memory \
+  --memory file \
+  --memory-dir ~/.echoregent/memory \
+  --retention-days 30
+```
+
+#### Step 2: Launch Claude Code with `ANTHROPIC_BASE_URL`
+
+Point Claude Code's API traffic to the local EchoRegent proxy:
+
+```bash
+export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
+claude
+```
+
+Or as a single launch command:
+```bash
+ANTHROPIC_BASE_URL=http://127.0.0.1:8787 claude
+```
+
+On Windows (Git Bash):
+```bash
+ANTHROPIC_BASE_URL=http://127.0.0.1:8787 claude
+```
+
+On Windows (PowerShell):
+```powershell
+$env:ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
+claude
+```
+
+#### How EchoRegent Optimizes Claude Code Wire Traffic
+- **Lossless `tool_result` Compaction**: When Claude Code runs tools (e.g., bash test suites, git diffs, file searches), the tool outputs are sent in user content blocks with `type: 'tool_result'`. EchoRegent detects these blocks and compacts repetitive logs into numeric templates in `<5ms`, reducing prompt token bills by 30% to 60%.
+- **Top-Level `system` Prompt Memory Injection**: When `--inject-memory` is active, EchoRegent queries the project's LLM-Wiki, formats relevant facts into `[EchoRegent LLM-Wiki Memory Context]`, and injects them directly into top-level `request.system`. Previous turns' injected memory blocks are stripped and deduplicated automatically.
+- **Autonomous Zero-Cost Fact Learning (`--auto-memory`)**: EchoRegent inspects incoming user prompts and automatically extracts architectural constraints into the LLM-Wiki via `wikiMemory.autoIngestTurnSync()` with 0 external LLM calls.
+- **Online Synaptic Plasticity (`--adaptive-compression`)**: Tracks assistant `tool_use` blocks and subsequent user prompts. If regret or repeated tool calls are detected, the pattern signature's utility weight is updated via the Local Delta Rule ($w_k < 0.45$ is permanently protected).
+- **Project-Wide Memory (`--project-memory`)**: All Claude Code sessions inside the same workspace share a single durable knowledge base scoped to `{ project, session: '__project__' }`.
+
+### 2.2 Mode B: Model Context Protocol (MCP) Integration
+
+If you prefer explicit tool calling where Claude Code decides when to compact logs or save architectural decisions into memory, connect EchoRegent as an MCP stdio server.
 
 #### Step 1: Add EchoRegent via Claude CLI
 
@@ -242,24 +304,6 @@ Run the vitest test suite. If the output exceeds 50 lines, call the echoregent `
 tool on the output before analyzing failures. If you establish a architectural invariant,
 call `remember` with content and source file citations.
 ```
-
-### 2.2 Mode B: Local HTTP Proxy Mode
-
-To transparently compress tool outputs without requiring the model to explicitly call MCP tools, run the standalone proxy:
-
-```bash
-# Start standalone proxy in terminal 1
-echoregent proxy --port 8787 \
-  --compact-history \
-  --inject-memory \
-  --memory file \
-  --memory-dir ~/.echoregent/memory \
-  --retention-days 14 \
-  --project $(pwd) \
-  --session session-claude-code
-```
-
-Configure your upstream routing or API bridge (such as a local LiteLLM proxy or Anthropic-compatible gateway) to route requests through `http://127.0.0.1:8787/v1`.
 
 ### 2.3 Verifying Compaction & Tool Execution
 
@@ -874,8 +918,13 @@ export class ContinualLearningAgent {
       console.log('Restored learned structural weights from disk.')
     }
 
-    // 2. Initialize EchoRegent Scoped Engine
+    // 2. Initialize EchoRegent Scoped Engine (or pass adaptiveCompression: true, autoLearnMemory: true, projectWideMemory: true)
     this.engine = new EchoRegent({
+      compactHistory: true,
+      injectMemory: true,
+      adaptiveCompression: true,
+      autoLearnMemory: true,
+      projectWideMemory: true,
       memory: {
         mode: 'file',
         directory: './.echoregent-wiki',

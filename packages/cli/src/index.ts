@@ -7,19 +7,19 @@ import { startProxy } from './proxy.js'
 import { wrapCodex } from './codex.js'
 import { runMcp } from './mcp.js'
 
-const help = `EchoRegent 0.4.0 — local context middleware
+const help = `EchoRegent 0.4.0 — local token management layer & continual LLM-Wiki memory engine
 
-  echoregent wrap codex [--upstream URL] [--compact-history] [-- <codex arguments>]
-  echoregent proxy [--port 8787] [--upstream URL] [--compact-history]
+  echoregent wrap codex [--upstream URL] [--compact-history] [--inject-memory] [--adaptive-compression] [--auto-memory] [--project-memory] [-- <codex arguments>]
+  echoregent proxy [--port 8787] [--upstream URL] [--compact-history] [--inject-memory] [--adaptive-compression] [--auto-memory] [--project-memory] [--local-token SECRET]
   echoregent doctor [--url http://127.0.0.1:8787] [--probe --model NAME]
-  echoregent mcp [--memory off|ephemeral|file --project PATH --session ID]
+  echoregent mcp [--memory off|ephemeral|file --memory-dir PATH --retention-days N --project PATH --session ID]
   echoregent models
   echoregent unwrap
 
-Provider: ECHOREGENT_UPSTREAM (default https://api.openai.com/v1)
+Provider: ECHOREGENT_UPSTREAM (default https://api.openai.com/v1; supports /v1/responses, /v1/chat/completions, /v1/messages)
 API key: ECHOREGENT_PROVIDER_KEY or OPENAI_API_KEY
 Memory defaults off; file mode requires --memory-dir and --retention-days.
-History compaction defaults off; --compact-history factors older repeated wording.
+History compaction defaults off; --compact-history factors older repeated wording and duplicate turns.
 Wrap uses per-launch Codex configuration; exiting reverses setup.
 `
 

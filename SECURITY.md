@@ -49,7 +49,7 @@ If you discover a security vulnerability in EchoRegent, please report it private
 ### Reporting Channels
 
 1. **Email:** Send details to **`security@echoregent.ai`**.
-2. **GitHub Security Advisory:** You can submit a private advisory through the [EchoRegent Security Advisory Tab](https://github.com/echoregent/echoregent/security/advisories/new).
+2. **GitHub Security Advisory:** You can submit a private advisory through the [EchoRegent Security Advisory Tab](https://github.com/ashy5454/echoregent/security/advisories/new).
 
 ### What to Include
 

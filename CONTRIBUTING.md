@@ -28,7 +28,7 @@ echoregent/
 
 Every Pull Request must strictly respect the following core design invariants:
 
-1. **Zero External Runtime Dependencies in `@echoregent/core`:** The core package must remain featherweight (~120KB) and rely solely on modern Node.js built-ins (`node:crypto`, `node:fs`). Do not add third-party runtime dependencies to `@echoregent/core`.
+1. **One Pure-JS Runtime Dependency in `@echoregent/core`:** The core package has only one pure-JS runtime dependency (`gpt-tokenizer` for exact `o200k_base` BPE token accounting) and zero native C++ addons, ONNX runtimes, or model weights. It remains featherweight (~120KB) and relies on modern Node.js built-ins (`node:crypto`, `node:fs`). Do not add additional third-party runtime dependencies to `@echoregent/core`.
 2. **100% Lossless Reversibility:** Compression algorithms (template factoring, structural canonicalization) must never discard non-recoverable semantic information. `decompressText` and `restoreCompressedRequest` must reconstruct the original input with byte-exact precision for all supported formats.
 3. **Zero Bundled Model Weights:** No binary weights (`.onnx`, `.pt`, `.bin`, `.safetensors`) or heavy ML runtimes may be committed or bundled into the packages.
 4. **Local-First & Zero Telemetry:** Never introduce analytics calls, tracking beacons, or unsolicited external network traffic. The entire stack must remain completely operational offline.

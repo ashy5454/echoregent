@@ -1,9 +1,9 @@
 <p align="center">
-  <img src="docs/images/echoregent_banner.svg" alt="EchoRegent — The 1-Line Token Compression & Continual LLM-Wiki Memory Engine" width="760"/>
+  <img src="docs/images/echoregent_banner.svg" alt="EchoRegent — The Token Management Layer & Continual LLM-Wiki Memory Engine" width="760"/>
 </p>
 
 <p align="center">
-  <strong>The 1-line token compression and continual LLM-Wiki memory engine for AI coding agents and LLM apps.</strong>
+  <strong>The 1-line Token Management Layer and Continual LLM-Wiki Memory Engine for AI coding agents and LLM apps.</strong>
 </p>
 
 <p align="center">
@@ -31,37 +31,54 @@
 
 EchoRegent drops into your workflow in three different ways: as a transparent agent CLI wrapper, as a zero-code local HTTP proxy, or as a featherweight TypeScript SDK.
 
+> **1-Command Verification:** Run the full local verification suite (multi-session memory, online delta-rule learner, and round-trip BPE checks):  
+> ```bash
+> npm run verify:all
+> ```
+
 ### # 1 — Coding Agents (Install & wrap in one command)
 
 Run your autonomous coding agents through EchoRegent's transparent launcher. Verbose compiler diagnostics, test cascades, and git logs are compacted in `<2 ms` before hitting upstream models, while relevant project memory is automatically retrieved and injected.
 
 ```bash
-# Install CLI globally
-npm install -g @echoregent/cli
+# Install CLI globally from npm
+npm install -g @echoregent/cli@next
 
-# Launch OpenAI Codex with automatic token compaction & continual memory
-echoregent wrap codex --compact-history --inject-memory
+# Or install directly from the release tarball (zero-server):
+# npm install -g artifacts/echoregent-cli-0.4.0.tgz
+
+# Or run without installation via npx:
+# npx @echoregent/cli@next wrap codex
+
+# Launch OpenAI Codex with full autonomous token management & continual memory
+echoregent wrap codex --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory
 ```
 
 - **Transparent Launch:** Wraps your client in an isolated subshell; exiting cleanly reverses setup with zero lingering daemons (`echoregent unwrap`).
+- **Autonomous Context Management:**
+  - `--compact-history`: Factors older repetitive turns and tool traces into lossless templates.
+  - `--inject-memory`: Injects top relevant LLM-Wiki concepts and source-cited facts into system context.
+  - `--adaptive-compression`: Adapts compression policies online using turn $t+1$ regret feedback.
+  - `--auto-memory`: Autonomously extracts and remembers architectural decisions and facts from agent turns.
+  - `--project-memory`: Shares the LLM-Wiki across all agent sessions in the same repository workspace.
 - **Single Command Execution:** Forward arbitrary commands through the proxy:
   ```bash
-  echoregent wrap codex --compact-history -- exec "npm test"
+  echoregent wrap codex --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory -- exec "npm test"
   ```
 - **File-Backed Scoped Memory:** Persist memory across sessions to disk:
   ```bash
-  echoregent wrap codex --compact-history --inject-memory --memory file --memory-dir .echoregent/memory --retention-days 30
+  echoregent wrap codex --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory --memory file --memory-dir .echoregent/memory --retention-days 30
   ```
 
 ---
 
 ### # 2 — 1-Line Local HTTP Proxy API (Drop-in baseURL)
 
-Start a standalone local HTTP proxy on `http://127.0.0.1:8787/v1`. Any tool, SDK, or language (Python, Node.js, Go, Rust, cURL) that speaks OpenAI or Anthropic HTTP APIs can point its `baseURL` to EchoRegent for transparent context optimization.
+Start a standalone local HTTP proxy on `http://127.0.0.1:8787`. Any tool, SDK, or language (Python, Node.js, Go, Rust, cURL) that speaks OpenAI (`/v1/responses`, `/v1/chat/completions`) or Anthropic (`/v1/messages`) HTTP APIs can point its `baseURL` to EchoRegent for transparent context optimization.
 
 ```bash
-# Start standalone proxy
-echoregent proxy --port 8787 --compact-history --inject-memory
+# Start standalone proxy with full autonomous context management
+echoregent proxy --port 8787 --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory
 ```
 
 #### Python (OpenAI SDK)
@@ -106,10 +123,11 @@ curl http://127.0.0.1:8787/v1/chat/completions \
 
 ### # 3 — 1-Line TypeScript SDK (@echoregent/core)
 
-Integrate EchoRegent directly into your Node.js or TypeScript application backend. Zero runtime dependencies, pure ESM, ~120KB footprint.
+Integrate EchoRegent directly into your Node.js or TypeScript application backend. One pure-JS runtime dependency (`gpt-tokenizer` for exact `o200k_base` BPE accounting) — zero native addons, zero ONNX runtimes, zero bundled weights (~120KB footprint, pure ESM).
 
 ```bash
-npm install @echoregent/core
+npm install @echoregent/core@next
+# Or install from release tarball: npm install artifacts/echoregent-core-0.4.0.tgz
 ```
 
 ```typescript
@@ -122,16 +140,19 @@ import {
   decompressText
 } from '@echoregent/core'
 
-// 1. Initialize engine with history compaction and scoped wiki memory
+// 1. Initialize engine with history compaction, adaptive learning, and autonomous wiki memory
 const engine = new EchoRegent({
   compactHistory: true,
   injectMemory: true,
+  adaptiveCompression: true,
+  autoLearnMemory: true,
+  projectWideMemory: true,
   memory: { mode: 'file', directory: './.echoregent/memory' }
 })
 
 const scope = { project: process.cwd(), session: 'ci-worker-1' }
 
-// 2. Process any OpenAI Responses or Chat Completions payload in <2ms
+// 2. Process any OpenAI (Responses, Chat Completions) or Anthropic (Messages) payload in <2ms
 const result = engine.process(providerPayload, 'chat-completions', scope)
 
 if (result.changed) {
@@ -322,14 +343,14 @@ $$w_k \leftarrow w_k + \eta \cdot (\text{target} - w_k)$$
 <details>
 <summary><b>OpenAI Codex CLI</b></summary>
 
-Launch OpenAI Codex directly with automatic token compaction and scoped memory:
+Launch OpenAI Codex directly with automatic token compaction, adaptive learning, and scoped memory:
 
 ```bash
-# Transparent subshell launcher
-echoregent wrap codex --compact-history --inject-memory
+# Transparent subshell launcher with full autonomous flags
+echoregent wrap codex --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory
 
 # Execute single non-interactive command:
-echoregent wrap codex --compact-history -- exec "npm test"
+echoregent wrap codex --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory -- exec "npm test"
 ```
 When you exit Codex, your original environment is completely untouched (`echoregent unwrap`).
 </details>
@@ -337,18 +358,27 @@ When you exit Codex, your original environment is completely untouched (`echoreg
 <details>
 <summary><b>Claude Code (Anthropic)</b></summary>
 
-Point Claude Code to EchoRegent's local proxy endpoint:
+EchoRegent provides native proxy support for Anthropic's `POST /v1/messages` endpoint, compacting verbose `tool_result` blocks and injecting scoped LLM-Wiki context directly into top-level `system` prompts in `<2ms`.
+
+#### Option A: Native `POST /v1/messages` Proxy Mode (Recommended)
+Route Claude Code directly through EchoRegent's local proxy:
 
 ```bash
-# 1. Start EchoRegent proxy in one terminal
-echoregent proxy --port 8787 --compact-history --inject-memory
+# 1. Start EchoRegent proxy with full autonomous context management
+echoregent proxy --port 8787 --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory
 
-# 2. In your Claude Code terminal:
+# 2. In your Claude Code terminal, point ANTHROPIC_BASE_URL to EchoRegent:
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8787"
 claude
 ```
 
-Alternatively, add EchoRegent as an MCP server in `~/.claude.json`:
+#### Option B: Model Context Protocol (MCP) Mode
+Add EchoRegent as an MCP server with one CLI command:
+```bash
+claude mcp add echoregent npx -y @echoregent/cli@next mcp --memory file --memory-dir .echoregent/memory --project . --session claude-session
+```
+
+Alternatively, add EchoRegent manually in `~/.claude.json`:
 ```json
 {
   "mcpServers": {
@@ -414,7 +444,7 @@ model_providers:
 
 Start the proxy with history compaction enabled:
 ```bash
-echoregent proxy --port 8787 --compact-history --inject-memory
+echoregent proxy --port 8787 --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory
 ```
 </details>
 
@@ -482,7 +512,7 @@ client = OpenAI(
 
 ## How it works under the hood
 
-For the full architectural specifications, see `docs/images/echoregent_architecture.svg` and [docs/research/WS3_COMPETITOR_AND_OSS_BENCHMARK.md](docs/research/WS3_COMPETITOR_AND_OSS_BENCHMARK.md).
+For the full architectural specifications, see `docs/images/echoregent_architecture.svg`.
 
 ```
 +─────────────────────────────────────────────────────────────────────────────+
@@ -596,10 +626,13 @@ cd echoregent
 npm ci
 npm run build:packages
 
-# 3. Run full test suite across packages
+# 3. Verify all live features (multi-session memory, adaptive learning, lossless roundtrip)
+npm run verify:all
+
+# 4. Run full test suite across packages
 npm test
 
-# 4. Verify distribution package tarballs
+# 5. Verify distribution package tarballs
 npm run pack:packages
 ```
 

@@ -1,7 +1,7 @@
 # @echoregent/core
 
-> **Deterministic context compression middleware, synaptic plasticity learning engine, and zero-LLM-cost Markdown memory wiki for AI coding agents and LLM applications.**  
-> Cuts prompt tokens by **30% to 60%** with sub-5ms deterministic template factoring, turn $t+1$ regret feedback learning, and an append-only, human-auditable knowledge graph.
+> **EchoRegent — The Token Management Layer & Continual LLM-Wiki Memory Engine for AI Agents.**  
+> Cuts prompt tokens by **30% to 60%** with sub-5ms deterministic template factoring, turn $t+1$ regret feedback learning, and an append-only, zero-LLM-cost Markdown knowledge wiki.
 
 [![npm version](https://img.shields.io/npm/v/@echoregent/core?color=cb3837)](https://www.npmjs.com/package/@echoregent/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ashy5454/echoregent/blob/main/LICENSE)
@@ -31,14 +31,29 @@ Wrap your provider requests before dispatching to OpenAI, Anthropic, or local mo
 ```typescript
 import { EchoRegent } from '@echoregent/core'
 
-const engine = new EchoRegent()
+// Initialize with autonomous continual learning, project-wide memory, and compaction
+const engine = new EchoRegent({
+  compactHistory: true,       // Compact repetitive older conversation turns
+  injectMemory: true,         // Auto-inject cited LLM-Wiki facts into prompts
+  adaptiveCompression: true,  // Online synaptic plasticity learning (Delta Rule)
+  autoLearnMemory: true,      // Zero-LLM-call autonomous fact learning from user turns
+  projectWideMemory: true,    // Share memory across all sessions in the project root
+  memory: {
+    mode: 'file',
+    directory: './.echoregent-memory',
+    retentionMs: 30 * 86_400_000,
+  },
+})
 
-// 1-line processing for OpenAI Responses API or Chat Completions payloads
-const decision = engine.process(requestBody, 'responses')
+// 1-line processing for OpenAI Responses, Chat Completions, or Anthropic Messages payloads
+const decision = engine.process(requestBody, 'chat-completions', {
+  project: process.cwd(),
+  session: 'agent-session-1',
+})
 
 // Send the compacted request to your provider
 // (decision.request preserves structured tools, IDs, cache control, and order)
-const response = await fetch('https://api.openai.com/v1/responses', {
+const response = await fetch('https://api.openai.com/v1/chat/completions', {
   method: 'POST',
   headers: {
     'Content-Type': 'application/json',
@@ -48,7 +63,7 @@ const response = await fetch('https://api.openai.com/v1/responses', {
 })
 ```
 
-`engine.process()` inspects tool outputs (e.g. CI test logs, build tracebacks, git diffs) and compacts them into lossless numeric templates in under 5ms, saving **30% to 60% of prompt tokens** while preserving streaming events, tool call IDs, and exact line counts.
+`engine.process()` supports OpenAI Responses API (`'responses'`), OpenAI Chat Completions (`'chat-completions'`), and native Anthropic Messages API (`POST /v1/messages` via `'chat-completions'`). It inspects tool outputs (e.g. CI logs, tracebacks, git diffs, Anthropic `tool_result` content blocks) and compacts them into lossless numeric templates in under 5ms, saving **30% to 60% of prompt tokens** while preserving streaming events, tool call IDs, and exact line counts.
 
 ---
 
@@ -82,7 +97,7 @@ Autonomous agents and LLM applications face an economic and architectural contex
 EchoRegent replaces repetitive log output with parameterized numeric templates. Dynamic values (timestamps, hex addresses, IDs, numeric metrics) are factored into a compact literal row matrix. Every single value is preserved as an exact string in its original sequence, guaranteeing 100% bit-for-bit reversible reconstruction.
 
 #### Core APIs
-- `engine.process(request, protocol, scope?)`: Compacts the latest tool result in an OpenAI Responses or Chat Completions payload.
+- `engine.process(request, protocol, scope?)`: Compacts the latest tool result in an OpenAI Responses, OpenAI Chat Completions, or native Anthropic Messages payload.
 - `compressLogs(text)`: Collapses repeated lines and factors repetitive structures into JSON template rows.
 - `compressRepeatedLines(text)`: Collapses runs of $\ge 4$ identical log lines into repeat markers.
 - `decompressText(compressedText)`: Restores compressed text back to the exact original string.
@@ -137,6 +152,43 @@ const rawLogs = `[DEBUG] ping host=10.0.0.1 latency=2.1ms
 const compressed = compressLogs(rawLogs)
 const restored = decompressText(compressed)
 console.log(restored === rawLogs) // true!
+```
+
+#### Native Anthropic Messages API (`POST /v1/messages`) Support
+
+`@echoregent/core` provides native, first-class support for the Anthropic Messages API schema (used by Claude Code and the Anthropic TypeScript/Python SDKs) through `engine.process(request, 'chat-completions', scope)`:
+
+- **`tool_result` Content Compaction**: In Claude Code multi-turn workflows, tool executions return blocks with `type: 'tool_result'`. EchoRegent traverses user message content parts, detects `tool_result` outputs (both direct string content and structured text block arrays), and factors repetitive compiler, test, or linter logs into lossless templates.
+- **Top-Level `system` Memory Injection**: When `injectMemory: true`, EchoRegent detects top-level `request.system`, automatically strips any previously injected memory block from earlier turns to prevent context inflation, and prepends the fresh, deduplicated `[EchoRegent LLM-Wiki Memory Context]` block to `request.system`.
+- **`tool_use` Regret Tracking**: Inspects assistant message parts where `type: 'tool_use'` to track tool names and arguments for the online synaptic plasticity learning loop (`AdaptiveCompressionLearner`).
+
+```typescript
+// Anthropic Messages payload (as sent to POST /v1/messages)
+const claudePayload = {
+  model: 'claude-3-7-sonnet-20250219',
+  system: 'You are an autonomous coding assistant.',
+  messages: [
+    { role: 'user', content: 'Run test suite' },
+    {
+      role: 'assistant',
+      content: [{ type: 'tool_use', id: 'call_1', name: 'bash', input: { command: 'npm test' } }],
+    },
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'tool_result',
+          tool_use_id: 'call_1',
+          content: `PASS tests/auth.test.ts (12ms)\nPASS tests/db.test.ts (14ms)\nPASS tests/api.test.ts (11ms)\nPASS tests/cache.test.ts (15ms)`,
+        },
+      ],
+    },
+  ],
+}
+
+const decision = engine.process(claudePayload, 'chat-completions', { project: process.cwd(), session: 'claude-1' })
+console.log('Anthropic tool_result compacted?', decision.changed) // true
+console.log('Compacted payload ready for https://api.anthropic.com/v1/messages')
 ```
 
 ---
@@ -217,11 +269,16 @@ When initialized with file storage, EchoRegent automatically maintains an audita
     └── authentication.md
 ```
 
-#### Continual Learning & Fact Supersession
+#### Continual Learning, Autonomous Ingestion & Project-Wide Sharing
 - **Zero LLM Token Ingest Cost**: Remembering, indexing, linking, and recalling facts uses **0 model calls**.
+- **Autonomous Zero-LLM Fact Learning (`autoLearnMemory: true`)**: When enabled, `engine.process()` automatically monitors incoming user turns, extracts factual statements, and commits them to the LLM-Wiki via `wikiMemory.autoIngestTurnSync(scope, userQuery)`.
+- **Project-Wide Memory Sharing (`projectWideMemory: true`)**: Resolves memory scopes to `{ project: scope.project, session: '__project__' }`. All sub-agents, child processes, and agent sessions in the same repository share a durable knowledge wiki.
+- **Synchronous Write APIs (`rememberSync` & `autoIngestTurnSync`)**: In addition to async Promise-based methods, EchoRegent provides zero-latency synchronous operations:
+  - `engine.wikiMemory.autoIngestTurnSync(scope, userText, sourceTag?)`: Synchronously parses statements from user text and commits them to the wiki.
+  - `engine.memory.rememberSync(scope, factInput)`: Synchronously commits a single fact with citations.
 - **Supersession (`relation: 'updates'`)**: When a fact updates previous knowledge, the predecessor is marked superseded by ID while remaining intact in the chronological audit log.
 - **Extension (`relation: 'extends'`)**: Connects additive context to an existing concept without superseding it.
-- **1-Line Prompt Injection (`injectMemory: true`)**: Automatically extracts the latest user prompt, queries relevant memory facts, and injects a formatted context block (`developer` role for Responses, `system` role for Chat Completions).
+- **1-Line Prompt Injection (`injectMemory: true`)**: Automatically extracts the latest user prompt, queries relevant memory facts, and injects a formatted context block (`developer` role for Responses, `system` role for Chat Completions, top-level `system` string for Anthropic Messages).
 
 #### TypeScript Example
 
@@ -229,7 +286,9 @@ When initialized with file storage, EchoRegent automatically maintains an audita
 import { EchoRegent, type MemoryScope } from '@echoregent/core'
 
 const engine = new EchoRegent({
-  injectMemory: true, // Auto-inject relevant memory into process()
+  injectMemory: true,        // Auto-inject relevant memory into process()
+  autoLearnMemory: true,     // Autonomous zero-LLM fact learning from incoming turns
+  projectWideMemory: true,   // Share memory across all sessions in the project root
   memory: {
     mode: 'file', // 'off' | 'ephemeral' | 'file'
     directory: './.echoregent-memory',
@@ -237,19 +296,32 @@ const engine = new EchoRegent({
   },
 })
 
-// Scopes strictly partition memory per project and session
+// Scopes partition memory per project and session (with projectWideMemory, session resolves to '__project__')
 const scope: MemoryScope = {
   project: '/workspace/my-app',
   session: 'agent-session-42',
 }
 
-// 1. Remember a fact with explicit source citation
+// 1. Remember a fact with explicit source citation (async)
 const initialFact = await engine.remember(scope, {
   content: 'Primary database engine is PostgreSQL 16 on port 5432.',
   sources: ['docs/architecture.md:45'],
 })
 
-// 2. Continual learning: update knowledge with supersession tracking
+// 2. Synchronous fast-path fact insertion
+const syncFact = engine.memory.rememberSync(scope, {
+  content: 'API timeout is set to 15000ms for external webhooks.',
+  sources: ['src/config.ts:88'],
+})
+
+// 3. Autonomous ingestion: parse user statements synchronously into wiki
+const learnedFacts = engine.wikiMemory.autoIngestTurnSync(
+  scope,
+  'Always use pnpm instead of npm for package installation in this repo.'
+)
+console.log('Autonomously learned facts:', learnedFacts.length)
+
+// 4. Continual learning: update knowledge with supersession tracking
 const updatedFact = await engine.remember(scope, {
   content: 'Primary database migrated to PostgreSQL 17 with pgbouncer on port 6432.',
   sources: ['migrations/2026-11-20-pg17.md:12'],
@@ -257,11 +329,11 @@ const updatedFact = await engine.remember(scope, {
   supersedesId: initialFact.id,
 })
 
-// 3. Query memory directly
+// 5. Query memory directly
 const recalled = await engine.recall(scope, 'PostgreSQL port')
 console.log(recalled[0].content)
 
-// 4. Compile human-readable prompt context block
+// 6. Compile human-readable prompt context block
 const contextBlock = engine.compileContextBlock(scope, 'How do I connect to Postgres?')
 console.log(contextBlock)
 /* Output:
@@ -269,7 +341,7 @@ console.log(contextBlock)
 - Primary database migrated to PostgreSQL 17 with pgbouncer on port 6432. ^[migrations/2026-11-20-pg17.md:12]
 */
 
-// 5. Automatic 1-line prompt injection in engine.process()
+// 7. Automatic 1-line prompt injection in engine.process()
 const request = {
   model: 'gpt-4o',
   input: [{ role: 'user', content: 'What database connection string should I use?' }],
@@ -280,7 +352,7 @@ const processed = engine.process(request, 'responses', scope)
 console.log(processed.request.input[0].role) // 'developer'
 console.log(processed.request.input[0].content) // Includes the compiled context block
 
-// 6. Memory management lifecycle
+// 8. Memory management lifecycle
 await engine.update(scope, updatedFact.id, {
   content: 'Primary database is PostgreSQL 17 with pgbouncer pool size 50.',
   sources: ['config/database.yml:8'],
@@ -365,11 +437,27 @@ const newLearner = new AdaptiveCompressionLearner()
 newLearner.loadState(savedState)
 console.log('Restored protected signatures:', newLearner.getProtectedSignatures())
 
-// 6. Plug directly into EchoRegent engine
+// 6. Plug directly into EchoRegent engine (or use built-in adaptiveCompression: true)
 const engine = new EchoRegent({
-  compressor: (text) => learner.compressWithLearnedPolicy(text),
+  adaptiveCompression: true, // Enables full autonomous plasticity loop
+  memory: { mode: 'file', directory: './.echoregent-memory', retentionMs: 30 * 86_400_000 },
 })
+
+// Automatically applies learned policy, captures turn t+1 feedback, and updates weights:
+const result = engine.process(chatPayload, 'chat-completions', scope)
+
+// Access the scoped learner directly anytime:
+const activeLearner = engine.getAdaptiveLearner(scope)
+console.log('Learned protected signatures:', activeLearner.getProtectedSignatures())
 ```
+
+#### Built-in Engine Adaptive Compression (`adaptiveCompression: true`)
+When `adaptiveCompression: true` is configured on `EchoRegent`:
+- **Autonomous Scoped Learners**: `engine.process()` automatically instantiates and manages an `AdaptiveCompressionLearner` per scope.
+- **Turn $t+1$ Feedback Loop**: On each turn, EchoRegent inspects user regret phrases (*"where is the error"*, *"truncated"*, etc.) and duplicate tool calls, adjusting pattern weights via the Local Delta Rule ($w_k \leftarrow w_k + \eta \cdot (\text{target} - w_k)$).
+- **Permanent Protection**: Patterns with utility $< 0.45$ are permanently protected from compaction.
+- **Persistent Synaptic State**: In file memory mode, synaptic weights are saved to `<scope-sha256>.adaptive.json` and automatically reloaded on next startup.
+- **Direct Learner Access**: Retrieve the underlying learner via `engine.getAdaptiveLearner(scope)`.
 
 ---
 
@@ -447,8 +535,8 @@ import { EchoRegent, type EngineOptions, type ProcessResult, type Protocol } fro
 
 | Method / Property | Signature | Description |
 |---|---|---|
-| `constructor(options?: EngineOptions)` | `(options?: EngineOptions) => EchoRegent` | Initializes the engine with memory settings, custom compressor, history compaction, or memory injection flags. |
-| `process<T>(request: T, protocol: Protocol, scope?: MemoryScope)` | `(request: T, protocol: Protocol, scope?: MemoryScope) => ProcessResult<T>` | Compacts tool outputs and older history in the request, and optionally injects cited memory context. |
+| `constructor(options?: EngineOptions)` | `(options?: EngineOptions) => EchoRegent` | Initializes the engine with memory settings, custom compressor, history compaction, memory injection, adaptive compression, auto-memory, or project-memory flags. |
+| `process<T>(request: T, protocol: Protocol, scope?: MemoryScope)` | `(request: T, protocol: Protocol, scope?: MemoryScope) => ProcessResult<T>` | Compacts tool outputs and older history in the request, and optionally injects cited memory context. Natively supports OpenAI Responses, Chat Completions, and Anthropic Messages (`POST /v1/messages` with `tool_result` compaction and top-level `system` injection). |
 | `classify(text: string, scope?: MemoryScope)` | `(text: string, scope?: MemoryScope) => PolicyDecision` | Evaluates policy and updates scope protection state. |
 | `compressText(text: string, scope?: MemoryScope)` | `(text: string, scope?: MemoryScope) => { text: string; policy: PolicyDecision; changed: boolean }` | Directly compresses a raw text string respecting policy guardrails. |
 | `remember(scope, fact, context?)` | `(scope: MemoryScope, fact: FactInput, context?: string) => Promise<MemoryFact>` | Persists a fact with source citations into scoped LLM-Wiki memory. Throws if session is protected. |
@@ -457,6 +545,9 @@ import { EchoRegent, type EngineOptions, type ProcessResult, type Protocol } fro
 | `forget(scope, id)` | `(scope: MemoryScope, id: string) => Promise<boolean>` | Deletes a fact by ID from scoped memory. |
 | `purge(scope)` | `(scope: MemoryScope) => Promise<number>` | Completely deletes all facts and files for the specified scope. |
 | `compileContextBlock(scope, queryText, maxFacts?)` | `(scope: MemoryScope, queryText: string, maxFacts?: number) => string` | Compiles a formatted markdown block (`[EchoRegent LLM-Wiki Memory Context]`) for prompt injection. |
+| `getAdaptiveLearner(scope?)` | `(scope?: MemoryScope) => AdaptiveCompressionLearner` | Returns the active `AdaptiveCompressionLearner` instance for the resolved project/session scope. |
+| `wikiMemory.autoIngestTurnSync(scope, text, sourceTag?)` | `(scope: MemoryScope, userText: string, sourceTag?: string) => MemoryFact[]` | Synchronously parses factual statements from user text and commits them to the scoped LLM-Wiki (zero LLM calls). |
+| `memory.rememberSync(scope, input)` | `(scope: MemoryScope, input: FactInput) => MemoryFact` | Synchronously commits a single fact with citations directly to scoped memory. |
 
 ---
 
@@ -535,6 +626,9 @@ export interface EngineOptions {
   compressor?: (text: string) => string
   compactHistory?: boolean
   injectMemory?: boolean
+  adaptiveCompression?: boolean
+  projectWideMemory?: boolean
+  autoLearnMemory?: boolean
 }
 
 export type MemorySettings =
