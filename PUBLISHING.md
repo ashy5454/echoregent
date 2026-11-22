@@ -1,6 +1,6 @@
 # Publishing & Zero-Server Distribution Guide
 
-This repository releases two packages: `@echoregent/core` (the token management & continual memory engine SDK) and `@echoregent/cli` (the local proxy, Codex launcher, diagnostics, and MCP server). The root workspace and legacy `cts-mcp` package stay private. Publish core first because CLI depends on the exact core version.
+This repository releases two packages: `@echoregent/core` (the token management & continual memory engine SDK) and `@echoregent/cli` (the local proxy, Codex launcher, diagnostics, and MCP server). The root workspace stays private. Publish core first because CLI depends on the exact core version.
 
 The current release version is `0.4.0`. The release branch is `oss-release-v0.4.0` at [https://github.com/ashy5454/echoregent](https://github.com/ashy5454/echoregent). A Git push alone does not publish packages to npm or create GitHub Releases.
 
@@ -59,7 +59,7 @@ npm run test:packages
 - `npm test`: Runs Vitest across all 31 test files (283 passing tests).
 - `npm run test:packages`: Packs both workspaces into `artifacts/`, installs the archives in a fresh temporary directory with development dependencies omitted and installation scripts disabled, checks compiled SDK/CLI/declarations/MCP, and runs the installed Codex executable against a local controlled Responses provider. This test needs no real provider API key and does not spend provider credits.
 
-See [product changes](PRODUCT_CHANGES.md) and [verification evidence](docs/evidence/COMPACTION_VERIFICATION.md). The local model comparisons are optional research checks rather than a release prerequisite; their scripts need separately provisioned local model assets not included in this repository.
+See the [verification evidence](docs/evidence/COMPACTION_VERIFICATION.md). The local model comparisons are optional research checks rather than a release prerequisite; their scripts need separately provisioned local model assets not included in this repository.
 
 ---
 
@@ -117,7 +117,7 @@ npm publish artifacts/echoregent-cli-0.4.0.tgz --access public --tag next --regi
 
 Complete any npm account/2FA requirements interactively. If core publication fails, resolve that error before publishing CLI. CLI's exact dependency resolves a published core version even when core is tagged `next`.
 
-Do not publish the root workspace or `cts-mcp` package. Do not commit npm credentials or auth configuration to the repository.
+Do not publish the root workspace. Do not commit npm credentials or auth configuration to the repository.
 
 ---
 

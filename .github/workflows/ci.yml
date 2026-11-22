@@ -24,8 +24,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Typecheck and build frontend
-        run: npm run build
+      - name: Build packages and verify
+        run: |
+          npm run build:packages
+          npm run verify:all
 
       - name: Run test suite (vitest)
         # Note: Runs the test suite honestly without hiding failures or using '|| true'.

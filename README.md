@@ -174,7 +174,7 @@ const { items, turnsCompacted } = compactConversationTurns(messages, { keepRecen
 
 ## Proof: measured token savings & net token economics
 
-### Measured Empirical Token Savings (`npm run bench:tokens`)
+### Measured Empirical Token Savings
 
 All token measurements are generated locally using exact `o200k_base` BPE token counters and verified with byte-exact inverse reconstruction tests. Every compressed payload is proven mathematically lossless: **Reconstruction Error: 0.00%**.
 
@@ -189,7 +189,8 @@ All token measurements are generated locally using exact `o200k_base` BPE token 
 
 > **Reproduce Locally:** Run the verification benchmark suite directly:
 > ```bash
-> npm run bench:tokens
+> npm run verify:all
+> npx vitest run audit/tests/e2e-net-token-cost-benchmark.test.ts
 > ```
 > For full fixture breakdowns and methodology, see [docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md](docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md).
 

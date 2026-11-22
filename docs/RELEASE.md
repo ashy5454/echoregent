@@ -1,8 +1,8 @@
 # npm release procedure
 
-For account/scope setup, version checks, exact archive commands, the first-release `next` tag and promotion to `latest`, follow the root [PUBLISHING.md](../PUBLISHING.md). This file records validation and legacy-service boundaries.
+For account/scope setup, version checks, exact archive commands, the first-release `next` tag and promotion to `latest`, follow the root [PUBLISHING.md](../PUBLISHING.md). This file records validation and package boundaries.
 
-The supported distribution is one TypeScript repository with exactly two public packages: core SDK and CLI (proxy, Codex launcher, diagnostics, MCP). The root and legacy MCP workspace are private. No `@echoregent/mcp-server` package is released.
+The supported distribution is one TypeScript repository with exactly two public packages: core SDK and CLI (proxy, Codex launcher, diagnostics, MCP). The root workspace is private. No `@echoregent/mcp-server` package is released.
 
 ```sh
 npm ci
@@ -26,4 +26,4 @@ npm publish artifacts/echoregent-cli-0.4.0.tgz --access public --tag next
 
 Publishing and repository visibility changes have not been performed by this packaging work. Until then, install both local `.tgz` files together. The CLI's published dependency resolves core from npm after core is published.
 
-Legacy development service (`npm run dev:legacy-api`) and old research/model paths are preserved for ongoing work. They are excluded from both public packages, are not the public release API, and should not be used to infer the npm product's protection or memory behavior. `npm run api` starts the packaged local proxy. The previous MCP entry point delegates to the same core-backed MCP server; use `echoregent mcp` for installation.
+`npm run api` starts the packaged local proxy. Use `echoregent mcp` for MCP server installation.
