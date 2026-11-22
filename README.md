@@ -1,20 +1,14 @@
 <p align="center">
-  <img src="docs/images/echoregent_banner.svg" alt="EchoRegent — The Token Management Layer & Continual LLM-Wiki Memory Engine" width="760"/>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/images/echoregent_banner_dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="docs/images/echoregent_banner_light.svg">
+    <img src="docs/images/echoregent_banner.svg" alt="EchoRegent — The Token Management Layer for AI Agents" width="880">
+  </picture>
 </p>
 
-<p align="center">
-  <strong>The 1-line Token Management Layer and Continual LLM-Wiki Memory Engine for AI coding agents and LLM apps.</strong>
-</p>
+<h1 align="center">EchoRegent</h1>
 
-<p align="center">
-  <a href="#get-started-60-seconds">Get Started (60s)</a> •
-  <a href="#proof-measured-token-savings--net-token-economics">Measured Proof</a> •
-  <a href="#give-your-ai-memory-karpathy-style-llm-wiki">LLM-Wiki Memory</a> •
-  <a href="#continually-learning-compression-adaptivecompressionlearner">Continual Learning</a> •
-  <a href="#works-in-your-agent">Works In Your Agent</a> •
-  <a href="#compared-to-rtk-headroom-mem0-supermemory">Compared To</a> •
-  <a href="#telemetry-privacy--security">Security</a>
-</p>
+<h3 align="center">The token management layer and continual memory engine for AI coding agents</h3>
 
 <p align="center">
   <a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square&logo=github-actions&logoColor=white" alt="CI Status"/></a>
@@ -25,18 +19,26 @@
   <a href="SECURITY.md"><img src="https://img.shields.io/badge/Telemetry-0%25%20(100%25%20Local)-success?style=flat-square" alt="0% Telemetry"/></a>
 </p>
 
+<p align="center">
+  <a href="#quickstart">Quickstart</a> • <a href="#measured-proof">Measured Proof</a> • <a href="#llm-wiki-memory">LLM-Wiki Memory</a> • <a href="#continual-learning">Continual Learning</a> • <a href="#works-in-your-agent">Works In Your Agent</a>
+</p>
+
+- **Cut Agent Token Burn by 37% to 97%:** Losslessly compacts repetitive compiler diagnostics, test cascades, and git diffs in `<2 ms` before they hit upstream LLM APIs.
+- **Zero-Token-Tax Continual Memory:** Karpathy-style Git-versionable Markdown wiki that remembers architectural decisions across sessions without burning extra LLM calls.
+- **100% Local-First & Zero Telemetry:** Pure MIT licensed runtime with zero analytics beacons, zero bundled weights, and fail-closed safety guardrails for sensitive contexts.
+
 ---
 
-## Get started (60 seconds)
+## Quickstart
 
-EchoRegent drops into your workflow in three different ways: as a transparent agent CLI wrapper, as a zero-code local HTTP proxy, or as a featherweight TypeScript SDK.
+```bash
+echoregent wrap codex   # Wrap your coding agent in one command
+echoregent proxy        # Or start standalone local HTTP proxy (:8787)
+```
 
-> **1-Command Verification:** Run the full local verification suite (multi-session memory, online delta-rule learner, and round-trip BPE checks):  
-> ```bash
-> npm run verify:all
-> ```
+EchoRegent drops into your workflow in three flexible ways:
 
-### # 1 — Coding Agents (Install & wrap in one command)
+### 1. Coding Agents (Transparent CLI Wrapper)
 
 Run your autonomous coding agents through EchoRegent's transparent launcher. Verbose compiler diagnostics, test cascades, and git logs are compacted in `<2 ms` before hitting upstream models, while relevant project memory is automatically retrieved and injected.
 
@@ -172,7 +174,11 @@ const { items, turnsCompacted } = compactConversationTurns(messages, { keepRecen
 
 ---
 
-## Proof: measured token savings & net token economics
+## Measured Proof
+
+<p align="center">
+  <img src="docs/images/echoregent_proof.svg" alt="EchoRegent Measured Token Economics — 42,808 to 26,653 tokens sent, 37.7% cut, 0 extra LLM calls" width="880"/>
+</p>
 
 ### Measured Empirical Token Savings
 
@@ -219,7 +225,7 @@ EchoRegent is mathematically the **only context middleware that achieves a net-n
 
 ---
 
-## Give your AI memory: Karpathy-style LLM-Wiki
+## LLM-Wiki Memory
 
 Inspired by Andrej Karpathy's vision of an autonomous, human-auditable personal knowledge wiki maintained by LLMs, EchoRegent completely departs from opaque vector databases. Memory is stored as human-readable, Git-versionable Markdown files:
 
@@ -280,7 +286,11 @@ Setting `injectMemory: true` in `EchoRegent` options or passing `--inject-memory
 
 ---
 
-## Continually learning compression (AdaptiveCompressionLearner)
+## Continual Learning
+
+EchoRegent provides two complementary continual learning engines: a **zero-weight online delta-rule learner** in `@echoregent/core` for instantaneous local adaptation without backprop, and a **neural ONNX/TF-IDF pipeline** in `src/cts-core` and `pipeline/` for high-throughput enterprise classification.
+
+### 1. Zero-Weight Online Delta-Rule Learner (`AdaptiveCompressionLearner`)
 
 Traditional compressors use static regexes that either miss project-specific verbose patterns or aggressively strip crucial diagnostics. EchoRegent's `AdaptiveCompressionLearner` implements biological **Predictive Coding** (Rao & Ballard 1999) and **Complementary Learning Systems** (CLS theory) to adapt compression online.
 
@@ -313,7 +323,7 @@ Traditional compressors use static regexes that either miss project-specific ver
               w_k <- w_k + η * (target - w_k)
 ```
 
-### The Turn $t+1$ Free Feedback Loop
+#### The Turn $t+1$ Free Feedback Loop
 
 EchoRegent requires zero external reward models or secondary LLM judge calls. It passively monitors the natural downstream behavior of Turn $t+1$:
 
@@ -324,22 +334,32 @@ EchoRegent requires zero external reward models or secondary LLM judge calls. It
    - The agent successfully proceeds to the next forward reasoning step.
    - The user provides the next forward instruction without friction.
 
-### Local Delta-Rule Plasticity ($<1\text{ ms}$, No Backprop)
+#### Local Delta-Rule Plasticity ($<1	ext{ ms}$, No Backprop)
 
 For each structural pattern signature $s_k$ active in Turn $t$, its utility weight $w_k \in [0.0, 1.0]$ (initialized to $w_k^{(0)} = 1.0$) updates via the Rescorla-Wagner / Widrow-Hoff delta rule:
 
-$$w_k \leftarrow w_k + \eta \cdot (\text{target} - w_k)$$
+$$w_k \leftarrow w_k + \eta \cdot (	ext{target} - w_k)$$
 
 - **Learning Rate $\eta$:** $0.35$ (default)
-- **Protection Threshold $\theta$:** $0.45$ (default)
+- **Protection Threshold $	heta$:** $0.45$ (default)
 
-#### Two-Turn Regret Protection Dynamics
-- **Turn 1 Regret:** $w_k^{(1)} = 1.0 + 0.35 \cdot (0.0 - 1.0) = 0.65$. Since $0.65 \ge \theta$ ($0.45$), the pattern remains eligible for compression. A single accidental retry does not prematurely disable compression.
-- **Turn 2 Consecutive Regret:** $w_k^{(2)} = 0.65 + 0.35 \cdot (0.0 - 0.65) = 0.4225$. Because $0.4225 < \theta$ ($0.45$), the signature is **automatically promoted to `protectedSignatures`** and preserved verbatim forever for that project!
+##### Two-Turn Regret Protection Dynamics
+- **Turn 1 Regret:** $w_k^{(1)} = 1.0 + 0.35 \cdot (0.0 - 1.0) = 0.65$. Since $0.65 \ge 	heta$ ($0.45$), the pattern remains eligible for compression. A single accidental retry does not prematurely disable compression.
+- **Turn 2 Consecutive Regret:** $w_k^{(2)} = 0.65 + 0.35 \cdot (0.0 - 0.65) = 0.4225$. Because $0.4225 < 	heta$ ($0.45$), the signature is **automatically promoted to `protectedSignatures`** and preserved verbatim forever for that project!
 
 ---
 
-## Works in your agent
+### 2. Neural ONNX & TF-IDF Pipeline (`src/cts-core` and `pipeline/`)
+
+For enterprise proxies, gateways, and high-throughput production workloads, EchoRegent includes an automated machine-learning pipeline for intent classification and relevance scoring:
+
+- **Native TF-IDF & ONNX Runtime (`src/cts-core/`):** High-speed runtime modules (`transformers-runtime.ts`, `ml-classifier.ts`, `ml-relevance.ts`, `compact-classifier.ts`) deliver sub-millisecond intent classification, semantic deduplication, and zero-shot relevance scoring.
+- **Automated Training & Quantization (`pipeline/`):** Dedicated Python tooling (`pipeline/train/train_classifier.py`, `pipeline/train/train_relevance.py`, `pipeline/export/export_onnx.py`) exports calibrated, quantized ONNX models with strict overfit detection (`pipeline/eval/detect_overfit.py`) and zero external runtime dependencies.
+- **Dynamic Hybrid Routing (`src/cts-core/router.ts`):** Evaluates payload complexity to dynamically route between deterministic template factoring and neural semantic caching (`src/cts-core/semantic-cache.ts`).
+
+---
+
+## Works In Your Agent
 
 <details>
 <summary><b>OpenAI Codex CLI</b></summary>
@@ -511,9 +531,11 @@ client = OpenAI(
 
 ---
 
-## How it works under the hood
+## How It Works
 
-For the full architectural specifications, see `docs/images/echoregent_architecture.svg`.
+<p align="center">
+  <img src="docs/images/echoregent_architecture.svg" alt="EchoRegent 4-Stage Internal Pipeline Architecture" width="880"/>
+</p>
 
 ```
 +─────────────────────────────────────────────────────────────────────────────+
@@ -562,7 +584,7 @@ EchoRegent includes built-in fail-closed policy protections (`evaluatePolicy` in
 
 ---
 
-## Compared to (RTK, Headroom, Mem0, Supermemory)
+## Compared To
 
 | # | Dimension | EchoRegent (`@echoregent`) | RTK + ICM (`rtk-ai/rtk`) | Headroom (`headroom-ai`) | Mem0 + OpenMemory (`mem0ai`) | Supermemory (`supermemory`) |
 |---|---|---|---|---|---|---|
