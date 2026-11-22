@@ -1,7 +1,16 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { Resend } from 'resend'
-import { createReadStream, existsSync, readFileSync, statSync } from 'node:fs'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
+import { readFile } from 'node:fs/promises'
 import { dirname, extname, join } from 'node:path'
 import { lookup as dnsLookup } from 'node:dns/promises'
 import { isIP } from 'node:net'
@@ -191,11 +200,25 @@ function getClientIp(req: IncomingMessage): string {
   return ips.at(-1) ?? req.socket.remoteAddress ?? 'unknown'
 }
 
-// â”€â”€ Wiki store â€” DB-backed with JSON fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Wiki store — DB-backed with JSON fallback ────────────────────────────────
 
-const storePath = join(process.cwd(), 'data', 'cts-store.json')
+const wikiStorePath = join(process.cwd(), 'data', 'wikis.json')
+const storePath = wikiStorePath
 
-type Store = { userWikis: Record<string, WikiDocument>; llmWikis: Record<string, LLMWiki> }
+type LocalWikiStore = { userWikis: Record<string, WikiDocument>; llmWikis: Record<string, LLMWiki> }
+type Store = LocalWikiStore
+
+function writeLocalWikiStore(store: LocalWikiStore): void {
+  mkdirSync(dirname(wikiStorePath), { recursive: true })
+  const tmpPath = `${wikiStorePath}.${process.pid}.${Date.now()}.${Math.random().toString(36).slice(2)}.tmp`
+  try {
+    writeFileSync(tmpPath, JSON.stringify(store, null, 2), 'utf-8')
+    renameSync(tmpPath, wikiStorePath)
+  } catch (err) {
+    try { rmSync(tmpPath, { force: true }) } catch { /* best effort */ }
+    throw err
+  }
+}
 
 async function loadWiki(userId: string): Promise<{ userWiki: WikiDocument | null; llmWiki: LLMWiki | null }> {
   const db = getDb()
@@ -207,7 +230,7 @@ async function loadWiki(userId: string): Promise<{ userWiki: WikiDocument | null
     return { userWiki: rows[0]?.user_wiki ?? null, llmWiki: rows[0]?.llm_wiki ?? null }
   }
   try {
-    const store = JSON.parse(await readFile(storePath, 'utf-8')) as Store
+    const store = await loadFullStore()
     return { userWiki: store.userWikis[userId] ?? null, llmWiki: store.llmWikis[userId] ?? null }
   } catch { return { userWiki: null, llmWiki: null } }
 }
@@ -255,13 +278,20 @@ async function deleteWiki(userId: string): Promise<void> {
 }
 
 // JSON file fallback helpers
-async function loadFullStore(): Promise<Store> {
-  try { return JSON.parse(await readFile(storePath, 'utf-8')) as Store }
-  catch { return { userWikis: {}, llmWikis: {} } }
+async function loadFullStore(): Promise<LocalWikiStore> {
+  try {
+    return JSON.parse(await readFile(wikiStorePath, 'utf-8')) as LocalWikiStore
+  } catch {
+    try {
+      const legacyPath = join(process.cwd(), 'data', 'cts-store.json')
+      return JSON.parse(await readFile(legacyPath, 'utf-8')) as LocalWikiStore
+    } catch {
+      return { userWikis: {}, llmWikis: {} }
+    }
+  }
 }
-async function saveFullStore(store: Store): Promise<void> {
-  await mkdir(dirname(storePath), { recursive: true })
-  await writeFile(storePath, JSON.stringify(store, null, 2), 'utf-8')
+async function saveFullStore(store: LocalWikiStore): Promise<void> {
+  writeLocalWikiStore(store)
 }
 
 // â”€â”€ Server â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1435,7 +1465,7 @@ async function callOpenRouter(apiKey: string, history: Message[], message: strin
     headers: {
       'Content-Type':  'application/json',
       'Authorization': `Bearer ${apiKey}`,
-      'HTTP-Referer':  'https://cts-v4-production.up.railway.app',
+      'HTTP-Referer':  process.env.CTS_PUBLIC_URL || 'https://echoregent.ai',
       'X-Title':       'CTS Demo',
     },
     body: JSON.stringify({

@@ -1,8 +1,63 @@
 import { spawn } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
-import { resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { delimiter, dirname, join, resolve } from 'node:path'
+import process from 'node:process'
 import { EchoRegent } from '@echoregent/core'
 import { startProxy } from './proxy.js'
+
+export function resolveCodexCommand(command = 'codex'): { command: string; prefixArgs: string[] } {
+  if (process.platform !== 'win32' || command !== 'codex') {
+    return { command, prefixArgs: [] }
+  }
+
+  const candidateDirs = [
+    ...(process.env.PATH ?? '').split(delimiter),
+    join(process.env.APPDATA ?? '', 'npm'),
+    dirname(process.execPath),
+  ]
+
+  for (const dir of candidateDirs) {
+    if (!dir) continue
+
+    const jsPaths = [
+      join(dir, 'node_modules', '@openai', 'codex', 'bin', 'codex.js'),
+      join(dir, '..', 'node_modules', '@openai', 'codex', 'bin', 'codex.js'),
+    ]
+    for (const jsPath of jsPaths) {
+      if (existsSync(jsPath)) {
+        return { command: process.execPath, prefixArgs: [jsPath] }
+      }
+    }
+
+    const exePath = join(dir, 'codex.exe')
+    if (existsSync(exePath)) {
+      return { command: exePath, prefixArgs: [] }
+    }
+
+    const cmdPath = join(dir, 'codex.cmd')
+    if (existsSync(cmdPath)) {
+      try {
+        const text = readFileSync(cmdPath, 'utf8')
+        const matches = text.matchAll(/(?:%~?dp0%?[\\/])?([^\s"';]+?\.[mc]?js)\b/gi)
+        for (const match of matches) {
+          const candidate = match[1]
+          if (!candidate) continue
+          const cleanCandidate = candidate.replace(/^(?:%~?dp0%?[\\/])+/, '').trim()
+          const resolvedJs = resolve(dir, cleanCandidate)
+          if (existsSync(resolvedJs)) {
+            return { command: process.execPath, prefixArgs: [resolvedJs] }
+          }
+        }
+      } catch {
+        // Fall back to executing cmdPath via cmd.exe
+      }
+      return { command: process.env.ComSpec ?? 'cmd.exe', prefixArgs: ['/d', '/s', '/c', cmdPath] }
+    }
+  }
+
+  return { command, prefixArgs: [] }
+}
 
 export function buildCodexArgs(baseUrl: string, tokenEnv: string, args: string[]): string[] {
   if (!/^[A-Z_][A-Z0-9_]*$/.test(tokenEnv)) throw new Error('Invalid provider key environment variable')
@@ -28,7 +83,8 @@ export async function wrapCodex(args: string[], options: { upstream: string; key
     if (!health.ok || (await health.json()).product !== 'echoregent') throw new Error('Local routing verification failed')
     const childArgs = buildCodexArgs(proxy.baseUrl, 'ECHOREGENT_PROVIDER_KEY', args)
     console.error(`EchoRegent proxy: ${proxy.baseUrl} (rules only; memory off; telemetry off)`)
-    const child = spawn(options.command ?? 'codex', childArgs, { stdio: 'inherit', env: { ...process.env, ECHOREGENT_PROVIDER_KEY: options.key }, shell: false })
+    const resolved = resolveCodexCommand(options.command ?? 'codex')
+    const child = spawn(resolved.command, [...resolved.prefixArgs, ...childArgs], { stdio: 'inherit', env: { ...process.env, ECHOREGENT_PROVIDER_KEY: options.key }, shell: false })
     const forwardSignal = () => { child.kill('SIGINT') }
     process.on('SIGINT', forwardSignal)
     process.on('SIGTERM', forwardSignal)

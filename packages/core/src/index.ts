@@ -13,6 +13,12 @@ export { restoreCompressedRequest } from './history.js'
 export { ScopedMemory, scopeKey } from './memory.js'
 export { WikiMemory } from './wiki-memory.js'
 export {
+  compactConversationTurns,
+  restoreConversationTurns,
+  type CompactConversationOptions,
+  type CompactConversationResult,
+} from './conversation-compressor.js'
+export {
   AdaptiveCompressionLearner,
   type AdaptiveCompressorOptions,
   type AdaptiveCompressorState,

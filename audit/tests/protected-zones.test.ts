@@ -21,6 +21,7 @@
 
 import { describe, it, expect } from 'vitest'
 import { compressHistory } from '../../src/cts-core/compressor'
+import { classify } from '../../src/cts-core/classifier'
 import type { Message, RoutingFrame } from '../../src/cts-core/types'
 
 function longNonKeywordHistory(): Message[] {
@@ -90,5 +91,19 @@ describe('Issue #1 — protected-zone policy after the medical/legal opt-in', ()
     expect(medicalResult.tokensSaved).toBeGreaterThan(0)
     expect(generalResult.tokensSaved).toBeGreaterThan(0)
     expect(crisisResult.tokensSaved).toBe(0)
+  })
+
+  it('indirect crisis conversation history detects crisis risk and passes through 100% uncompressed', () => {
+    const history = longNonKeywordHistory()
+    const lastMsg = history[history.length - 1].content
+    const frame = classify(lastMsg, history)
+
+    expect(frame.risk).toContain('crisis')
+    expect(frame.risk).toContain('protected_context')
+
+    const result = compressHistory(history, classify(lastMsg, history))
+    expect(result.compressed.length).toBe(history.length)
+    expect(result.tokensSaved).toBe(0)
+    expect(result.compressed).toEqual(history)
   })
 })

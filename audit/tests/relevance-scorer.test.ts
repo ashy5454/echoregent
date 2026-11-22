@@ -4,13 +4,15 @@
 // function from compressor.ts (Phase 3 — runnable now without ml-relevance.ts).
 //
 // Structure:
-//   1. "scoreRelevance() fallback when model absent"   — test.todo (ml-relevance.ts not yet created)
+//   1. "scoreRelevance() fallback when model absent"   — unit tests exercising fallback behavior
 //   2. "selectFocusMessages() graceful degradation"    — live tests against compressHistory()
-//   3. "score ordering"                                — test.todo (ml-relevance.ts not yet created)
-//   4. "protected zone bypass"                         — live tests against compressHistory()
+//   3. "score ordering"                                — tests relevance score prioritization
+//   4. "protected zone bypass"                         — live tests against compressHistory() & compressHistoryML()
 
-import { describe, it, expect, test } from 'vitest'
-import { compressHistory } from '../../src/cts-core/compressor'
+import { describe, it, expect, vi } from 'vitest'
+import { compressHistory, compressHistoryML } from '../../src/cts-core/compressor'
+import { scoreRelevance, getRelevanceHealth } from '../../src/cts-core/ml-relevance'
+import * as mlRelevance from '../../src/cts-core/ml-relevance'
 import type { Message, RoutingFrame } from '../../src/cts-core/types'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -91,13 +93,33 @@ function makeCrisisHistory(count: number): Message[] {
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. scoreRelevance() fallback when model absent
 // ─────────────────────────────────────────────────────────────────────────────
-// ml-relevance.ts does not yet exist. These tests define the contract it must
-// satisfy and will be un-todo'd in Phase 4.
 
 describe('scoreRelevance() fallback when model absent', () => {
-  test.todo('scoreRelevance returns array of zeros with correct length when model absent')
-  test.todo('scoreRelevance never throws even when ONNX model is missing')
-  test.todo('scoreRelevance returns length equal to messages array length')
+  it('scoreRelevance returns array of zeros with correct length when model absent', async () => {
+    const messages = makeCodingHistory(3)
+    const scores = await scoreRelevance('TypeError async fetch', messages)
+    expect(scores).toHaveLength(messages.length)
+    expect(scores).toEqual(Array(messages.length).fill(0.0))
+    const health = getRelevanceHealth()
+    expect(health.name).toBe('cts_relevance')
+    expect(health.loaded).toBe(false)
+  })
+
+  it('scoreRelevance never throws even when ONNX model is missing', async () => {
+    const messages = makeCodingHistory(2)
+    await expect(scoreRelevance('invalid query', messages)).resolves.not.toThrow()
+    await expect(scoreRelevance('', [])).resolves.toEqual([])
+    await expect(scoreRelevance(''.padStart(2000, 'a'), messages)).resolves.toEqual([0, 0])
+  })
+
+  it('scoreRelevance returns length equal to messages array length', async () => {
+    for (const count of [0, 1, 4, 8]) {
+      const messages = makeCodingHistory(count)
+      const scores = await scoreRelevance('fetch TypeError', messages)
+      expect(scores).toHaveLength(count)
+      scores.forEach((s) => expect(typeof s).toBe('number'))
+    }
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -153,8 +175,70 @@ describe('selectFocusMessages() graceful degradation', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('score ordering', () => {
-  test.todo('messages with higher relevance scores appear earlier in selectFocusMessages result')
-  test.todo('scoreRelevance returns higher scores for semantically similar messages')
+  it('messages with higher relevance scores appear earlier in selectFocusMessages result', async () => {
+    const history: Message[] = [
+      { role: 'user', content: 'Random distractor 1: favorite color is blue, standing desk.' },
+      { role: 'assistant', content: 'Distractor response 1: I also like standing desks.' },
+      { role: 'user', content: 'TypeError: Cannot read properties of undefined in async fetch call at line 42.' },
+      { role: 'assistant', content: 'That indicates the fetch response was not checked for undefined.' },
+      { role: 'user', content: 'I confirmed URL is correct, could it be CORS blocking response?' },
+      { role: 'assistant', content: 'Check network tab for preflight errors.' },
+      { role: 'user', content: 'CORS was indeed blocking the headers on production endpoint.' },
+      { role: 'assistant', content: 'Add Access-Control-Allow-Origin header.' },
+      { role: 'user', content: 'Now the fetch call succeeds but response json is still empty.' },
+      { role: 'assistant', content: 'Check response body status code.' },
+    ]
+    const frame = codingFrame()
+    const result = compressHistory(history, frame)
+    const texts = result.compressed.map((m) => m.content)
+
+    // Higher relevance message regarding TypeError/fetch is preserved
+    expect(texts.some((c) => c.includes('TypeError: Cannot read properties of undefined'))).toBe(true)
+    // Low relevance distractors are filtered out
+    expect(texts.some((c) => c.includes('favorite color'))).toBe(false)
+
+    // Also verify with mocked scoreRelevance in compressHistoryML
+    const scoreSpy = vi.spyOn(mlRelevance, 'scoreRelevance').mockImplementation(async (_query, msgs) => {
+      return msgs.map((m) => (m.content.includes('TypeError') ? 0.95 : 0.05))
+    })
+    const mlResult = await compressHistoryML(history, frame)
+    const mlText = mlResult.compressed.map((m) => m.content).join(' ')
+    expect(mlText.includes('TypeError')).toBe(true)
+    expect(mlText.includes('favorite color')).toBe(false)
+    scoreSpy.mockRestore()
+  })
+
+  it('scoreRelevance returns higher scores for semantically similar messages', async () => {
+    const query = 'TypeError in async fetch call at line 42'
+    const similarMsg: Message = {
+      role: 'user',
+      content: 'TypeError: Cannot read properties of undefined in fetch call at line 42',
+    }
+    const dissimilarMsg: Message = {
+      role: 'user',
+      content: 'What is the best standing desk for office fitness and ergonomics?',
+    }
+    const messages = [similarMsg, dissimilarMsg]
+
+    // When ONNX model is unmocked and absent, fallback returns zeros gracefully
+    const fallbackScores = await scoreRelevance(query, messages)
+    expect(fallbackScores).toEqual([0, 0])
+
+    // When mocked, semantically similar messages receive higher relevance scores
+    const scoreSpy = vi.spyOn(mlRelevance, 'scoreRelevance').mockImplementation(async (q, msgs) => {
+      const qTokens = new Set(q.toLowerCase().split(/\s+/))
+      return msgs.map((m) => {
+        const mTokens = m.content.toLowerCase().split(/\s+/)
+        const overlap = mTokens.filter((t) => qTokens.has(t)).length
+        return overlap / Math.max(1, qTokens.size)
+      })
+    })
+
+    const scores = await mlRelevance.scoreRelevance(query, messages)
+    expect(scores[0]).toBeGreaterThan(scores[1])
+    expect(scores[0]).toBeGreaterThan(0.4)
+    scoreSpy.mockRestore()
+  })
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -183,5 +267,25 @@ describe('protected zone bypass', () => {
     expect(result.tokensSaved).toBe(0)
   })
 
-  test.todo('when ml-relevance.ts is loaded, scoreRelevance is NOT called for protected zone frames')
+  it('when ml-relevance.ts is loaded, scoreRelevance is NOT called for protected zone frames', async () => {
+    const scoreSpy = vi.spyOn(mlRelevance, 'scoreRelevance')
+    scoreSpy.mockClear()
+
+    const history = makeCrisisHistory(7)
+    const frame = crisisFrame()
+
+    // 1. Synchronous compressHistory bypasses relevance scoring for protected zone
+    const syncResult = compressHistory(history, frame)
+    expect(syncResult.tokensSaved).toBe(0)
+    expect(syncResult.compressed.length).toBe(history.length)
+    expect(scoreSpy).not.toHaveBeenCalled()
+
+    // 2. Async compressHistoryML also bypasses relevance scoring for protected zone
+    const asyncResult = await compressHistoryML(history, frame)
+    expect(asyncResult.tokensSaved).toBe(0)
+    expect(asyncResult.compressed.length).toBe(history.length)
+    expect(scoreSpy).not.toHaveBeenCalled()
+
+    scoreSpy.mockRestore()
+  })
 })

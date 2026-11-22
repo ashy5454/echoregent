@@ -5,10 +5,10 @@
 //   11.2  Token count accuracy (countChatTokens returns real BPE values)
 //   11.3  Token_Saving_Accuracy metric: ratio = 1 - |estimated - actual| / actual
 //   11.4  Protected zone enforcement: tokensSaved === 0 for medical / crisis domains
-//   11.5  CTS_CACHE_THRESHOLD env-var validation (Phase 4, placeholder todos)
+//   11.5  CTS_CACHE_THRESHOLD env-var validation
 //   9.3   estimatedTokensSaved = estimatedPromptTokens - estimatedCompressedTokens
 
-import { describe, it, expect, test } from 'vitest'
+import { describe, it, expect, test, vi, afterEach } from 'vitest'
 import { compressHistory } from '../../src/cts-core/compressor'
 import { countChatTokens } from '../../src/cts-core/tokenizer'
 import type { Message, RoutingFrame } from '../../src/cts-core/types'
@@ -207,10 +207,51 @@ describe('protected zone header values', () => {
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 4. CTS_CACHE_THRESHOLD env var  (Requirement 11.5 — Phase 4, placeholder)
+// 4. CTS_CACHE_THRESHOLD env var  (Requirement 11.5)
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('CTS_CACHE_THRESHOLD env var', () => {
-  test.todo('CTS_CACHE_THRESHOLD out of range logs a warning and falls back to 0.92')
-  test.todo('CTS_CACHE_THRESHOLD of 0.88 is accepted and used as active threshold')
+  const originalThreshold = process.env.CTS_CACHE_THRESHOLD
+
+  afterEach(() => {
+    if (originalThreshold !== undefined) {
+      process.env.CTS_CACHE_THRESHOLD = originalThreshold
+    } else {
+      delete process.env.CTS_CACHE_THRESHOLD
+    }
+    vi.restoreAllMocks()
+    vi.resetModules()
+  })
+
+  it('CTS_CACHE_THRESHOLD out of range logs a warning and falls back to 0.92', async () => {
+    process.env.CTS_CACHE_THRESHOLD = '1.5'
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.resetModules()
+    const { getActiveCacheThreshold } = await import('../../src/cts-core/semantic-cache')
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[CTS] CTS_CACHE_THRESHOLD=1.5 is out of range [0.50, 1.00] — using default 0.92')
+    )
+    expect(getActiveCacheThreshold()).toBe(0.92)
+
+    warnSpy.mockClear()
+    process.env.CTS_CACHE_THRESHOLD = '0.40'
+    vi.resetModules()
+    const modBelow = await import('../../src/cts-core/semantic-cache')
+
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('[CTS] CTS_CACHE_THRESHOLD=0.40 is out of range [0.50, 1.00] — using default 0.92')
+    )
+    expect(modBelow.getActiveCacheThreshold()).toBe(0.92)
+  })
+
+  it('CTS_CACHE_THRESHOLD of 0.88 is accepted and used as active threshold', async () => {
+    process.env.CTS_CACHE_THRESHOLD = '0.88'
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.resetModules()
+    const { getActiveCacheThreshold } = await import('../../src/cts-core/semantic-cache')
+
+    expect(warnSpy).not.toHaveBeenCalled()
+    expect(getActiveCacheThreshold()).toBe(0.88)
+  })
 })

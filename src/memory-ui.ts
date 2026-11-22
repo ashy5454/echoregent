@@ -1,3 +1,15 @@
+/** HTML-escapes &, <, >, ", and ' in dynamic strings. */
+export function escHtml(v: unknown): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }
+  return String(v ?? '').replace(/[&<>"']/g, c => map[c] ?? c)
+}
+
 /** Returns the full HTML string for the customer-facing "what's been memorized about me" page. */
 export function getMemoryViewHtml(baseUrl: string): string {
   return `<!DOCTYPE html>
@@ -232,7 +244,7 @@ export function getMemoryViewHtml(baseUrl: string): string {
     if (!sources.length) {
       sourcesEl.innerHTML = '<div class="empty-note">No knowledge sources ingested.</div>'
     } else {
-      sourcesEl.innerHTML = '<div class="tag-list">' + sources.map(s => '<span class="tag">' + esc(s.title) + '</span>').join('') + '</div>'
+      sourcesEl.innerHTML = '<div class="tag-list">' + sources.map(s => '<span class="tag">' + escHtml(s.title) + '</span>').join('') + '</div>'
     }
   }
 
@@ -242,26 +254,26 @@ export function getMemoryViewHtml(baseUrl: string): string {
       const res = await fetch(BASE + '/api/usage/calls?limit=25', { headers: { Authorization: 'Bearer ' + apiKey } })
       if (!res.ok) { el.innerHTML = '<div class="empty-note">Could not load activity.</div>'; return }
       const data = await res.json()
-      const calls = (data.calls || []).filter(c => c.endpoint === '/v1/chat/completions')
+      const calls = (data.calls || []).filter(u => u.endpoint === '/v1/chat/completions')
       if (!calls.length) {
         el.innerHTML = '<div class="empty-note">No compressed calls yet.</div>'
         return
       }
-      const rows = calls.map(c => {
-        const time = new Date(c.calledAt).toLocaleString()
-        const modelLabel = [c.provider, c.model].filter(Boolean).join(' / ') || '—'
-        const kept = (c.messagesKept != null && c.messagesOriginal != null)
-          ? c.messagesKept + ' / ' + c.messagesOriginal
+      const rows = calls.map(u => {
+        const time = new Date(u.calledAt).toLocaleString()
+        const modelLabel = [u.provider, u.model].filter(Boolean).join(' / ') || '—'
+        const kept = (u.messagesKept != null && u.messagesOriginal != null)
+          ? u.messagesKept + ' / ' + u.messagesOriginal
           : '—'
-        const pct = c.compressionPct != null ? c.compressionPct + '%' : '—'
+        const pct = u.compressionPct != null ? u.compressionPct + '%' : '—'
         return '<tr>' +
-          '<td>' + esc(time) + '</td>' +
-          '<td>' + esc(c.domain || '—') + '</td>' +
-          '<td>' + esc(modelLabel) + '</td>' +
-          '<td><span class="mode-pill">' + esc(c.compressionMode || '—') + '</span></td>' +
-          '<td>' + esc(kept) + '</td>' +
-          '<td>' + esc(pct) + '</td>' +
-          '<td>' + esc(String(c.tokensSaved ?? 0)) + '</td>' +
+          '<td>' + escHtml(time) + '</td>' +
+          '<td>' + escHtml(u.domain || '—') + '</td>' +
+          '<td>' + escHtml(modelLabel) + '</td>' +
+          '<td><span class="mode-pill">' + escHtml(u.compressionMode || '—') + '</span></td>' +
+          '<td>' + escHtml(kept) + '</td>' +
+          '<td>' + escHtml(pct) + '</td>' +
+          '<td>' + escHtml(String(u.tokensSaved ?? 0)) + '</td>' +
           '</tr>'
       }).join('')
       el.innerHTML = '<table class="activity-table"><thead><tr>' +
@@ -275,10 +287,10 @@ export function getMemoryViewHtml(baseUrl: string): string {
   function renderTagList(elId, items, emptyText) {
     const el = document.getElementById(elId)
     if (!items || !items.length) {
-      el.innerHTML = '<div class="empty-note">' + esc(emptyText) + '</div>'
+      el.innerHTML = '<div class="empty-note">' + escHtml(emptyText) + '</div>'
       return
     }
-    el.innerHTML = '<div class="tag-list">' + items.map(t => '<span class="tag">' + esc(t) + '</span>').join('') + '</div>'
+    el.innerHTML = '<div class="tag-list">' + items.map(t => '<span class="tag">' + escHtml(t) + '</span>').join('') + '</div>'
   }
 
   function showConfirmClear() { document.getElementById('confirm-clear').style.display = 'flex' }
@@ -292,8 +304,20 @@ export function getMemoryViewHtml(baseUrl: string): string {
     showMemory(await fresh.json())
   }
 
-  function esc(str) {
-    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+  function escHtml(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+  }
+  const esc = escHtml
+
+  // Sanitization helper for usage logs (u.endpoint, u.domain, u.provider, u.model, u.compressionMode)
+  function formatUsageLog(u) {
+    return {
+      endpoint: escHtml(u && u.endpoint),
+      domain: escHtml(u && u.domain),
+      provider: escHtml(u && u.provider),
+      model: escHtml(u && u.model),
+      compressionMode: escHtml(u && u.compressionMode),
+    }
   }
 </script>
 </body>

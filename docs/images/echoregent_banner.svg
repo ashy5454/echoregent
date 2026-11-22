@@ -1,13 +1,257 @@
-<svg viewBox="0 0 900 220" xmlns="http://www.w3.org/2000/svg" role="img">
-<title>EchoRegent — Conversation Intelligence Middleware by Yudi Labs</title>
-<rect width="900" height="220" fill="#08090e"/>
-<line x1="0" y1="110" x2="900" y2="110" stroke="#0e1118" stroke-width="1"/>
-<polyline points="30,110 50,80 70,130 90,65 110,145 130,85 150,120 170,100 190,110" fill="none" stroke="#00c9b1" stroke-width="1.5" opacity="0.5"/>
-<polyline points="30,110 50,88 70,122 90,74 110,136 130,92 150,116 170,104 190,110" fill="none" stroke="#00c9b1" stroke-width="1" opacity="0.25"/>
-<polyline points="710,110 730,80 750,130 770,65 790,145 810,85 830,120 850,100 870,110" fill="none" stroke="#00c9b1" stroke-width="1.5" opacity="0.5"/>
-<polyline points="710,110 730,88 750,122 770,74 790,136 810,92 830,116 850,104 870,110" fill="none" stroke="#00c9b1" stroke-width="1" opacity="0.25"/>
-<text x="450" y="108" fill="#e8eaf0" font-size="62" font-weight="700" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" letter-spacing="-1">EchoRegent</text>
-<rect x="300" y="120" width="300" height="2" fill="#00c9b1" opacity="0.7"/>
-<text x="450" y="152" fill="#00c9b1" font-size="13" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" letter-spacing="4">CONVERSATION INTELLIGENCE MIDDLEWARE</text>
-<text x="450" y="186" fill="#3d4455" font-size="11" text-anchor="middle" font-family="ui-monospace,SFMono-Regular,Menlo,monospace" letter-spacing="2">BY YUDI LABS</text>
+<svg width="920" height="320" viewBox="0 0 920 320" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EchoRegent Token Optimization and Continual Memory Hero Banner">
+  <defs>
+    <!-- Background Grid -->
+    <pattern id="banner-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#161e2e" stroke-width="0.65" opacity="0.6"/>
+    </pattern>
+
+    <!-- Radial Glows -->
+    <radialGradient id="glow-left" cx="0%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-center" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#00c9b1" stop-opacity="0.16"/>
+      <stop offset="60%" stop-color="#06b6d4" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#0b1120" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glow-right" cx="100%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#10b981" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Linear Gradients -->
+    <linearGradient id="panel-left-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f87171" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#ef4444" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="panel-right-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#059669" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="center-border" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf"/>
+      <stop offset="50%" stop-color="#00c9b1"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+
+    <!-- Connector Flow Gradients -->
+    <linearGradient id="flow-left-to-center" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#ef4444" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#00c9b1" stop-opacity="0.9"/>
+    </linearGradient>
+    <linearGradient id="flow-center-to-right" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00c9b1" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#10b981" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .mono { font-family: 'SF Mono', Consolas, Menlo, Monaco, 'Courier New', monospace; }
+    .sans { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  </style>
+
+  <!-- Canvas Background -->
+  <rect width="920" height="320" rx="12" fill="#07090e"/>
+  <rect width="920" height="320" rx="12" fill="url(#banner-grid)"/>
+
+  <!-- Ambient Glow Highlights -->
+  <rect x="0" y="0" width="340" height="320" fill="url(#glow-left)"/>
+  <rect x="330" y="0" width="260" height="320" fill="url(#glow-center)"/>
+  <rect x="580" y="0" width="340" height="320" fill="url(#glow-right)"/>
+
+  <!-- Outer Border -->
+  <rect x="0.5" y="0.5" width="919" height="319" rx="11.5" fill="none" stroke="#1e293b" stroke-opacity="0.6"/>
+
+  <!-- ==================== FLOW CONNECTOR BEAMS ==================== -->
+  <!-- Left to Center Connector -->
+  <g opacity="0.85">
+    <line x1="335" y1="140" x2="352" y2="140" stroke="url(#flow-left-to-center)" stroke-width="2" stroke-dasharray="3,3"/>
+    <line x1="335" y1="170" x2="352" y2="170" stroke="url(#flow-left-to-center)" stroke-width="2"/>
+    <polygon points="352,170 346,166 346,174" fill="#00c9b1"/>
+    <line x1="335" y1="200" x2="352" y2="200" stroke="url(#flow-left-to-center)" stroke-width="2" stroke-dasharray="3,3"/>
+  </g>
+
+  <!-- Center to Right Connector -->
+  <g opacity="0.85">
+    <line x1="568" y1="140" x2="585" y2="140" stroke="url(#flow-center-to-right)" stroke-width="2" stroke-dasharray="3,3"/>
+    <line x1="568" y1="170" x2="585" y2="170" stroke="url(#flow-center-to-right)" stroke-width="2"/>
+    <polygon points="585,170 579,166 579,174" fill="#10b981"/>
+    <line x1="568" y1="200" x2="585" y2="200" stroke="url(#flow-center-to-right)" stroke-width="2" stroke-dasharray="3,3"/>
+  </g>
+
+
+  <!-- ==================== LEFT PANEL: RAW AGENT REQUEST ==================== -->
+  <g id="left-panel">
+    <!-- Panel Background -->
+    <rect x="18" y="18" width="316" height="284" rx="10" fill="#0b0f19" stroke="url(#panel-left-border)" stroke-width="1.2"/>
+    
+    <!-- Title Bar -->
+    <rect x="18" y="18" width="316" height="34" rx="10" fill="#111726"/>
+    <rect x="18" y="42" width="316" height="10" fill="#111726"/>
+    <line x1="18" y1="52" x2="334" y2="52" stroke="#1e293b" stroke-width="1"/>
+
+    <!-- Terminal Window Dots -->
+    <circle cx="34" cy="35" r="4.5" fill="#ef4444"/>
+    <circle cx="48" cy="35" r="4.5" fill="#f59e0b"/>
+    <circle cx="62" cy="35" r="4.5" fill="#10b981"/>
+
+    <!-- Panel Header Text -->
+    <text x="80" y="39" class="mono" font-size="10" font-weight="700" fill="#f87171" letter-spacing="0.5">RAW AGENT REQUEST</text>
+
+    <!-- Token Bloat Badge -->
+    <rect x="214" y="25" width="110" height="20" rx="10" fill="#ef4444" fill-opacity="0.18" stroke="#ef4444" stroke-width="1"/>
+    <circle cx="224" cy="35" r="3" fill="#f87171"/>
+    <text x="233" y="39" class="mono" font-size="10" font-weight="700" fill="#fca5a5">42,808 tokens</text>
+
+    <!-- Code Block: Repetitive Build Logs & Trace -->
+    <g class="mono" font-size="9.5">
+      <!-- Repetitive Timestamps and Info lines -->
+      <text x="30" y="73" fill="#64748b">[10:41:02.104] <tspan fill="#f59e0b">[INFO]</tspan> <tspan fill="#94a3b8">tsc --build packages/core</tspan></text>
+      <text x="30" y="90" fill="#64748b">[10:41:02.391] <tspan fill="#f59e0b">[INFO]</tspan> <tspan fill="#94a3b8">tsc --build packages/cli</tspan></text>
+      <text x="30" y="107" fill="#64748b">[10:41:02.880] <tspan fill="#f59e0b">[INFO]</tspan> <tspan fill="#94a3b8">rollup bundle: 42 modules</tspan></text>
+      <text x="30" y="124" fill="#64748b">[10:41:03.115] <tspan fill="#f59e0b">[INFO]</tspan> <tspan fill="#94a3b8">vitest: 38 passed (1.4s)</tspan></text>
+
+      <!-- History Bloat Indicator -->
+      <rect x="28" y="133" width="296" height="18" rx="4" fill="#1f1a24" stroke="#451a1a" stroke-width="0.8"/>
+      <text x="34" y="146" fill="#f87171" font-size="9" font-weight="600">... [40-turn chat history • 12,400 repetitive lines]</text>
+
+      <!-- Warning & Error Lines -->
+      <text x="30" y="169" fill="#f97316" font-weight="700">[WARN] <tspan fill="#fed7aa">Missing cross-session memory context</tspan></text>
+      <text x="30" y="186" fill="#ef4444" font-weight="700">FAIL <tspan fill="#f87171">endpoint /v2/reconcile status 503</tspan></text>
+      <text x="42" y="202" fill="#fca5a5" font-size="9">trace QZ-8407 timeout at db.pool.connect</text>
+      <text x="42" y="217" fill="#64748b" font-size="9">ECONNREFUSED 10.0.4.12:5432 (retry #4 failed)</text>
+    </g>
+
+    <!-- Bottom Waste Pill -->
+    <rect x="26" y="235" width="300" height="55" rx="6" fill="#181119" stroke="#ef4444" stroke-opacity="0.35" stroke-width="1"/>
+    <path d="M 38 253 L 44 243 L 50 253 Z" fill="#ef4444" stroke="#f87171" stroke-width="1"/>
+    <text x="44" y="252" class="sans" font-size="9" font-weight="900" fill="#ffffff" text-anchor="middle">!</text>
+    <text x="58" y="252" class="sans" font-size="10" font-weight="700" fill="#fca5a5">Context Window Inefficiency</text>
+    <text x="58" y="266" class="sans" font-size="8.5" fill="#94a3b8">62% redundant tokens • 0 shared cross-turn state</text>
+    <text x="58" y="278" class="sans" font-size="8.5" fill="#f87171">Forces re-explaining architecture on every turn</text>
+  </g>
+
+
+  <!-- ==================== CENTER ENGINE BADGE: ECHOREGENT v0.4.0 ==================== -->
+  <g id="center-badge">
+    <!-- Center Card Base -->
+    <rect x="352" y="18" width="216" height="284" rx="12" fill="#08131d" stroke="url(#center-border)" stroke-width="1.8"/>
+
+    <!-- Subtle Header Glow Bar -->
+    <path d="M 353 30 C 353 23.37 358.37 18 365 18 L 555 18 C 561.63 18 567 23.37 567 30 L 567 56 L 353 56 Z" fill="#0c1f2e" opacity="0.6"/>
+
+    <!-- Brand Resonance Waves Icon -->
+    <g transform="translate(460, 42)">
+      <!-- Outer Echo Ring -->
+      <circle cx="0" cy="0" r="16" fill="#00c9b1" fill-opacity="0.12" stroke="#00c9b1" stroke-opacity="0.4" stroke-width="1"/>
+      <circle cx="0" cy="0" r="10" fill="#00c9b1" fill-opacity="0.2" stroke="#2dd4bf" stroke-width="1"/>
+      <circle cx="0" cy="0" r="4.5" fill="#ffffff"/>
+      <!-- Echo Arcs -->
+      <path d="M -23 -8 A 25 25 0 0 0 -23 8" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+      <path d="M 23 -8 A 25 25 0 0 1 23 8" fill="none" stroke="#2dd4bf" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
+      <path d="M -29 -12 A 32 32 0 0 0 -29 12" fill="none" stroke="#00c9b1" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+      <path d="M 29 -12 A 32 32 0 0 1 29 12" fill="none" stroke="#00c9b1" stroke-width="1.2" stroke-linecap="round" opacity="0.4"/>
+    </g>
+
+    <!-- Main Title & Version -->
+    <text x="460" y="76" class="sans" font-size="16" font-weight="800" fill="#ffffff" text-anchor="middle" letter-spacing="-0.3">EchoRegent</text>
+    
+    <rect x="426" y="83" width="68" height="16" rx="8" fill="#00c9b1" fill-opacity="0.2" stroke="#00c9b1" stroke-width="0.8"/>
+    <text x="460" y="94.5" class="mono" font-size="9.5" font-weight="700" fill="#2dd4bf" text-anchor="middle">v0.4.0</text>
+
+    <!-- Loopback Host & Package Pill -->
+    <rect x="365" y="105" width="190" height="19" rx="4" fill="#0c1d2c" stroke="#163750" stroke-width="1"/>
+    <text x="460" y="118" class="mono" font-size="8.5" fill="#38bdf8" text-anchor="middle">127.0.0.1:8787 • @echoregent/core</text>
+
+    <!-- 3 Core Engine Feature Cards -->
+    <!-- Feature 1: Lossless Template Factoring -->
+    <g transform="translate(364, 131)">
+      <rect width="192" height="21" rx="4" fill="#08232c" stroke="#00c9b1" stroke-opacity="0.35" stroke-width="1"/>
+      <path d="M 12 10.5 L 8 7 M 8 7 L 12 3.5 M 16 3.5 L 20 7 M 20 7 L 16 10.5" transform="translate(3, 3)" fill="none" stroke="#2dd4bf" stroke-width="1.2" stroke-linecap="round"/>
+      <text x="32" y="14" class="sans" font-size="9" font-weight="600" fill="#ccfbf1">Lossless Template Factoring</text>
+    </g>
+
+    <!-- Feature 2: Online Delta-Rule Learner -->
+    <g transform="translate(364, 157)">
+      <rect width="192" height="21" rx="4" fill="#08232c" stroke="#00c9b1" stroke-opacity="0.35" stroke-width="1"/>
+      <text x="14" y="14.5" class="mono" font-size="11" font-weight="700" fill="#2dd4bf">Δ</text>
+      <text x="32" y="14" class="sans" font-size="9" font-weight="600" fill="#ccfbf1">Online Delta-Rule Learner</text>
+    </g>
+
+    <!-- Feature 3: Karpathy LLM-Wiki Injector -->
+    <g transform="translate(364, 183)">
+      <rect width="192" height="21" rx="4" fill="#08232c" stroke="#00c9b1" stroke-opacity="0.35" stroke-width="1"/>
+      <path d="M 11 5 L 15 7 L 19 5 L 19 14 L 15 16 L 11 14 Z M 15 7 L 15 16" fill="none" stroke="#2dd4bf" stroke-width="1.2" stroke-linejoin="round"/>
+      <text x="32" y="14" class="sans" font-size="9" font-weight="600" fill="#ccfbf1">Karpathy LLM-Wiki Injector</text>
+    </g>
+
+    <!-- KPI Dual Pills -->
+    <!-- Left Pill: 0 extra LLM calls -->
+    <rect x="364" y="211" width="94" height="22" rx="4" fill="#064e3b" fill-opacity="0.45" stroke="#10b981" stroke-width="1"/>
+    <text x="411" y="225" class="sans" font-size="8.5" font-weight="700" fill="#6ee7b7" text-anchor="middle">0 extra LLM calls</text>
+
+    <!-- Right Pill: 100% MIT -->
+    <rect x="462" y="211" width="94" height="22" rx="4" fill="#1e1b4b" fill-opacity="0.45" stroke="#818cf8" stroke-width="1"/>
+    <text x="509" y="225" class="sans" font-size="8.5" font-weight="700" fill="#c7d2fe" text-anchor="middle">100% MIT</text>
+
+    <!-- Engine Guarantees -->
+    <rect x="364" y="239" width="192" height="51" rx="6" fill="#041b24" stroke="#00c9b1" stroke-opacity="0.25" stroke-width="1"/>
+    <text x="460" y="255" class="sans" font-size="8.5" font-weight="600" fill="#94a3b8" text-anchor="middle">Deterministic Policy Guard</text>
+    <text x="460" y="269" class="sans" font-size="8.5" fill="#64748b" text-anchor="middle">Zero Telemetry • Zero Bundled Weights</text>
+    <text x="460" y="282" class="sans" font-size="8.5" font-weight="700" fill="#2dd4bf" text-anchor="middle">Reversible Decompression</text>
+  </g>
+
+
+  <!-- ==================== RIGHT PANEL: COMPACTED & ENRICHED ==================== -->
+  <g id="right-panel">
+    <!-- Panel Background -->
+    <rect x="586" y="18" width="316" height="284" rx="10" fill="#081418" stroke="url(#panel-right-border)" stroke-width="1.2"/>
+    
+    <!-- Title Bar -->
+    <rect x="586" y="18" width="316" height="34" rx="10" fill="#0d2125"/>
+    <rect x="586" y="42" width="316" height="10" fill="#0d2125"/>
+    <line x1="586" y1="52" x2="902" y2="52" stroke="#163e3d" stroke-width="1"/>
+
+    <!-- Terminal Window Dots -->
+    <circle cx="602" cy="35" r="4.5" fill="#ef4444"/>
+    <circle cx="616" cy="35" r="4.5" fill="#f59e0b"/>
+    <circle cx="630" cy="35" r="4.5" fill="#10b981"/>
+
+    <!-- Panel Header Text -->
+    <text x="644" y="38.5" class="sans" font-size="9" font-weight="700" fill="#34d399" letter-spacing="0.3">COMPACTED &amp; ENRICHED</text>
+
+    <!-- Compacted Token Badge (positioned with ample clearance) -->
+    <rect x="758" y="24" width="136" height="22" rx="11" fill="#10b981" fill-opacity="0.22" stroke="#10b981" stroke-width="1"/>
+    <circle cx="769" cy="35" r="3" fill="#34d399"/>
+    <text x="778" y="38.5" class="mono" font-size="8.5" font-weight="700" fill="#6ee7b7">26,653 tokens (-37.7%)</text>
+
+    <!-- Code Block: Factored Logs & Injected Memory -->
+    <g class="mono" font-size="9.5">
+      <!-- EchoRegent lossless logs v1 dictionary header -->
+      <text x="598" y="73" fill="#38bdf8" font-weight="700">[EchoRegent lossless logs v1]</text>
+      <text x="606" y="89" fill="#94a3b8">tmpl: <tspan fill="#fef08a">"[10:41:02.{t}] [INFO] {pkg}"</tspan></text>
+      <text x="606" y="105" fill="#6ee7b7">vars: <tspan fill="#a7f3d0">[104,core], [391,cli], [880,bundle]</tspan></text>
+
+      <!-- Preserved Byte-for-Byte Critical Stack Trace -->
+      <rect x="598" y="115" width="292" height="32" rx="4" fill="#0c2525" stroke="#10b981" stroke-opacity="0.3" stroke-width="0.8"/>
+      <text x="604" y="127" fill="#34d399" font-weight="700">FAIL endpoint /v2/reconcile status 503</text>
+      <text x="612" y="140" fill="#2dd4bf" font-size="9">trace QZ-8407 <tspan fill="#94a3b8">(preserved byte-for-byte)</tspan></text>
+
+      <!-- Injected Karpathy LLM-Wiki Memory Context -->
+      <text x="598" y="166" fill="#c084fc" font-weight="700">[EchoRegent LLM-Wiki Memory Context]</text>
+      <text x="604" y="182" fill="#e2e8f0" font-size="9">• Postgres lease timeout known issue <tspan fill="#a855f7" font-weight="600">^[wiki:db-recon]</tspan></text>
+      <text x="604" y="198" fill="#e2e8f0" font-size="9">• Fix: export PG_POOL_MAX=20 <tspan fill="#a855f7" font-weight="600">^[wiki:v2-api]</tspan></text>
+      <text x="604" y="214" fill="#94a3b8" font-size="8.5">• Graph: <tspan fill="#c084fc">[[db-recon]]</tspan> Extends <tspan fill="#c084fc">[[pool-lock]]</tspan></text>
+    </g>
+
+    <!-- Bottom Success Pill -->
+    <rect x="594" y="235" width="300" height="55" rx="6" fill="#062723" stroke="#10b981" stroke-opacity="0.45" stroke-width="1"/>
+    <!-- Checkmark Icon -->
+    <circle cx="608" cy="254" r="8" fill="#10b981" fill-opacity="0.2" stroke="#10b981" stroke-width="1"/>
+    <path d="M 604 254 L 607 257 L 612 251" fill="none" stroke="#34d399" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="622" y="252" class="sans" font-size="10" font-weight="700" fill="#6ee7b7">16,155 Tokens Saved (-37.7%)</text>
+    <text x="622" y="266" class="sans" font-size="8.5" fill="#a7f3d0">Exact error fidelity • 0 information loss</text>
+    <text x="622" y="278" class="sans" font-size="8.5" fill="#94a3b8">Continual Markdown grounding + 0 extra LLM calls</text>
+  </g>
 </svg>

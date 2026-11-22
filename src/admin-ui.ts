@@ -1,3 +1,15 @@
+/** HTML-escapes &, <, >, ", and ' in dynamic strings. */
+export function escHtml(v: unknown): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }
+  return String(v ?? '').replace(/[&<>"']/g, c => map[c] ?? c)
+}
+
 /** Returns the full HTML string for the CTS admin dashboard. */
 export function getAdminDashboardHtml(baseUrl: string): string {
   return `<!DOCTYPE html>
@@ -427,15 +439,15 @@ export function getAdminDashboardHtml(baseUrl: string): string {
         ? '<span class="badge badge-active">Active</span>'
         : '<span class="badge badge-revoked">Revoked</span>'
       const revokeBtn = k.active
-        ? \`<button class="btn btn-danger" onclick="openRevokeModal('\${k.id}','\${esc(k.name)}','\${esc(k.ownerEmail)}')">Revoke</button>\`
+        ? \`<button class="btn btn-danger" onclick="openRevokeModal('\${escHtml(k.id)}','\${escHtml(k.name)}','\${escHtml(k.ownerEmail)}')">Revoke</button>\`
         : '<span style="color:var(--text2);font-size:12px">–</span>'
-      const editBtn = \`<button class="btn btn-ghost btn-small" onclick="openEditModal('\${k.id}', \${k.quotaLimit}, \${k.quotaUsed})">Edit</button>\`
+      const editBtn = \`<button class="btn btn-ghost btn-small" onclick="openEditModal('\${escHtml(k.id)}', \${k.quotaLimit}, \${k.quotaUsed})">Edit</button>\`
 
       return \`<tr>
         <td>
-          <div style="font-weight:600">\${esc(k.name)}</div>
-          <div class="mono" style="margin-top:2px">\${esc(k.ownerEmail)}</div>
-          <div class="mono" style="margin-top:2px;font-size:11px;color:var(--text2)">\${k.id}</div>
+          <div style="font-weight:600">\${escHtml(k.name)}</div>
+          <div class="mono" style="margin-top:2px">\${escHtml(k.ownerEmail)}</div>
+          <div class="mono" style="margin-top:2px;font-size:11px;color:var(--text2)">\${escHtml(k.id)}</div>
         </td>
         <td style="color:var(--text2);white-space:nowrap">\${fmtDate(k.createdAt)}</td>
         <td class="hide-mobile">
@@ -487,15 +499,15 @@ export function getAdminDashboardHtml(baseUrl: string): string {
         ? '<span class="badge badge-pending">Pending</span>'
         : '<span style="color:var(--text2);font-size:12px">✓ Fulfilled</span>'
       const actionEl  = isPending
-        ? \`<button class="btn btn-fulfill" onclick="fulfillRequest(\${r.id}, '\${esc(r.name)}', '\${esc(r.email)}')">Create Key</button>\`
+        ? \`<button class="btn btn-fulfill" onclick="fulfillRequest(\${r.id}, '\${escHtml(r.name)}', '\${escHtml(r.email)}')">Create Key</button>\`
         : '–'
 
       return \`<tr>
         <td>
-          <div style="font-weight:600">\${posLabel}\${esc(r.name)}</div>
-          <div class="mono" style="margin-top:2px">\${esc(r.email)}</div>
+          <div style="font-weight:600">\${posLabel}\${escHtml(r.name)}</div>
+          <div class="mono" style="margin-top:2px">\${escHtml(r.email)}</div>
         </td>
-        <td style="max-width:260px;color:var(--text2)">\${esc(r.useCase) || '<em style="opacity:.4">–</em>'}</td>
+        <td style="max-width:260px;color:var(--text2)">\${escHtml(r.useCase) || '<em style="opacity:.4">–</em>'}</td>
         <td style="color:var(--text2);white-space:nowrap">\${fmtDate(r.requestedAt)}</td>
         <td>\${statusEl}</td>
         <td>\${actionEl}</td>
@@ -667,8 +679,20 @@ export function getAdminDashboardHtml(baseUrl: string): string {
     return String(n)
   }
 
-  function esc(str) {
-    return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+  function escHtml(v) {
+    return String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+  }
+  const esc = escHtml
+
+  // Sanitization helper for usage logs (u.endpoint, u.domain, u.provider, u.model, u.compressionMode)
+  function formatUsageLog(u) {
+    return {
+      endpoint: escHtml(u && u.endpoint),
+      domain: escHtml(u && u.domain),
+      provider: escHtml(u && u.provider),
+      model: escHtml(u && u.model),
+      compressionMode: escHtml(u && u.compressionMode),
+    }
   }
 </script>
 </body>

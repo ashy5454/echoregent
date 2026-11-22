@@ -1,0 +1,397 @@
+<svg width="920" height="420" viewBox="0 0 920 420" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EchoRegent 4-Stage Internal Pipeline Architecture">
+  <defs>
+    <!-- Background Grid -->
+    <pattern id="arch-grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#151c2c" stroke-width="0.6" opacity="0.6"/>
+    </pattern>
+
+    <!-- Arrow Markers -->
+    <marker id="arrow-emerald" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 7 5 L 1 8 Z" fill="#10b981"/>
+    </marker>
+    <marker id="arrow-cyan" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 7 5 L 1 8 Z" fill="#06b6d4"/>
+    </marker>
+    <marker id="arrow-violet" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 7 5 L 1 8 Z" fill="#a855f7"/>
+    </marker>
+    <marker id="arrow-rose" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 1 2 L 7 5 L 1 8 Z" fill="#f43f5e"/>
+    </marker>
+    <marker id="arrow-up-rose" viewBox="0 0 10 10" refX="5" refY="4" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 2 7 L 5 1 L 8 7 Z" fill="#f43f5e"/>
+    </marker>
+
+    <!-- Gradients -->
+    <linearGradient id="header-glow" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00c9b1" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#38bdf8" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#818cf8" stop-opacity="0.8"/>
+    </linearGradient>
+
+    <linearGradient id="card-grad-1" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#140f1a"/>
+      <stop offset="100%" stop-color="#0a0d14"/>
+    </linearGradient>
+    <linearGradient id="card-grad-2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#141124"/>
+      <stop offset="100%" stop-color="#090d16"/>
+    </linearGradient>
+    <linearGradient id="card-grad-3" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a1a1c"/>
+      <stop offset="100%" stop-color="#081016"/>
+    </linearGradient>
+    <linearGradient id="card-grad-4" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a1926"/>
+      <stop offset="100%" stop-color="#080f17"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .mono { font-family: 'SF Mono', Consolas, Menlo, Monaco, 'Courier New', monospace; }
+    .sans { font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  </style>
+
+  <!-- Canvas Background -->
+  <rect width="920" height="420" rx="12" fill="#07090e"/>
+  <rect width="920" height="420" rx="12" fill="url(#arch-grid)"/>
+  <rect x="0.5" y="0.5" width="919" height="419" rx="11.5" fill="none" stroke="#1e293b" stroke-opacity="0.7"/>
+
+  <!-- ==================== TOP TITLE BAR ==================== -->
+  <g transform="translate(18, 14)">
+    <!-- Brand Logo Mark -->
+    <circle cx="16" cy="16" r="14" fill="#00c9b1" fill-opacity="0.15" stroke="#00c9b1" stroke-width="1.2"/>
+    <circle cx="16" cy="16" r="5" fill="#00c9b1"/>
+    <path d="M 8 16 A 8 8 0 0 1 24 16" fill="none" stroke="#2dd4bf" stroke-width="1.2" stroke-linecap="round"/>
+
+    <!-- Title and Subtitle -->
+    <text x="38" y="15" class="sans" font-size="14" font-weight="800" fill="#ffffff" letter-spacing="0.3">ECHOREGENT 4-STAGE PIPELINE ARCHITECTURE</text>
+    <text x="38" y="28" class="sans" font-size="9" fill="#94a3b8">Deterministic Context Middleware • Continual LLM-Wiki Memory • Zero-Telemetry Loopback</text>
+
+    <!-- Top Right Status Badges -->
+    <g transform="translate(565, 5)">
+      <!-- 0 LLM Overhead Badge -->
+      <rect x="0" y="0" width="102" height="22" rx="4" fill="#064e3b" fill-opacity="0.3" stroke="#10b981" stroke-width="0.8"/>
+      <circle cx="8" cy="11" r="3" fill="#10b981"/>
+      <text x="16" y="14" class="sans" font-size="8.5" font-weight="700" fill="#6ee7b7">0 LLM Overhead</text>
+
+      <!-- Fail-Closed Safety Badge -->
+      <rect x="110" y="0" width="108" height="22" rx="4" fill="#4c0519" fill-opacity="0.3" stroke="#f43f5e" stroke-width="0.8"/>
+      <circle cx="118" cy="11" r="3" fill="#f43f5e"/>
+      <text x="126" y="14" class="sans" font-size="8.5" font-weight="700" fill="#fda4af">Fail-Closed Safety</text>
+
+      <!-- 100% MIT Badge -->
+      <rect x="226" y="0" width="86" height="22" rx="4" fill="#1e1b4b" fill-opacity="0.3" stroke="#818cf8" stroke-width="0.8"/>
+      <circle cx="234" cy="11" r="3" fill="#818cf8"/>
+      <text x="242" y="14" class="sans" font-size="8.5" font-weight="700" fill="#c7d2fe">100% MIT</text>
+    </g>
+  </g>
+
+  <!-- Horizontal Divider under Title -->
+  <line x1="18" y1="48" x2="902" y2="48" stroke="#1e293b" stroke-width="1"/>
+
+
+  <!-- ==================== INTER-STAGE CONNECTOR ARROWS ==================== -->
+  <!-- Stage 1 -> Stage 2 Arrow -->
+  <g opacity="0.9">
+    <line x1="220" y1="145" x2="242" y2="145" stroke="#a855f7" stroke-width="2" marker-end="url(#arrow-violet)"/>
+    <text x="231" y="137" class="mono" font-size="7.5" font-weight="700" fill="#c084fc" text-anchor="middle">SAFE</text>
+  </g>
+
+  <!-- Stage 2 -> Stage 3 Arrow -->
+  <g opacity="0.9">
+    <line x1="458" y1="145" x2="480" y2="145" stroke="#10b981" stroke-width="2" marker-end="url(#arrow-emerald)"/>
+    <text x="469" y="137" class="mono" font-size="7.5" font-weight="700" fill="#34d399" text-anchor="middle">ENRICH</text>
+  </g>
+
+  <!-- Stage 3 -> Stage 4 Arrow -->
+  <g opacity="0.9">
+    <line x1="708" y1="145" x2="730" y2="145" stroke="#06b6d4" stroke-width="2" marker-end="url(#arrow-cyan)"/>
+    <text x="719" y="137" class="mono" font-size="7.5" font-weight="700" fill="#38bdf8" text-anchor="middle">COMPACT</text>
+  </g>
+
+
+  <!-- ==================== STAGE 1: POLICY & SAFETY GUARD ==================== -->
+  <g id="stage-1" transform="translate(18, 56)">
+    <!-- Column Card Background -->
+    <rect width="202" height="282" rx="9" fill="url(#card-grad-1)" stroke="#f43f5e" stroke-opacity="0.45" stroke-width="1.2"/>
+    
+    <!-- Stage Header -->
+    <rect width="202" height="34" rx="9" fill="#201018"/>
+    <rect y="24" width="202" height="10" fill="#201018"/>
+    <line x1="0" y1="34" x2="202" y2="34" stroke="#4c121e" stroke-width="1"/>
+
+    <rect x="8" y="7" width="48" height="18" rx="4" fill="#f43f5e" fill-opacity="0.25" stroke="#f43f5e" stroke-width="0.8"/>
+    <text x="32" y="19" class="mono" font-size="8" font-weight="700" fill="#fda4af" text-anchor="middle">STAGE 1</text>
+    <text x="62" y="20" class="sans" font-size="10.5" font-weight="700" fill="#ffffff">Policy &amp; Safety Guard</text>
+
+    <!-- Subcard 1: Intent & Classifier -->
+    <g transform="translate(8, 42)">
+      <rect width="186" height="56" rx="5" fill="#14101a" stroke="#2e1a24" stroke-width="1"/>
+      <text x="8" y="14" class="sans" font-size="8.5" font-weight="700" fill="#fca5a5">Deterministic Policy Engine</text>
+      <text x="8" y="27" class="mono" font-size="8" fill="#fda4af">evaluatePolicy(text)</text>
+      <text x="8" y="39" class="sans" font-size="7.5" fill="#94a3b8">• Fast domain &amp; keyword classifier</text>
+      <text x="8" y="49" class="sans" font-size="7.5" fill="#94a3b8">• 0ms LLM latency • Zero inference</text>
+    </g>
+
+    <!-- Subcard 2: Protected Domains -->
+    <g transform="translate(8, 105)">
+      <rect width="186" height="64" rx="5" fill="#1c0f18" stroke="#f43f5e" stroke-opacity="0.4" stroke-width="1"/>
+      <text x="8" y="14" class="sans" font-size="8.5" font-weight="700" fill="#fca5a5">Protected Risk Detection</text>
+      
+      <!-- Protected Tags -->
+      <g transform="translate(8, 22)">
+        <rect x="0" y="0" width="50" height="16" rx="3" fill="#4c0519" stroke="#f43f5e" stroke-width="0.8"/>
+        <text x="25" y="11" class="mono" font-size="7.5" font-weight="700" fill="#fecdd3" text-anchor="middle">medical</text>
+
+        <rect x="56" y="0" width="46" height="16" rx="3" fill="#4c0519" stroke="#f43f5e" stroke-width="0.8"/>
+        <text x="79" y="11" class="mono" font-size="7.5" font-weight="700" fill="#fecdd3" text-anchor="middle">legal</text>
+
+        <rect x="108" y="0" width="48" height="16" rx="3" fill="#4c0519" stroke="#f43f5e" stroke-width="0.8"/>
+        <text x="132" y="11" class="mono" font-size="7.5" font-weight="700" fill="#fecdd3" text-anchor="middle">crisis</text>
+      </g>
+      <text x="8" y="52" class="sans" font-size="7.5" fill="#f87171">Built-in protection cannot be weakened</text>
+    </g>
+
+    <!-- Subcard 3: Dual Path Decision -->
+    <g transform="translate(8, 176)">
+      <rect width="186" height="60" rx="5" fill="#120e18" stroke="#2e1a24" stroke-width="1"/>
+      <text x="8" y="14" class="sans" font-size="8.5" font-weight="700" fill="#e2e8f0">Dual-Path Routing Gate</text>
+      
+      <text x="8" y="29" class="mono" font-size="7.5" fill="#34d399">✓ Safe (Coding/General)</text>
+      <text x="18" y="39" class="sans" font-size="7" fill="#6ee7b7">→ Proceed to Stage 2 Memory</text>
+
+      <text x="8" y="49" class="mono" font-size="7.5" fill="#f43f5e">⚠ Sensitive / Protected</text>
+      <text x="18" y="56" class="sans" font-size="7" fill="#fca5a5">→ Trigger Fail-Closed Bypass</text>
+    </g>
+
+    <!-- Stage 1 Footer Badge / Bypass Exit -->
+    <g transform="translate(8, 244)">
+      <rect width="186" height="30" rx="4" fill="#2d0a14" stroke="#f43f5e" stroke-opacity="0.6" stroke-width="1"/>
+      <circle cx="14" cy="15" r="4" fill="#f43f5e"/>
+      <text x="24" y="14" class="sans" font-size="7.5" font-weight="700" fill="#fecdd3">FAIL-CLOSED BYPASS PORT</text>
+      <text x="24" y="24" class="mono" font-size="7" fill="#fda4af">Bypasses Compaction &amp; Memory</text>
+    </g>
+  </g>
+
+
+  <!-- ==================== STAGE 2: EXTERNAL LLM-WIKI CONTINUAL MEMORY ==================== -->
+  <g id="stage-2" transform="translate(244, 56)">
+    <!-- Column Card Background -->
+    <rect width="212" height="282" rx="9" fill="url(#card-grad-2)" stroke="#a855f7" stroke-opacity="0.45" stroke-width="1.2"/>
+    
+    <!-- Stage Header -->
+    <rect width="212" height="34" rx="9" fill="#1b122e"/>
+    <rect y="24" width="212" height="10" fill="#1b122e"/>
+    <line x1="0" y1="34" x2="212" y2="34" stroke="#3d2166" stroke-width="1"/>
+
+    <rect x="8" y="7" width="48" height="18" rx="4" fill="#a855f7" fill-opacity="0.25" stroke="#a855f7" stroke-width="0.8"/>
+    <text x="32" y="19" class="mono" font-size="8" font-weight="700" fill="#d8b4fe" text-anchor="middle">STAGE 2</text>
+    <text x="62" y="20" class="sans" font-size="10.5" font-weight="700" fill="#ffffff">LLM-Wiki Memory</text>
+
+    <!-- Subcard 1: Markdown Wiki Files -->
+    <g transform="translate(8, 42)">
+      <rect width="196" height="66" rx="5" fill="#141126" stroke="#2d1f47" stroke-width="1"/>
+      <text x="8" y="13" class="sans" font-size="8.5" font-weight="700" fill="#c084fc">Human-Auditable Wiki Storage</text>
+      
+      <!-- File Items -->
+      <text x="8" y="26" class="mono" font-size="7.5" fill="#e9d5ff">SCHEMA.md <tspan fill="#64748b">— contract &amp; semantic rules</tspan></text>
+      <text x="8" y="38" class="mono" font-size="7.5" fill="#e9d5ff">index.md  <tspan fill="#64748b">— active facts &amp; catalog</tspan></text>
+      <text x="8" y="50" class="mono" font-size="7.5" fill="#e9d5ff">log.md    <tspan fill="#64748b">— append-only audit trail</tspan></text>
+      <text x="8" y="61" class="mono" font-size="7.5" fill="#e9d5ff">concepts/*.md <tspan fill="#64748b">— interlinked wiki</tspan></text>
+    </g>
+
+    <!-- Subcard 2: Graph Engine & Edges -->
+    <g transform="translate(8, 115)">
+      <rect width="196" height="58" rx="5" fill="#141126" stroke="#2d1f47" stroke-width="1"/>
+      <text x="8" y="13" class="sans" font-size="8.5" font-weight="700" fill="#c084fc">Knowledge Graph Topology</text>
+      
+      <text x="8" y="27" class="mono" font-size="7.5" fill="#38bdf8">Updates <tspan fill="#94a3b8">and</tspan> Extends <tspan fill="#94a3b8">graph edges</tspan></text>
+      <text x="8" y="39" class="sans" font-size="7.5" fill="#94a3b8">• Fact supersession without data loss</text>
+      <text x="8" y="50" class="sans" font-size="7.5" fill="#34d399">• Zero vector DB • Human git diffable</text>
+    </g>
+
+    <!-- Subcard 3: Context Retrieval & Provenance -->
+    <g transform="translate(8, 180)">
+      <rect width="196" height="64" rx="5" fill="#100e20" stroke="#382559" stroke-width="1"/>
+      <text x="8" y="13" class="sans" font-size="8.5" font-weight="700" fill="#d8b4fe">Context Retrieval &amp; Provenance</text>
+      
+      <text x="8" y="27" class="mono" font-size="7.5" fill="#c084fc">[EchoRegent LLM-Wiki Memory]</text>
+      <text x="12" y="38" class="mono" font-size="7.5" fill="#e2e8f0">• Postgres pool timeout <tspan fill="#a855f7" font-weight="700">^[source]</tspan></text>
+      <text x="12" y="49" class="mono" font-size="7" fill="#94a3b8">• <tspan fill="#c084fc">[[db-recon]]</tspan> Extends <tspan fill="#c084fc">[[pool-lock]]</tspan></text>
+      <text x="8" y="59" class="sans" font-size="7" fill="#6ee7b7">Inline ^[source] verifiable citations</text>
+    </g>
+
+    <!-- Stage 2 Footer Badge -->
+    <g transform="translate(8, 252)">
+      <rect width="196" height="22" rx="4" fill="#201038" stroke="#a855f7" stroke-opacity="0.5" stroke-width="0.8"/>
+      <text x="98" y="15" class="sans" font-size="8" font-weight="700" fill="#d8b4fe" text-anchor="middle">0 Extra LLM Writes • Pure Local Disk</text>
+    </g>
+  </g>
+
+
+  <!-- ==================== STAGE 3: 3-TIER COMPACTION ENGINE ==================== -->
+  <g id="stage-3" transform="translate(482, 56)">
+    <!-- Column Card Background -->
+    <rect width="224" height="282" rx="9" fill="url(#card-grad-3)" stroke="#10b981" stroke-opacity="0.5" stroke-width="1.2"/>
+    
+    <!-- Stage Header -->
+    <rect width="224" height="34" rx="9" fill="#0b2420"/>
+    <rect y="24" width="224" height="10" fill="#0b2420"/>
+    <line x1="0" y1="34" x2="224" y2="34" stroke="#164d42" stroke-width="1"/>
+
+    <rect x="8" y="7" width="48" height="18" rx="4" fill="#10b981" fill-opacity="0.25" stroke="#10b981" stroke-width="0.8"/>
+    <text x="32" y="19" class="mono" font-size="8" font-weight="700" fill="#6ee7b7" text-anchor="middle">STAGE 3</text>
+    <text x="62" y="20" class="sans" font-size="10.5" font-weight="700" fill="#ffffff">3-Tier Compaction Engine</text>
+
+    <!-- Subcard 1: Tier 1 compressLogs -->
+    <g transform="translate(8, 42)">
+      <rect width="208" height="52" rx="5" fill="#08201d" stroke="#13433a" stroke-width="1"/>
+      <text x="8" y="13" class="sans" font-size="8.5" font-weight="700" fill="#6ee7b7">Tier 1: compressLogs</text>
+      
+      <text x="8" y="26" class="mono" font-size="7.5" fill="#38bdf8">[EchoRegent lossless logs v1]</text>
+      <text x="8" y="37" class="sans" font-size="7.5" fill="#94a3b8">• Factoring literals &amp; numeric arrays</text>
+      <text x="8" y="47" class="sans" font-size="7.5" fill="#a7f3d0">• Collapse repeated identical runs (≥4)</text>
+    </g>
+
+    <!-- Subcard 2: Tier 2 compactOlderHistory -->
+    <g transform="translate(8, 101)">
+      <rect width="208" height="52" rx="5" fill="#08201d" stroke="#13433a" stroke-width="1"/>
+      <text x="8" y="13" class="sans" font-size="8.5" font-weight="700" fill="#6ee7b7">Tier 2: compactOlderHistory</text>
+      
+      <text x="8" y="26" class="sans" font-size="7.5" fill="#e2e8f0">• 16-turn chunk boundaries</text>
+      <text x="8" y="37" class="sans" font-size="7.5" fill="#94a3b8">• Compacts turns > 8 back; protects recent</text>
+      <text x="8" y="47" class="sans" font-size="7.5" fill="#a7f3d0">• 100% reversible via restoreRequest()</text>
+    </g>
+
+    <!-- Subcard 3: Tier 3 AdaptiveCompressionLearner -->
+    <g transform="translate(8, 160)">
+      <rect width="208" height="78" rx="5" fill="#061c1a" stroke="#10b981" stroke-opacity="0.4" stroke-width="1"/>
+      <text x="8" y="13" class="sans" font-size="8.5" font-weight="700" fill="#6ee7b7">Tier 3: AdaptiveCompressionLearner</text>
+      
+      <rect x="8" y="19" width="192" height="18" rx="3" fill="#031613" stroke="#10b981" stroke-opacity="0.3"/>
+      <text x="14" y="32" class="mono" font-size="8" font-weight="700" fill="#34d399">Δw = η (R - Q)  (Local Delta Rule)</text>
+
+      <text x="8" y="49" class="sans" font-size="7.5" fill="#e2e8f0">• Turn t+1 online feedback loop</text>
+      <text x="8" y="60" class="sans" font-size="7.5" fill="#94a3b8">• Auto-protects regret-triggering patterns</text>
+      <text x="8" y="71" class="sans" font-size="7.5" fill="#6ee7b7" font-weight="600">• Zero backprop • No extra LLM calls</text>
+    </g>
+
+    <!-- Stage 3 Footer Badge -->
+    <g transform="translate(8, 246)">
+      <rect width="208" height="28" rx="4" fill="#062e24" stroke="#10b981" stroke-opacity="0.6" stroke-width="1"/>
+      <text x="104" y="13" class="sans" font-size="8" font-weight="700" fill="#6ee7b7" text-anchor="middle">30% to 60% Token Reduction</text>
+      <text x="104" y="23" class="mono" font-size="7" fill="#a7f3d0" text-anchor="middle">Exact Byte-for-Byte Restoration</text>
+    </g>
+  </g>
+
+
+  <!-- ==================== STAGE 4: ZERO-TELEMETRY UPSTREAM FORWARDING ==================== -->
+  <g id="stage-4" transform="translate(732, 56)">
+    <!-- Column Card Background -->
+    <rect width="170" height="282" rx="9" fill="url(#card-grad-4)" stroke="#06b6d4" stroke-opacity="0.45" stroke-width="1.2"/>
+    
+    <!-- Stage Header -->
+    <rect width="170" height="34" rx="9" fill="#0d2433"/>
+    <rect y="24" width="170" height="10" fill="#0d2433"/>
+    <line x1="0" y1="34" x2="170" y2="34" stroke="#174866" stroke-width="1"/>
+
+    <rect x="7" y="7" width="46" height="18" rx="4" fill="#06b6d4" fill-opacity="0.25" stroke="#06b6d4" stroke-width="0.8"/>
+    <text x="30" y="19" class="mono" font-size="8" font-weight="700" fill="#67e8f9" text-anchor="middle">STAGE 4</text>
+    <text x="58" y="20" class="sans" font-size="9.5" font-weight="700" fill="#ffffff">Upstream Forwarding</text>
+
+    <!-- Subcard 1: Loopback Server -->
+    <g transform="translate(7, 42)">
+      <rect width="156" height="52" rx="5" fill="#0a1d2c" stroke="#133d59" stroke-width="1"/>
+      <text x="8" y="13" class="sans" font-size="8.5" font-weight="700" fill="#7dd3fc">Loopback Proxy</text>
+      
+      <text x="8" y="26" class="mono" font-size="7.5" fill="#38bdf8">127.0.0.1:8787</text>
+      <text x="8" y="37" class="sans" font-size="7.5" fill="#94a3b8">• Zero Docker containers</text>
+      <text x="8" y="47" class="sans" font-size="7.5" fill="#94a3b8">• Featherweight ~180KB CLI</text>
+    </g>
+
+    <!-- Subcard 2: Endpoints -->
+    <g transform="translate(7, 101)">
+      <rect width="156" height="58" rx="5" fill="#0a1d2c" stroke="#133d59" stroke-width="1"/>
+      <text x="8" y="13" class="sans" font-size="8.5" font-weight="700" fill="#7dd3fc">Proxy Endpoints</text>
+      
+      <text x="8" y="26" class="mono" font-size="7.5" fill="#e2e8f0">/v1/responses</text>
+      <text x="8" y="38" class="mono" font-size="7.5" fill="#e2e8f0">/v1/chat/completions</text>
+      <text x="8" y="50" class="sans" font-size="7" fill="#67e8f9">Transparent drop-in</text>
+    </g>
+
+    <!-- Subcard 3: SSE Streaming -->
+    <g transform="translate(7, 166)">
+      <rect width="156" height="66" rx="5" fill="#081a28" stroke="#06b6d4" stroke-opacity="0.4" stroke-width="1"/>
+      <text x="8" y="13" class="sans" font-size="8.5" font-weight="700" fill="#7dd3fc">Incremental SSE Stream</text>
+      
+      <text x="8" y="26" class="sans" font-size="7.5" fill="#94a3b8">• Real-time chunk pipe</text>
+      <text x="8" y="37" class="sans" font-size="7.5" fill="#94a3b8">• Zero buffering lag</text>
+      <text x="8" y="49" class="mono" font-size="7.5" fill="#38bdf8">→ OpenAI / Anthropic</text>
+      <text x="8" y="60" class="mono" font-size="7.5" fill="#38bdf8">→ Local Ollama / vLLM</text>
+    </g>
+
+    <!-- Stage 4 Footer Badge / Entry for Bypass -->
+    <g transform="translate(7, 240)">
+      <rect width="156" height="34" rx="4" fill="#082b3d" stroke="#06b6d4" stroke-opacity="0.6" stroke-width="1"/>
+      <text x="78" y="14" class="sans" font-size="7.5" font-weight="700" fill="#67e8f9" text-anchor="middle">ZERO-TELEMETRY</text>
+      <text x="78" y="25" class="sans" font-size="7" fill="#94a3b8" text-anchor="middle">No Egress • Pure Localhost</text>
+    </g>
+  </g>
+
+
+  <!-- ==================== FAIL-CLOSED BYPASS HIGHWAY ==================== -->
+  <g id="fail-closed-bypass">
+    <!-- Path Line from Stage 1 to Stage 4 -->
+    <path d="M 119 338 L 119 368 L 817 368 L 817 338" fill="none" stroke="#f43f5e" stroke-width="2" stroke-dasharray="6,4" marker-end="url(#arrow-up-rose)"/>
+
+    <!-- Central Alert Pill on Bypass Highway -->
+    <g transform="translate(240, 355)">
+      <rect width="440" height="24" rx="12" fill="#1f0a14" stroke="#f43f5e" stroke-width="1.2"/>
+      
+      <!-- Shield / Warning Icon -->
+      <g transform="translate(14, 5)">
+        <path d="M 7 1 L 1 3.5 L 1 7.5 C 1 11 7 13.5 7 13.5 C 7 13.5 13 11 13 7.5 L 13 3.5 Z" fill="#4c0519" stroke="#f43f5e" stroke-width="1"/>
+        <line x1="7" y1="4" x2="7" y2="8" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"/>
+        <circle cx="7" cy="10" r="0.8" fill="#ffffff"/>
+      </g>
+
+      <text x="36" y="16" class="sans" font-size="8.5" font-weight="700" fill="#fda4af">FAIL-CLOSED BYPASS:</text>
+      <text x="144" y="16" class="sans" font-size="8.5" fill="#fecdd3"><tspan class="mono" font-weight="700" fill="#ffffff">medical</tspan>, <tspan class="mono" font-weight="700" fill="#ffffff">legal</tspan>, <tspan class="mono" font-weight="700" fill="#ffffff">crisis</tspan> domains bypass Stages 2 &amp; 3 untouched</text>
+    </g>
+  </g>
+
+
+  <!-- ==================== FOOTER GUARANTEES BAR ==================== -->
+  <g transform="translate(18, 390)">
+    <line x1="0" y1="0" x2="884" y2="0" stroke="#1e293b" stroke-width="1"/>
+    
+    <!-- Item 1: Deterministic -->
+    <g transform="translate(4, 16)">
+      <circle cx="4" cy="0" r="3" fill="#10b981"/>
+      <text x="12" y="3" class="sans" font-size="8.5" font-weight="600" fill="#34d399">Deterministic &amp; Lossless</text>
+      <text x="115" y="3" class="sans" font-size="8.5" fill="#64748b">— 100% reversible</text>
+    </g>
+
+    <!-- Item 2: Zero Overhead -->
+    <g transform="translate(225, 16)">
+      <circle cx="4" cy="0" r="3" fill="#06b6d4"/>
+      <text x="12" y="3" class="sans" font-size="8.5" font-weight="600" fill="#38bdf8">0 Model Calls</text>
+      <text x="75" y="3" class="sans" font-size="8.5" fill="#64748b">— Zero token tax</text>
+    </g>
+
+    <!-- Item 3: Local Markdown Wiki -->
+    <g transform="translate(435, 16)">
+      <circle cx="4" cy="0" r="3" fill="#a855f7"/>
+      <text x="12" y="3" class="sans" font-size="8.5" font-weight="600" fill="#c084fc">LLM-Wiki Graph</text>
+      <text x="88" y="3" class="sans" font-size="8.5" fill="#64748b">— Auditable Git diffs</text>
+    </g>
+
+    <!-- Item 4: Fail Closed -->
+    <g transform="translate(655, 16)">
+      <circle cx="4" cy="0" r="3" fill="#f43f5e"/>
+      <text x="12" y="3" class="sans" font-size="8.5" font-weight="600" fill="#fda4af">Fail-Closed Safety</text>
+      <text x="96" y="3" class="sans" font-size="8.5" fill="#64748b">— Zero risk leakage</text>
+    </g>
+  </g>
+</svg>

@@ -2,9 +2,63 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { spawn } from 'node:child_process'
 import { once } from 'node:events'
+import { existsSync, readFileSync } from 'node:fs'
 import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { delimiter, dirname, join, resolve } from 'node:path'
+
+function resolveCodexCommand(command = 'codex') {
+  if (process.platform !== 'win32' || command !== 'codex') {
+    return { command, prefixArgs: [] }
+  }
+
+  const candidateDirs = [
+    ...(process.env.PATH ?? '').split(delimiter),
+    join(process.env.APPDATA ?? '', 'npm'),
+    dirname(process.execPath),
+  ]
+
+  for (const dir of candidateDirs) {
+    if (!dir) continue
+
+    const jsPaths = [
+      join(dir, 'node_modules', '@openai', 'codex', 'bin', 'codex.js'),
+      join(dir, '..', 'node_modules', '@openai', 'codex', 'bin', 'codex.js'),
+    ]
+    for (const jsPath of jsPaths) {
+      if (existsSync(jsPath)) {
+        return { command: process.execPath, prefixArgs: [jsPath] }
+      }
+    }
+
+    const exePath = join(dir, 'codex.exe')
+    if (existsSync(exePath)) {
+      return { command: exePath, prefixArgs: [] }
+    }
+
+    const cmdPath = join(dir, 'codex.cmd')
+    if (existsSync(cmdPath)) {
+      try {
+        const text = readFileSync(cmdPath, 'utf8')
+        const matches = text.matchAll(/(?:%~?dp0%?[\\/])?([^\s"';]+?\.[mc]?js)\b/gi)
+        for (const match of matches) {
+          const candidate = match[1]
+          if (!candidate) continue
+          const cleanCandidate = candidate.replace(/^(?:%~?dp0%?[\\/])+/, '').trim()
+          const resolvedJs = resolve(dir, cleanCandidate)
+          if (existsSync(resolvedJs)) {
+            return { command: process.execPath, prefixArgs: [resolvedJs] }
+          }
+        }
+      } catch {
+        // Fall back to executing cmdPath via cmd.exe
+      }
+      return { command: process.env.ComSpec ?? 'cmd.exe', prefixArgs: ['/d', '/s', '/c', cmdPath] }
+    }
+  }
+
+  return { command, prefixArgs: [] }
+}
 
 // Real Codex binary, controlled provider. No live inference, real keys or task billing.
 const directory = await mkdtemp(join(tmpdir(), 'echoregent-codex-'))
@@ -73,7 +127,8 @@ try {
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
   const upstream = `http://127.0.0.1:${server.address().port}/v1`
-  const versionProcess = spawn('codex', ['--version'], { shell: false })
+  const resolved = resolveCodexCommand('codex')
+  const versionProcess = spawn(resolved.command, [...resolved.prefixArgs, '--version'], { shell: false })
   versionProcess.stdout.on('data', (chunk) => version += chunk)
   await once(versionProcess, 'exit')
   const child = spawn(process.execPath, [cli, 'wrap', 'codex', '--upstream', upstream, '--', 'exec', '--ignore-user-config', '--ignore-rules', '--skip-git-repo-check', '--ephemeral', '--json', '-s', process.env.ECHOREGENT_TEST_NOISY === '1' ? 'danger-full-access' : 'read-only', '-C', directory, '-m', 'fixture-model', 'Run the fixture shell tool once, then report its marker.'], {

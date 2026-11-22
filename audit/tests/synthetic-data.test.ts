@@ -85,5 +85,49 @@ describe('rule-based validation gate', () => {
 // ── 3. Diversity: generated examples are not duplicates ───────────────────────
 
 describe('diversity: generated examples are not duplicates', () => {
-  test.todo('generated synthetic examples differ from seed examples')
+  it('generated synthetic examples differ from seed examples', () => {
+    const seedExamples = [
+      'TechNova requires audit logs and SSO for the $12,000/year premium plan',
+      'Acme Corp is evaluating our premium enterprise tier at $500/seat with a discount for annual commitment',
+      'Our premium plan costs $499/month for up to 50 users',
+    ]
+
+    const replacementPrices = ['$24,000/year', '$750/seat', '$899/month']
+
+    const generated = seedExamples.map((seed, idx) =>
+      substitutePrice(seed, replacementPrices[idx]),
+    )
+
+    // 1. Every generated synthetic example differs from its seed example
+    generated.forEach((synthetic, idx) => {
+      expect(synthetic).not.toBe(seedExamples[idx])
+    })
+
+    // 2. No generated synthetic example matches any seed example in the seed set
+    const seedSet = new Set(seedExamples)
+    for (const synthetic of generated) {
+      expect(seedSet.has(synthetic)).toBe(false)
+    }
+
+    // 3. Generated examples are mutually distinct (no duplicate generation)
+    const uniqueGenerated = new Set(generated)
+    expect(uniqueGenerated.size).toBe(generated.length)
+
+    // 4. Multiple variations from a single seed are all distinct from seed and each other
+    const baseSeed = seedExamples[0]
+    const multiVariants = ['$15,000/year', '$18,000/year', '$30,000/year'].map((price) =>
+      substitutePrice(baseSeed, price),
+    )
+    for (const variant of multiVariants) {
+      expect(variant).not.toBe(baseSeed)
+      expect(seedSet.has(variant)).toBe(false)
+    }
+    expect(new Set(multiVariants).size).toBe(multiVariants.length)
+
+    // 5. Generated examples preserve valid domain classification
+    for (const synthetic of [...generated, ...multiVariants]) {
+      const frame = classify(synthetic)
+      expect(frame.domain).toBe('sales')
+    }
+  })
 })
