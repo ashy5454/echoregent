@@ -5,7 +5,7 @@ import { connect } from 'node:net'
 import { EchoRegent, restoreCompressedRequest } from '../../packages/core/src/index.js'
 import * as adapter from '../../packages/cli/src/proxy.js'
 
-async function fixture(handler: Parameters<typeof createServer>[0]) {
+async function fixture(handler: (req: any, res: any) => void) {
   const server = createServer(handler)
   server.listen(0, '127.0.0.1')
   await once(server, 'listening')
@@ -153,5 +153,79 @@ describe('installed proxy contract', () => {
       const missingScope = await post('/memory/recall', { query: 'anything' })
       expect(missingScope.status).toBe(400)
     } finally { await proxy.close() }
+  })
+
+  it('normalizes upstream base URL without /v1 and forwards routes correctly', async () => {
+    let receivedUrl = ''
+    const upstream = await fixture((req, res) => {
+      receivedUrl = req.url ?? ''
+      res.writeHead(200, { 'content-type': 'application/json' })
+      res.end('{"id":"ok"}')
+    })
+    // Upstream without /v1 suffix
+    const upstreamBaseWithoutV1 = upstream.url.replace(/\/v1$/, '')
+    const proxy = await adapter.startProxy({ upstream: upstreamBaseWithoutV1 })
+    try {
+      const response = await fetch(`${proxy.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content: 'hello' }] }),
+      })
+      expect(response.status).toBe(200)
+      expect(receivedUrl).toBe('/v1/chat/completions')
+    } finally { await proxy.close(); await upstream.close() }
+  })
+
+  it('rejects browser origins and sec-fetch-site while enforcing local token', async () => {
+    const upstream = await fixture((_req, res) => res.end('{"ok":true}'))
+    const proxy = await adapter.startProxy({ upstream: upstream.url, localToken: 'sec-tok-123' })
+    try {
+      // 1. Missing local token -> 401
+      const noTokenRes = await fetch(`${proxy.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ messages: [] }),
+      })
+      expect(noTokenRes.status).toBe(401)
+      expect(await noTokenRes.json()).toEqual({ error: 'Local token required' })
+
+      // 2. Sec-Fetch-Site: cross-site -> 403
+      const crossSiteRes = await fetch(`${proxy.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-echoregent-local-token': 'sec-tok-123',
+          'sec-fetch-site': 'cross-site',
+        },
+        body: JSON.stringify({ messages: [] }),
+      })
+      expect(crossSiteRes.status).toBe(403)
+      expect(await crossSiteRes.json()).toEqual({ error: 'Browser origins are not allowed' })
+
+      // 3. Origin header -> 403
+      const originRes = await fetch(`${proxy.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-echoregent-local-token': 'sec-tok-123',
+          origin: 'http://malicious.origin',
+        },
+        body: JSON.stringify({ messages: [] }),
+      })
+      expect(originRes.status).toBe(403)
+      expect(await originRes.json()).toEqual({ error: 'Browser origins are not allowed' })
+
+      // 4. Valid token with sec-fetch-site: none -> 200
+      const validRes = await fetch(`${proxy.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-echoregent-local-token': 'sec-tok-123',
+          'sec-fetch-site': 'none',
+        },
+        body: JSON.stringify({ messages: [{ role: 'user', content: 'test' }] }),
+      })
+      expect(validRes.status).toBe(200)
+    } finally { await proxy.close(); await upstream.close() }
   })
 })

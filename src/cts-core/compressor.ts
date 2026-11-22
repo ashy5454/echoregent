@@ -1049,6 +1049,21 @@ export async function compressHistoryWithEmbeddings(history: Message[], frame: R
   const original = [...history]
   const keptReasons: string[] = []
 
+  if (isProtectedZone(frame)) {
+    const originalTokens = estimateTokens(original)
+    keptReasons.push('Protected zone (domain: ' + frame.domain + ', risk: ' + (frame.risk.join(',') || 'none') + ') -- history passed through unchanged.')
+    return {
+      original,
+      compressed: original,
+      memoryFrame: buildMemoryFrame(original, frame),
+      keptReasons,
+      droppedCount: 0,
+      originalTokens,
+      compressedTokens: originalTokens,
+      tokensSaved: 0,
+    }
+  }
+
   if (history.length <= 4) {
     const originalTokens = estimateTokens(original)
     keptReasons.push('Short history kept in full.')

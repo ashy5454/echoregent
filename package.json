@@ -22,7 +22,8 @@
     "pack:packages": "npm run build:packages && npm pack --workspace @echoregent/core --pack-destination artifacts && npm pack --workspace @echoregent/cli --pack-destination artifacts",
     "dev:legacy-api": "tsx src/server.ts",
     "test:codex": "node scripts/codex-integration.mjs",
-    "test:packages": "node scripts/package-smoke.mjs"
+    "test:packages": "node scripts/package-smoke.mjs",
+    "verify:all": "npm run build:packages && node scripts/verify-all-features.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

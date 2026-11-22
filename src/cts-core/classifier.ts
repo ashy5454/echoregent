@@ -2,8 +2,31 @@ import { extractSignals } from './signals'
 import { classifyDomainML } from './ml-classifier'
 import type { ConversationState, CustomDomainPlugin, DomainType, IntentType, Message, RiskSignal, RoutingFrame } from './types'
 
-export { classify } from '../../packages/core/src/classifier.js'
-import { classify } from '../../packages/core/src/classifier.js'
+export function classify(message: string, history: Message[] = [], customDomainPlugins: CustomDomainPlugin[] = []): RoutingFrame {
+  const signals = extractSignals(message, history)
+  const lower = message.toLowerCase()
+  const historyText = history.map((item) => item.content).join('\n').toLowerCase()
+  const contextText = `${lower}\n${historyText}`
+
+  const domain = detectDomain(lower, contextText, signals, customDomainPlugins)
+  const intent = detectIntent(lower, contextText, signals, domain)
+  const state = detectState(lower, history, signals, domain)
+  const risk = detectRisk(signals, domain, contextText)
+
+  return {
+    intent,
+    state,
+    domain,
+    risk,
+    signals,
+    confidence: {
+      intent: scoreIntent(intent, signals),
+      state: state === 'opening' ? 0.9 : 0.74,
+      domain: domain === 'general' ? 0.62 : 0.88,
+      risk: risk.length === 0 ? 1 : 0.88,
+    },
+  }
+}
 
 function detectDomain(
   lower: string,
@@ -18,7 +41,7 @@ function detectDomain(
   // Crisis-only content with no other domain signals → general
   // NOTE: do NOT force general for unsafe requests (delete logs, hide evidence) —
   // those can happen inside coding/support contexts and risk detection handles them.
-  if (/\b(i do not want to be here|i don't want to be here|want to die|kill myself|self harm)\b/.test(contextText)) return 'general'
+  if (/\b(i do not want to be here|i don't want to be here|want to die|kill myself|self harm|better off without me|thinking about how i would do it|everything feels pointless|no reason to live|end it all|do not want to be here anymore)\b/.test(contextText)) return 'general'
   if (/\b(quiz|teach|learn|explain|study)\b/.test(lower)) return 'education'
   if (/\b(schedule|calendar|next item|meeting)\b/.test(lower)) return 'general'
   if (/\b(correct the tone|email shorter|delayed launch)\b/.test(contextText)) return 'general'
@@ -144,7 +167,8 @@ function detectState(lower: string, history: Message[], signals: ReturnType<type
   // Last exchange = immediately preceding 2 messages (one turn)
   const lastExchange = history.slice(-2).map((item) => item.content).join('\n').toLowerCase()
 
-  if (/\b(i do not want to be here|i don't want to be here|want to die|self harm|delete the logs|hide the evidence|nobody can trace)\b/.test(lower)) return 'escalating'
+  const crisisOrUnsafe = /\b(i do not want to be here|i don't want to be here|want to die|kill myself|end my life|self harm|delete the logs|hide the evidence|nobody can trace|better off without me|thinking about how i would do it|everything feels pointless|no reason to live|end it all|do not want to be here anymore)\b/
+  if (crisisOrUnsafe.test(lower) || crisisOrUnsafe.test(historyText)) return 'escalating'
   if (/\b(thanks|that helps|done|resolved|wrap up|that's all)\b/.test(lower)) return 'closing'
   // "again" removed — normal word, not an escalation signal on its own
   if (signals.urgency === 'high' || /\b(still|keeps|not fixed|2 weeks|asap|urgent)\b/.test(lower)) return 'escalating'
@@ -170,7 +194,12 @@ function detectState(lower: string, history: Message[], signals: ReturnType<type
 
 function detectRisk(signals: ReturnType<typeof extractSignals>, domain: DomainType, contextText: string): RiskSignal[] {
   const risk: RiskSignal[] = []
-  if (hasPrefix(signals, 'crisis') || /\b(kill myself|end my life|want to die|self harm|following me|do not want to be here|don't want to be here|not want to be here anymore)\b/.test(contextText)) risk.push('crisis', 'protected_context')
+  if (
+    hasPrefix(signals, 'crisis') ||
+    /\b(kill myself|end my life|want to die|self harm|following me|do not want to be here|don't want to be here|not want to be here anymore|better off without me|thinking about how i would do it|everything feels pointless|no reason to live|end it all|do not want to be here anymore)\b/.test(contextText)
+  ) {
+    risk.push('crisis', 'protected_context')
+  }
   if (hasPrefix(signals, 'unsafe') || /\b(hack into|steal|bypass security|malware|phishing|exploit|delete logs|delete the logs|hide the evidence|nobody can trace|evade)\b/.test(contextText)) risk.push('unsafe_request')
   if (domain === 'medical') risk.push('medical_caution')
   if (domain === 'legal') risk.push('legal_caution')

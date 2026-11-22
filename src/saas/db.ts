@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { existsSync, mkdirSync, readFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { getDb } from './database.js'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -70,23 +70,44 @@ const keysPath    = join(dataDir, 'keys.json')
 const usagePath   = join(dataDir, 'usage.json')
 const reqPath     = join(dataDir, 'key-requests.json')
 
+export function atomicWriteJson(filePath: string, data: unknown): void {
+  const dir = dirname(filePath)
+  if (dir && !existsSync(dir)) {
+    mkdirSync(dir, { recursive: true })
+  }
+  const tmp = `${filePath}.${randomBytes(6).toString('hex')}.tmp`
+  try {
+    const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+    writeFileSync(tmp, content, 'utf-8')
+    renameSync(tmp, filePath)
+  } finally {
+    if (existsSync(tmp)) {
+      try {
+        unlinkSync(tmp)
+      } catch {
+        // ignore error if file was already renamed or removed
+      }
+    }
+  }
+}
+
 function loadKeys(): ApiKey[] {
   try { return JSON.parse(readFileSync(keysPath, 'utf-8')) } catch { return [] }
 }
 function saveKeys(keys: ApiKey[]): void {
-  writeFileSync(keysPath, JSON.stringify(keys, null, 2), 'utf-8')
+  atomicWriteJson(keysPath, keys)
 }
 function loadUsage(): UsageEntry[] {
   try { return JSON.parse(readFileSync(usagePath, 'utf-8')) } catch { return [] }
 }
 function saveUsage(usage: UsageEntry[]): void {
-  writeFileSync(usagePath, JSON.stringify(usage, null, 2), 'utf-8')
+  atomicWriteJson(usagePath, usage)
 }
 function loadRequests(): KeyRequest[] {
   try { return JSON.parse(readFileSync(reqPath, 'utf-8')) } catch { return [] }
 }
 function saveRequests(reqs: KeyRequest[]): void {
-  writeFileSync(reqPath, JSON.stringify(reqs, null, 2), 'utf-8')
+  atomicWriteJson(reqPath, reqs)
 }
 
 // ── Crypto ────────────────────────────────────────────────────────────────────
@@ -250,6 +271,13 @@ export function logUsage(keyId: string, endpoint: string, tokensSaved: number, m
       })
       if (usage.length > 10_000) usage.splice(0, usage.length - 10_000)
       saveUsage(usage)
+
+      const keys = loadKeys()
+      const key  = keys.find((k) => k.id === keyId)
+      if (key) {
+        key.quotaUsed = (key.quotaUsed ?? 0) + 1
+        saveKeys(keys)
+      }
     })
   }
 }

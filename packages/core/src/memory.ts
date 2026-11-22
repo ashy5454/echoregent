@@ -1,12 +1,24 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, readFile, rm } from 'node:fs/promises'
+import { mkdir, readFile, rm, stat } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { evaluatePolicy } from './policy.js'
+import { WikiMemory, rankFacts } from './wiki-memory.js'
 
 export interface MemoryScope { project: string; session: string }
-export interface FactInput { content: string; sources: string[] }
-export interface MemoryFact extends FactInput { id: string; createdAt: number; updatedAt: number; expiresAt: number }
+export interface FactInput {
+  content: string
+  sources: string[]
+  relation?: 'updates' | 'extends'
+  supersedesId?: string
+}
+export interface MemoryFact extends FactInput {
+  id: string
+  createdAt: number
+  updatedAt: number
+  expiresAt: number
+  supersededBy?: string
+}
 export type MemorySettings = { mode: 'off' } | { mode: 'ephemeral'; retentionMs: number } | { mode: 'file'; directory: string; retentionMs: number }
 
 export function scopeKey(scope: MemoryScope): string {
@@ -79,8 +91,20 @@ export class ScopedMemory {
     const lock = `${path}.lock`
     const deadline = Date.now() + 5_000
     for (;;) {
-      try { await mkdir(lock); break } catch (error) {
+      try {
+        await mkdir(lock)
+        break
+      } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error
+        try {
+          const stats = await stat(lock)
+          if (Date.now() - stats.mtimeMs > 30_000) {
+            await rm(lock, { recursive: true, force: true })
+            continue
+          }
+        } catch {
+          // If stat fails (e.g. lock was deleted), retry loop
+        }
         if (Date.now() >= deadline) throw new Error('Memory store busy; a stale lock may need removal after verifying no writer is running')
         await new Promise((resolveWait) => setTimeout(resolveWait, 20))
       }
@@ -106,48 +130,183 @@ export class ScopedMemory {
     }
   }
 
+  getAllFactsSync(scope: MemoryScope): MemoryFact[] {
+    const key = scopeKey(scope)
+    if (this.settings.mode === 'ephemeral') {
+      return (this.volatile.get(key) ?? []).filter((fact) => fact.expiresAt > this.now())
+    }
+    if (this.settings.mode === 'file') {
+      const path = join(this.settings.directory, `${key}.json`)
+      try {
+        const stored = JSON.parse(readFileSync(path, 'utf8'))
+        if (!Array.isArray(stored)) return []
+        return stored.filter((fact: MemoryFact) => fact.expiresAt > this.now())
+      } catch {
+        return []
+      }
+    }
+    return []
+  }
+
+  getActiveFactsSync(scope: MemoryScope): MemoryFact[] {
+    if (this.isProtected(scope)) return []
+    return this.getAllFactsSync(scope).filter(
+      (fact) => !fact.supersededBy && evaluatePolicy(fact.content).memory,
+    )
+  }
+
+  compileContextBlock(scope: MemoryScope, queryText: string, maxFacts = 5): string {
+    return new WikiMemory(this).compileContextBlock(scope, queryText, maxFacts)
+  }
+
+  rememberSync(scope: MemoryScope, input: FactInput): MemoryFact {
+    this.validateFact(input)
+    if (this.settings.mode === 'off') throw new Error('Memory disabled; enable it explicitly')
+    if (this.isProtected(scope)) throw new Error('Protected session cannot write memory')
+    const key = scopeKey(scope)
+    const now = this.now()
+    const retentionMs = this.settings.retentionMs
+    const facts = this.getAllFactsSync(scope)
+
+    // Deduplicate if identical active fact already exists
+    const existingIdentical = facts.find(
+      (item) => !item.supersededBy && item.content.toLowerCase() === input.content.trim().toLowerCase(),
+    )
+    if (existingIdentical) return existingIdentical
+
+    const newFact: MemoryFact = {
+      ...structuredClone(input),
+      content: input.content.trim(),
+      id: randomUUID(),
+      createdAt: now,
+      updatedAt: now,
+      expiresAt: now + retentionMs,
+    }
+    if (input.relation === 'updates' && input.supersedesId) {
+      const oldFact = facts.find((item) => item.id === input.supersedesId)
+      if (oldFact) {
+        oldFact.supersededBy = newFact.id
+        oldFact.updatedAt = now
+      }
+    }
+    facts.push(newFact)
+
+    if (this.settings.mode === 'ephemeral') {
+      this.volatile.set(key, facts)
+    } else if (this.settings.mode === 'file') {
+      mkdirSync(this.settings.directory, { recursive: true, mode: 0o700 })
+      const path = join(this.settings.directory, `${key}.json`)
+      const temporary = `${path}.${randomUUID()}.tmp`
+      try {
+        writeFileSync(temporary, JSON.stringify(facts, null, 2), { mode: 0o600, flag: 'wx' })
+        renameSync(temporary, path)
+      } finally {
+        rmSync(temporary, { force: true })
+      }
+      WikiMemory.syncWiki(this.settings.directory, key, facts, {
+        type: 'remember',
+        fact: newFact,
+        now,
+      })
+    }
+    return structuredClone(newFact)
+  }
+
   async remember(scope: MemoryScope, input: FactInput): Promise<MemoryFact> {
     this.validateFact(input)
-    return this.transact(scope, (facts) => {
+    const fact = await this.transact(scope, (facts) => {
       if (this.isProtected(scope)) throw new Error('Protected session cannot write memory')
       const now = this.now()
       const retentionMs = this.settings.mode === 'off' ? 0 : this.settings.retentionMs
-      const fact = { ...structuredClone(input), id: randomUUID(), createdAt: now, updatedAt: now, expiresAt: now + retentionMs }
-      facts.push(fact)
-      return fact
+      const newFact: MemoryFact = {
+        ...structuredClone(input),
+        id: randomUUID(),
+        createdAt: now,
+        updatedAt: now,
+        expiresAt: now + retentionMs,
+      }
+      if (input.relation === 'updates' && input.supersedesId) {
+        const oldFact = facts.find((item) => item.id === input.supersedesId)
+        if (oldFact) {
+          oldFact.supersededBy = newFact.id
+          oldFact.updatedAt = now
+        }
+      }
+      facts.push(newFact)
+      return newFact
     })
+    if (this.settings.mode === 'file') {
+      const allFacts = this.getAllFactsSync(scope)
+      WikiMemory.syncWiki(this.settings.directory, scopeKey(scope), allFacts, {
+        type: 'remember',
+        fact,
+        now: this.now(),
+      })
+    }
+    return fact
   }
 
   async recall(scope: MemoryScope, query: string): Promise<MemoryFact[]> {
     const result = await this.transact(scope, (facts) => {
-      if (this.isProtected(scope) || !evaluatePolicy(query).memory) return []
-      const words = query.toLowerCase().split(/\s+/).filter(Boolean)
-      return facts.filter((fact) => evaluatePolicy(fact.content).memory && words.every((word) => fact.content.toLowerCase().includes(word)))
+      if (this.isProtected(scope)) return []
+      const trimmed = query.trim()
+      if (trimmed && !evaluatePolicy(query).memory) return []
+      return rankFacts(facts, query)
     })
     return this.isProtected(scope) ? [] : result
   }
 
   async update(scope: MemoryScope, id: string, input: FactInput): Promise<MemoryFact> {
     this.validateFact(input)
-    return this.transact(scope, (facts) => {
+    const fact = await this.transact(scope, (facts) => {
       if (this.isProtected(scope)) throw new Error('Protected session cannot write memory')
-      const fact = facts.find((item) => item.id === id)
-      if (!fact) throw new Error('Fact not found in this scope')
-      Object.assign(fact, structuredClone(input), { updatedAt: this.now() })
-      return fact
+      const target = facts.find((item) => item.id === id)
+      if (!target) throw new Error('Fact not found in this scope')
+      Object.assign(target, structuredClone(input), { updatedAt: this.now() })
+      return target
     })
+    if (this.settings.mode === 'file') {
+      const allFacts = this.getAllFactsSync(scope)
+      WikiMemory.syncWiki(this.settings.directory, scopeKey(scope), allFacts, {
+        type: 'update',
+        fact,
+        now: this.now(),
+      })
+    }
+    return fact
   }
 
   async forget(scope: MemoryScope, id: string): Promise<boolean> {
-    return this.transact(scope, (facts) => {
+    const result = await this.transact(scope, (facts) => {
       const index = facts.findIndex((fact) => fact.id === id)
       if (index < 0) return false
       facts.splice(index, 1)
       return true
     })
+    if (result && this.settings.mode === 'file') {
+      const allFacts = this.getAllFactsSync(scope)
+      WikiMemory.syncWiki(this.settings.directory, scopeKey(scope), allFacts, {
+        type: 'forget',
+        id,
+        now: this.now(),
+      })
+    }
+    return result
   }
 
   async purge(scope: MemoryScope): Promise<number> {
-    return this.transact(scope, (facts) => { const count = facts.length; facts.splice(0); return count })
+    const count = await this.transact(scope, (facts) => {
+      const total = facts.length
+      facts.splice(0)
+      return total
+    })
+    if (this.settings.mode === 'file') {
+      WikiMemory.syncWiki(this.settings.directory, scopeKey(scope), [], {
+        type: 'purge',
+        count,
+        now: this.now(),
+      })
+    }
+    return count
   }
 }
