@@ -32,6 +32,7 @@ async function main() {
     'compact-history': { type: 'boolean', default: false },
     'local-token': { type: 'string' },
     'inject-memory': { type: 'boolean', default: false },
+    'adaptive-compression': { type: 'boolean', default: false },
     memory: { type: 'string', default: 'off' }, 'memory-dir': { type: 'string' },
     'retention-days': { type: 'string' }, project: { type: 'string' }, session: { type: 'string' },
     probe: { type: 'boolean' }, model: { type: 'string' }, help: { type: 'boolean', short: 'h' }, version: { type: 'boolean', short: 'V' },
@@ -72,7 +73,7 @@ async function main() {
     else if (values.memory === 'file' && values['memory-dir']) memory = { mode: 'file', directory: values['memory-dir'], retentionMs: days * 86_400_000 }
     else throw new Error('Use --memory off|ephemeral|file; file mode requires --memory-dir')
   }
-  const engine = new EchoRegent({ memory, compactHistory: values['compact-history'], injectMemory: values['inject-memory'] } as any)
+  const engine = new EchoRegent({ memory, compactHistory: values['compact-history'], injectMemory: values['inject-memory'], adaptiveCompression: values['adaptive-compression'] } as any)
   const scope = { project: resolve(values.project ?? process.cwd()), session: values.session ?? randomUUID() }
   if (command === 'mcp') { await runMcp(engine, scope); return }
   if (command === 'proxy') {

@@ -2,9 +2,20 @@ import { evaluatePolicy, type PolicyDecision } from './policy.js'
 import { compressLogs } from './compression.js'
 import { payloadTokens, smallerText } from './token-count.js'
 import { compactOlderHistory } from './history.js'
+import { compactConversationTurns } from './conversation-compressor.js'
+import {
+  AdaptiveCompressionLearner,
+  extractSignature,
+  type AdaptiveCompressorOptions,
+  type AdaptiveCompressorState,
+  type TurnObservation,
+  type ToolCallItem,
+} from './adaptive-compressor.js'
 import { ScopedMemory, scopeKey, type MemoryScope, type MemorySettings, type FactInput, type MemoryFact } from './memory.js'
 import { WikiMemory } from './wiki-memory.js'
-import { createHash } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 export { classify } from './classifier.js'
 export { evaluatePolicy } from './policy.js'
@@ -20,6 +31,7 @@ export {
 } from './conversation-compressor.js'
 export {
   AdaptiveCompressionLearner,
+  extractSignature,
   type AdaptiveCompressorOptions,
   type AdaptiveCompressorState,
   type TurnObservation,
@@ -36,8 +48,15 @@ export interface EngineOptions {
   compressor?: (text: string) => string
   compactHistory?: boolean
   injectMemory?: boolean
+  adaptiveCompression?: boolean
 }
 export interface ProcessResult<T> { request: T; policy: PolicyDecision; changed: boolean; reason: string; charactersRemoved: number }
+
+interface ScopeLearnerContext {
+  learner: AdaptiveCompressionLearner
+  pendingSignatures: string[]
+  lastToolCalls: ToolCallItem[]
+}
 
 export class EchoRegent {
   readonly memory: ScopedMemory
@@ -45,8 +64,10 @@ export class EchoRegent {
   private readonly compressor: (text: string) => string
   private readonly compactHistory: boolean
   private readonly injectMemory: boolean
+  private readonly adaptiveCompression: boolean
   // Hashes only: no original/condensed content is retained between requests.
   private readonly priorTransforms = new Map<string, { outputHash: string; expiresAt: number }>()
+  private readonly learners = new Map<string, ScopeLearnerContext>()
 
   constructor(options: EngineOptions = {}) {
     this.memory = new ScopedMemory(options.memory, options.now)
@@ -54,6 +75,46 @@ export class EchoRegent {
     this.compressor = options.compressor ?? compressLogs
     this.compactHistory = options.compactHistory ?? false
     this.injectMemory = options.injectMemory ?? false
+    this.adaptiveCompression = options.adaptiveCompression ?? false
+  }
+
+  private getLearnerContext(scope?: MemoryScope): ScopeLearnerContext {
+    const key = scope ? scopeKey(scope) : 'unscoped'
+    let ctx = this.learners.get(key)
+    if (!ctx) {
+      const learner = new AdaptiveCompressionLearner()
+      if (this.memory.settings.mode === 'file') {
+        const filePath = join(this.memory.settings.directory, `${key}.adaptive.json`)
+        if (existsSync(filePath)) {
+          try {
+            const raw = JSON.parse(readFileSync(filePath, 'utf8'))
+            if (raw && raw.state) learner.loadState(raw.state)
+          } catch { /* ignore corrupt state */ }
+        }
+      }
+      ctx = { learner, pendingSignatures: [], lastToolCalls: [] }
+      this.learners.set(key, ctx)
+    }
+    return ctx
+  }
+
+  private saveLearnerContext(scope: MemoryScope | undefined, ctx: ScopeLearnerContext): void {
+    if (this.memory.settings.mode !== 'file') return
+    const key = scope ? scopeKey(scope) : 'unscoped'
+    const dir = this.memory.settings.directory
+    mkdirSync(dir, { recursive: true, mode: 0o700 })
+    const filePath = join(dir, `${key}.adaptive.json`)
+    const tmp = `${filePath}.${randomUUID()}.tmp`
+    try {
+      writeFileSync(tmp, JSON.stringify({ state: ctx.learner.exportState() }, null, 2), { mode: 0o600, flag: 'wx' })
+      renameSync(tmp, filePath)
+    } finally {
+      rmSync(tmp, { force: true })
+    }
+  }
+
+  getAdaptiveLearner(scope?: MemoryScope): AdaptiveCompressionLearner {
+    return this.getLearnerContext(scope).learner
   }
 
   compileContextBlock(scope: MemoryScope, queryText: string, maxFacts = 5): string {
@@ -69,22 +130,46 @@ export class EchoRegent {
     const items = request[field]
     if (!Array.isArray(items) || !items.length) return original('no-eligible-tool-result')
 
+    const userItem = [...items].reverse().find((item) => item?.role === 'user')
+    let userQuery = ''
+    if (userItem) {
+      if (typeof userItem.content === 'string') {
+        userQuery = userItem.content
+      } else if (Array.isArray(userItem.content)) {
+        userQuery = userItem.content
+          .filter((part: any) => part && typeof part.text === 'string')
+          .map((part: any) => part.text)
+          .join('\n')
+      }
+    }
+
+    const currentToolCalls: ToolCallItem[] = []
+    for (const item of items) {
+      if (protocol === 'responses' && ['function_call', 'custom_tool_call'].includes(item?.type)) {
+        currentToolCalls.push({ name: item.name, args: item.arguments ?? item.input })
+      } else if (protocol === 'chat-completions' && item?.role === 'assistant' && Array.isArray(item.tool_calls)) {
+        for (const tc of item.tool_calls) {
+          currentToolCalls.push({ name: tc?.function?.name ?? tc?.name, args: tc?.function?.arguments ?? tc?.args })
+        }
+      }
+    }
+
+    const learnerCtx = this.adaptiveCompression ? this.getLearnerContext(scope) : null
+    if (learnerCtx && learnerCtx.pendingSignatures.length > 0) {
+      learnerCtx.learner.observeTurn({
+        signatures: learnerCtx.pendingSignatures,
+        userPrompt: userQuery,
+        toolCalls: currentToolCalls,
+        previousToolCalls: learnerCtx.lastToolCalls,
+      })
+      learnerCtx.pendingSignatures = []
+      this.saveLearnerContext(scope, learnerCtx)
+    }
+
     let memoryInjected = false
     let injectedItem: any = null
 
     if (this.injectMemory && scope && !policy.protected) {
-      const userItem = [...items].reverse().find((item) => item?.role === 'user')
-      let userQuery = ''
-      if (userItem) {
-        if (typeof userItem.content === 'string') {
-          userQuery = userItem.content
-        } else if (Array.isArray(userItem.content)) {
-          userQuery = userItem.content
-            .filter((part: any) => part && typeof part.text === 'string')
-            .map((part: any) => part.text)
-            .join('\n')
-        }
-      }
       const contextBlock = this.compileContextBlock(scope, userQuery)
       if (contextBlock) {
         memoryInjected = true
@@ -98,6 +183,7 @@ export class EchoRegent {
       let charactersRemoved = 0
       let eligible = false
       const pendingTransforms: Array<[string, { outputHash: string; expiresAt: number }]> = []
+      const turnCompressedSignatures = new Set<string>()
       const hash = (text: string) => createHash('sha256').update(text).digest('hex')
       const scopeId = scope ? scopeKey(scope) : 'unscoped'
       let next = items.map((item, index) => {
@@ -109,12 +195,32 @@ export class EchoRegent {
           const replay = prior && prior.expiresAt > Date.now()
           if (index !== items.length - 1 && !replay) return text
           eligible = true
-          const compressed = this.compressor(text)
+          let compressed: string
+          if (learnerCtx) {
+            const lines = text.split('\n').map((l) => l.trim()).filter((l) => l.length > 0)
+            const sigs = lines.map(extractSignature)
+            const hasProtectedLine = sigs.some((sig) => learnerCtx.learner.isProtected(sig))
+            if (hasProtectedLine) {
+              compressed = learnerCtx.learner.compressWithLearnedPolicy(text)
+              for (const sig of learnerCtx.learner.getLastCompressedSignatures()) turnCompressedSignatures.add(sig)
+            } else {
+              const adaptiveCandidate = learnerCtx.learner.compressWithLearnedPolicy(text)
+              const stdCandidate = this.compressor(text)
+              compressed = smallerText(adaptiveCandidate, stdCandidate) ? stdCandidate : adaptiveCandidate
+              if (compressed !== text) {
+                for (const sig of sigs) turnCompressedSignatures.add(sig)
+              }
+            }
+          } else {
+            compressed = this.compressor(text)
+          }
           if (typeof compressed !== 'string' || (!compressed && text) || compressed.length > text.length) throw new Error('Invalid compression result')
-          if (replay && hash(compressed) !== prior.outputHash) throw new Error('Compression prefix changed')
+          if (!learnerCtx && replay && hash(compressed) !== prior.outputHash) throw new Error('Compression prefix changed')
           if (compressed === text) return text
           charactersRemoved += text.length - compressed.length
-          pendingTransforms.push([key, { outputHash: hash(compressed), expiresAt: Date.now() + 86_400_000 }])
+          if (!learnerCtx) {
+            pendingTransforms.push([key, { outputHash: hash(compressed), expiresAt: Date.now() + 86_400_000 }])
+          }
           return compressed
         }
         const content = item[contentField]
@@ -128,11 +234,23 @@ export class EchoRegent {
         if (typeof content === 'string' ? updated === content : Array.isArray(content) && (updated as unknown[]).every((part, partIndex) => part === content[partIndex])) return item
         return { ...item, [contentField]: updated }
       })
+      if (learnerCtx) {
+        if (turnCompressedSignatures.size > 0) {
+          learnerCtx.pendingSignatures = Array.from(turnCompressedSignatures)
+        }
+        learnerCtx.lastToolCalls = currentToolCalls
+        this.saveLearnerContext(scope, learnerCtx)
+      }
       const logCharactersRemoved = charactersRemoved
       if (this.compactHistory) {
         const history = compactOlderHistory(next)
         next = history.items
         charactersRemoved += history.charactersRemoved
+        const convTurns = compactConversationTurns(next)
+        if (convTurns.charactersRemoved > 0) {
+          next = convTurns.items
+          charactersRemoved += convTurns.charactersRemoved
+        }
       }
       if (memoryInjected && injectedItem) {
         next = [injectedItem, ...next]

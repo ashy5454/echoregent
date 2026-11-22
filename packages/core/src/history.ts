@@ -1,4 +1,5 @@
 import { decompressText, preserveText } from './compression.js'
+import { restoreConversationTurns } from './conversation-compressor.js'
 import { expandTemplate, factorTemplates, type Template } from './templates.js'
 import { payloadTokens, textTokens } from './token-count.js'
 import type { Protocol } from './index.js'
@@ -125,7 +126,7 @@ export function restoreCompressedRequest<T extends Record<string, any>>(request:
   const field = protocol === 'responses' ? 'input' : 'messages'
   const items = request[field]
   if (!Array.isArray(items)) return request
-  const next = expandHistory(items).map(item => {
+  const next = restoreConversationTurns(expandHistory(items)).map(item => {
     const contentField = protocol === 'responses' && ['function_call_output', 'custom_tool_call_output'].includes(item?.type)
       ? 'output' : protocol === 'chat-completions' && item?.role === 'tool' ? 'content' : null
     if (!contentField) return item
