@@ -1,0 +1,34 @@
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Development container and editor configurations
+.devcontainer
+.vscode
+.idea
+
+# Node dependencies and package logs
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs and distribution bundles
+dist
+build
+coverage
+*.tgz
+artifacts/*.tgz
+
+# EchoRegent local persistent memory and test data
+.echoregent
+.echoregent-memory
+/data
+*.tmp
+*.log
+
+# Operating system caches
+.DS_Store
+Thumbs.db

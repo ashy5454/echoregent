@@ -1,0 +1,44 @@
+# render.yaml - EchoRegent Blueprint for Render
+#
+# Quickstart Deployment:
+#   1. Push this repository to GitHub (https://github.com/ashy5454/echoregent).
+#   2. In the Render Dashboard, click "New" -> "Blueprint" and select the repository.
+#   3. Enter your OPENAI_API_KEY when prompted. Render provisions the persistent disk and generates a random ECHOREGENT_LOCAL_TOKEN.
+
+services:
+  - type: web
+    name: echoregent-proxy
+    runtime: docker
+    dockerfilePath: Dockerfile
+    plan: starter
+    region: oregon
+    healthCheckPath: /health
+    disk:
+      name: echoregent-memory
+      mountPath: /data/.echoregent/memory
+      sizeGB: 1
+    envVars:
+      - key: PORT
+        value: 8787
+      - key: INTERNAL_PORT
+        value: 8788
+      - key: BIND_ADDRESS
+        value: 0.0.0.0
+      - key: ECHOREGENT_UPSTREAM
+        value: https://api.openai.com/v1
+      - key: ENABLE_FILE_MEMORY
+        value: "true"
+      - key: MEMORY_DIR
+        value: /data/.echoregent/memory
+      - key: RETENTION_DAYS
+        value: "14"
+      - key: PROJECT_NAME
+        value: cloud-production
+      - key: SESSION_NAME
+        value: main
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: ECHOREGENT_LOCAL_TOKEN
+        generateValue: true

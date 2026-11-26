@@ -79,7 +79,20 @@ export function atomicWriteJson(filePath: string, data: unknown): void {
   try {
     const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
     writeFileSync(tmp, content, 'utf-8')
-    renameSync(tmp, filePath)
+    let retries = 20
+    while (true) {
+      try {
+        renameSync(tmp, filePath)
+        break
+      } catch (err: any) {
+        if ((err?.code === 'EPERM' || err?.code === 'EBUSY' || err?.code === 'EACCES') && retries > 0) {
+          retries--
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 25)
+          continue
+        }
+        throw err
+      }
+    }
   } finally {
     if (existsSync(tmp)) {
       try {

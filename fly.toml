@@ -1,0 +1,52 @@
+# fly.toml - EchoRegent Proxy Deployment for Fly.io
+#
+# Quickstart Deployment:
+#   1. fly launch --no-deploy
+#   2. fly volumes create echoregent_memory --region iad --size 1
+#   3. fly secrets set OPENAI_API_KEY=sk-... ECHOREGENT_LOCAL_TOKEN=$(openssl rand -hex 16)
+#   4. fly deploy
+
+app = "echoregent-proxy"
+primary_region = "iad"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8787"
+  INTERNAL_PORT = "8788"
+  BIND_ADDRESS = "0.0.0.0"
+  ENABLE_FILE_MEMORY = "true"
+  MEMORY_DIR = "/data/.echoregent/memory"
+  RETENTION_DAYS = "14"
+  PROJECT_NAME = "cloud-production"
+  SESSION_NAME = "main"
+  ECHOREGENT_UPSTREAM = "https://api.openai.com/v1"
+
+[http_service]
+  internal_port = 8787
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [http_service.concurrency]
+    type = "requests"
+    soft_limit = 250
+    hard_limit = 500
+
+[[http_service.checks]]
+  grace_period = "10s"
+  interval = "30s"
+  method = "GET"
+  timeout = "5s"
+  path = "/health"
+
+[mounts]
+  source = "echoregent_memory"
+  destination = "/data/.echoregent/memory"
+  initial_size = "1gb"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

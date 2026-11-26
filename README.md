@@ -23,7 +23,7 @@
   <a href="#quickstart">Quickstart</a> • <a href="#measured-proof">Measured Proof</a> • <a href="#llm-wiki-memory">LLM-Wiki Memory</a> • <a href="#continual-learning">Continual Learning</a> • <a href="#works-in-your-agent">Works In Your Agent</a>
 </p>
 
-- **37.7% Average Token Cost Reduction (Up to 55.7%):** Losslessly compacts repetitive compiler diagnostics, test cascades, and structured tool logs in `<2 ms` before they hit upstream LLM APIs (up to 55.7% on structured tool logs and multi-turn agent runs).
+- **Lossless Log & Tool-Output Compaction (37.7% across our 10-fixture local mixture; 48.2%–97.2% on repetitive log fixtures):** Deterministically factors repeated compiler diagnostics, test cascades, and numeric tool logs in `<2 ms` with 100% byte-exact inverse reconstruction (`decompressText`). *See both our [local deterministic fixture benchmark](docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md) and our [unedited live Codex paired report](docs/evidence/LIVE_CODEX_REPORT.md), where token differences between paired live agent runs stemmed from non-deterministic agent trajectory variation rather than content compression (so a universal percentage bill-savings claim on live agent sessions is not made).*
 - **Zero-Token-Tax Continual Memory:** Karpathy-style Git-versionable Markdown wiki that remembers architectural decisions across sessions without burning extra LLM calls.
 - **100% Local-First & Zero Telemetry:** Pure MIT licensed runtime with zero analytics beacons, zero bundled weights, and fail-closed safety guardrails for sensitive contexts.
 
@@ -31,10 +31,56 @@
 
 ## Quickstart
 
+EchoRegent drops into your workflow with zero configuration:
+
 ```bash
 echoregent wrap codex   # Wrap your coding agent in one command
 echoregent proxy        # Or start standalone local HTTP proxy (:8787)
 ```
+
+### Installation & Try-Out Options
+
+Choose the installation path that matches your environment:
+
+#### 1. npm Registry (Standard)
+```bash
+npm install -g @echoregent/cli
+```
+*(Note: Initial builds are published under the `@next` tag on npm: `npm install -g @echoregent/cli@next`. Omit `@next` once promoted to `@latest`.)*
+
+#### 2. Zero-Wait Direct GitHub Release v0.4.0 CDN
+Install directly from GitHub's global release CDN without waiting for npm registry indexing or mirrors:
+```bash
+npm install -g \
+  https://github.com/ashy5454/echoregent/releases/download/v0.4.0/echoregent-core-0.4.0.tgz \
+  https://github.com/ashy5454/echoregent/releases/download/v0.4.0/echoregent-cli-0.4.0.tgz
+```
+
+#### 3. 1-Click Cloud & Container Try-Out (Zero Local Setup)
+Try EchoRegent in isolated cloud environments without installing Node.js locally:
+- [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/ashy5454/echoregent) **1-Click GitHub Codespaces:** Launches a preconfigured Node 22 environment ready to run.
+- **Docker Compose:** Spin up a local proxy container with persistent `.echoregent/memory`:
+  ```bash
+  docker compose up -d
+  ```
+- **Cloud Run / Fly.io / Render:** Full deployment manifests, configuration templates, and step-by-step guides are in [docs/CLOUD_TRYOUT.md](docs/CLOUD_TRYOUT.md).
+
+#### 60-Second Local Verification Walkthrough
+Verify package integrity, deterministic lossless compression, and proxy health in under a minute:
+```bash
+# 1. Run local build and feature verification (lossless roundtrip, regret learning, memory wiki)
+npm run verify:all
+
+# 2. Check proxy health and verify deterministic zero-overhead mode
+echoregent doctor
+
+# 3. Start local HTTP proxy on port 8787
+echoregent proxy --port 8787 --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory
+```
+
+---
+
+### How to Use EchoRegent
 
 EchoRegent drops into your workflow in three flexible ways:
 
@@ -43,15 +89,6 @@ EchoRegent drops into your workflow in three flexible ways:
 Run your autonomous coding agents through EchoRegent's transparent launcher. Verbose compiler diagnostics, test cascades, and git logs are compacted in `<2 ms` before hitting upstream models, while relevant project memory is automatically retrieved and injected.
 
 ```bash
-# Install CLI globally from npm
-npm install -g @echoregent/cli@next
-
-# Or install directly from the release tarball (zero-server):
-# npm install -g artifacts/echoregent-cli-0.4.0.tgz
-
-# Or run without installation via npx:
-# npx @echoregent/cli@next wrap codex
-
 # Launch OpenAI Codex with full autonomous token management & continual memory
 echoregent wrap codex --compact-history --inject-memory --adaptive-compression --auto-memory --project-memory
 ```
@@ -177,12 +214,15 @@ const { items, turnsCompacted } = compactConversationTurns(messages, { keepRecen
 ## Measured Proof
 
 <p align="center">
-  <img src="docs/images/echoregent_proof.svg" alt="EchoRegent Measured Token Economics — 42,808 to 26,653 tokens sent, 37.7% cut, 0 extra LLM calls" width="880"/>
+  <img src="docs/images/echoregent_proof.svg" alt="EchoRegent Measured Token Economics — 42,808 to 26,653 tokens sent across 10-fixture local mixture (37.7% payload cut, 48.2%–97.2% on repetitive logs), 0 extra LLM calls" width="880"/>
 </p>
 
-### Measured Empirical Token Savings
+### Measured Empirical Token Savings (Local Fixture Benchmark)
 
-All token measurements are generated locally using exact `o200k_base` BPE token counters and verified with byte-exact inverse reconstruction tests. Across realistic multi-turn agent runs and structured tool outputs, EchoRegent delivers a **37.7% average token cost reduction (up to 55.7% on dense numeric and timestamped logs)**. Every compressed payload is proven mathematically lossless: **Reconstruction Error: 0.00%**.
+All token measurements are generated locally using exact `o200k_base` BPE token counters and verified with byte-exact inverse reconstruction tests (`decompressText`). On our local deterministic benchmark fixtures ([docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md](docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md)), EchoRegent delivers a **37.7% payload token reduction across the 10-fixture mixture (from 42,808 down to 26,653 tokens; 48.2% to 97.2% on repetitive log fixtures and 55.7% on dense numeric logs)**. Every compressed payload is proven mathematically lossless: **Reconstruction Error: 0.00%** (100% byte-exact inverse reconstruction).
+
+> **Important distinction on live agent sessions vs. local payload compaction:**  
+> In paired live OpenAI Codex runs ([docs/evidence/LIVE_CODEX_REPORT.md](docs/evidence/LIVE_CODEX_REPORT.md)), measured token differences between baseline and EchoRegent runs stemmed from non-deterministic agent trajectory variation (different tool invocations and turn counts) rather than content compression. Therefore, we report 37.7% strictly as a local fixture payload reduction, and do not make an unqualified percentage bill-savings claim for live agent sessions.
 
 | Workload Type / Benchmark Fixture | Original Tokens | EchoRegent Tokens | Token Reduction | Exact Reversibility |
 |---|---:|---:|---:|:---:|
@@ -198,22 +238,23 @@ All token measurements are generated locally using exact `o200k_base` BPE token 
 > npm run verify:all
 > npx vitest run audit/tests/e2e-net-token-cost-benchmark.test.ts
 > ```
-> For full fixture breakdowns and methodology, see [docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md](docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md).
+> For full fixture breakdowns and methodology, see [docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md](docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md) and [docs/evidence/LIVE_CODEX_REPORT.md](docs/evidence/LIVE_CODEX_REPORT.md).
 
 ---
 
-### Net Token Economics: Why EchoRegent is Net-Negative
+### Net Token Economics: Analytical Architectural Model
 
-Existing memory engines (Mem0, Supermemory) suffer from a fatal economic paradox: **to manage context, they drastically inflate your token bill.** They trigger external LLM calls on every write operation, rely on heavy vector infrastructure, and inject uncompressed retrieved memories into prompts.
+Existing memory engines (Mem0, Supermemory) suffer from an architectural economic trade-off: **to manage context, they incur substantial write and recall token overhead.** They trigger external LLM calls on every write operation, rely on external vector database infrastructure, and inject uncompressed retrieved memories into prompts.
 
-Consider a standard 50-turn coding agent session ($T_{\text{in}} = 150,000$ raw tokens, 20 tool executions, 15 memory writes, 10 memory recalls):
+> **Methodology & Modeling Notice:**  
+> The 50-turn comparison below is an **analytical architectural model** ($T_{\text{in}} = 150,000$ raw input tokens, 20 tool runs, 15 memory writes, 10 recalls across EchoRegent, Mem0, Supermemory, and RTK+ICM) illustrating how zero-LLM-write Markdown memory compares against LLM-per-write vector memory and multi-tool MCP schemas based on documented write/tool mechanics — **not a live cross-vendor empirical benchmark**.
 
 $$\text{Net Billed Tokens } T_{\text{net}} = T_{\text{in}} - T_{\text{comp}} + T_{\text{memw}} + T_{\text{memr}}$$
 
 | Architecture & Component | EchoRegent (`@echoregent`) | Mem0 + OpenMemory | Supermemory | RTK + ICM (`rtk-ai`) |
 |---|:---:|:---:|:---:|:---:|
 | **Raw Input Tokens ($T_{\text{in}}$)** | 150,000 | 150,000 | 150,000 | 150,000 |
-| **Tool / History Compaction ($T_{\text{comp}}$)** | **-25,940** (-37.7% avg, up to -55.7%) | 0 (No input compression) | 0 (No input compression) | -18,000 (Lossy filtering) |
+| **Tool / History Compaction ($T_{\text{comp}}$)** | **-25,940** (-37.7% modeled from fixture avg) | 0 (No input compression) | 0 (No input compression) | -18,000 (Lossy filtering) |
 | **Memory Write Overhead ($T_{\text{memw}}$)** | **0 tokens (0 LLM calls)** | **+18,000** (1.2k tokens/write) | **+25,000** (Background dreaming) | 0 (SQLite local) |
 | **Memory Injection ($T_{\text{memr}}$)** | **+1,200** (Scoped top-3 facts) | +4,000 (Uncompressed vectors) | +6,000 (Graph expansions) | **+100,000** (31 MCP tool schemas) |
 | **Net Billed Tokens ($T_{\text{net}}$)** | **125,260** | **172,000** | **181,000** | **232,000** (with tools) / 132k (no mem) |
@@ -221,7 +262,7 @@ $$\text{Net Billed Tokens } T_{\text{net}} = T_{\text{in}} - T_{\text{comp}} + T
 | **Extra External LLM Calls on Write** | **0** | 15–30 calls | 15–45 calls | 0 |
 | **Infrastructure Required** | **Zero (Plain Markdown)** | Postgres + Qdrant (Docker) | Cloudflare / External DB | SQLite |
 
-EchoRegent is mathematically the **only context middleware that achieves a net-negative token balance while providing persistent continual memory.**
+EchoRegent's design demonstrates how local-first deterministic compaction and zero-LLM-write Markdown memory achieve a **net-negative token balance while providing persistent continual memory.**
 
 ---
 
@@ -642,7 +683,7 @@ We welcome contributions from the community!
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/echoregent/echoregent.git
+git clone https://github.com/ashy5454/echoregent.git
 cd echoregent
 
 # 2. Install dependencies & build workspaces

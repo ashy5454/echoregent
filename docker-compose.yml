@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  echoregent:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: echoregent-proxy
+    restart: unless-stopped
+    ports:
+      # Expose port 8787 on host IPv4 loopback (127.0.0.1) for secure local agent access.
+      # Change to "8787:8787" if you need to access this container across a private LAN or remote host.
+      - "127.0.0.1:8787:8787"
+    environment:
+      # Ingress and loopback ports
+      - PORT=8787
+      - INTERNAL_PORT=8788
+      - BIND_ADDRESS=0.0.0.0
+
+      # Upstream provider configuration (defaults to OpenAI)
+      - ECHOREGENT_UPSTREAM=${ECHOREGENT_UPSTREAM:-https://api.openai.com/v1}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+
+      # Optional: set a local bearer token for proxy authentication (x-echoregent-local-token)
+      - ECHOREGENT_LOCAL_TOKEN=${ECHOREGENT_LOCAL_TOKEN:-}
+
+      # Memory settings
+      - ENABLE_FILE_MEMORY=true
+      - MEMORY_DIR=/data/.echoregent/memory
+      - RETENTION_DAYS=14
+      - PROJECT_NAME=default
+      - SESSION_NAME=default
+    volumes:
+      # Persistent storage volume for continual LLM-wiki memory and learned adaptive compression signatures
+      - echoregent-memory:/data/.echoregent/memory
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8787/health | grep -q 'echoregent' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  echoregent-memory:
+    driver: local
+    name: echoregent-memory-data

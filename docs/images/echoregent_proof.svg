@@ -1,4 +1,4 @@
-<svg width="880" height="180" viewBox="0 0 880 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EchoRegent Measured Token Economics — 42,808 to 26,653 tokens sent, 37.7% cut, 0 extra LLM calls">
+<svg width="880" height="180" viewBox="0 0 880 180" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="EchoRegent Measured Token Economics — 42,808 to 26,653 tokens sent across 10-fixture local mixture (37.7% payload cut, 48.2%–97.2% on repetitive logs), 0 extra LLM calls">
   <defs>
     <radialGradient id="proof-glow-1" cx="150" cy="90" r="130" gradientUnits="userSpaceOnUse">
       <stop offset="0%" stop-color="#00c9b1" stop-opacity="0.08"/>
@@ -32,23 +32,23 @@
   <line x1="584" y1="24" x2="584" y2="156" stroke="#1e293b" stroke-width="1"/>
 
   <!-- ================= CARD 1: TOKENS IN -> SENT ================= -->
-  <text x="36" y="46" class="label" fill="#94a3b8">Context Processed</text>
+  <text x="36" y="46" class="label" fill="#94a3b8">Local Fixture Benchmark</text>
   <text x="36" y="94" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="32" font-weight="800" fill="#94a3b8">42,808 <tspan fill="#00c9b1" font-size="26">→</tspan> <tspan fill="#f8fafc" font-size="34">26,653</tspan></text>
-  <text x="36" y="122" class="sub">tokens in → tokens sent</text>
+  <text x="36" y="122" class="sub">tokens in → tokens sent (10 fixtures)</text>
   <rect x="36" y="136" width="152" height="24" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
   <text x="48" y="152" class="badge-text" fill="#38bdf8">Exact BPE o200k_base</text>
 
   <!-- ================= CARD 2: MEASURED TOKEN CUT ================= -->
-  <text x="328" y="46" class="label" fill="#94a3b8">Measured Token Cut</text>
+  <text x="328" y="46" class="label" fill="#94a3b8">Fixture Payload Cut</text>
   <text x="328" y="94" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="38" font-weight="800" fill="#34d399">37.7% <tspan font-size="24" font-weight="700" fill="#10b981">cut</tspan></text>
-  <text x="328" y="122" class="sub">up to 55.7% on structured tool logs</text>
-  <rect x="328" y="136" width="176" height="24" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
-  <text x="340" y="152" class="badge-text" fill="#34d399">0.00% Reconstruction Error</text>
+  <text x="328" y="122" class="sub">48.2%–97.2% on repetitive log fixtures</text>
+  <rect x="328" y="136" width="190" height="24" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
+  <text x="340" y="152" class="badge-text" fill="#34d399">100% Exact Inverse decompress</text>
 
   <!-- ================= CARD 3: ZERO WRITE OVERHEAD ================= -->
   <text x="616" y="46" class="label" fill="#94a3b8">Memory Write Overhead</text>
   <text x="616" y="94" font-family="system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="40" font-weight="800" fill="#38bdf8">0 <tspan font-size="22" font-weight="600" fill="#94a3b8">extra calls</tspan></text>
   <text x="616" y="122" class="sub">0 extra LLM calls on memory write</text>
   <rect x="616" y="136" width="164" height="24" rx="12" fill="#0f172a" stroke="#1e293b" stroke-width="1"/>
-  <text x="628" y="152" class="badge-text" fill="#38bdf8">Net-Negative Economics</text>
+  <text x="628" y="152" class="badge-text" fill="#38bdf8">Zero-Tax Markdown Wiki</text>
 </svg>

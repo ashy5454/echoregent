@@ -1,7 +1,7 @@
 # @echoregent/core
 
 > **EchoRegent — The Token Management Layer & Continual LLM-Wiki Memory Engine for AI Agents.**  
-> Delivers **37.7% average token cost reduction (up to 55.7% on structured tool logs and multi-turn agent runs)** with sub-5ms deterministic template factoring, turn $t+1$ regret feedback learning, and an append-only, zero-LLM-cost Markdown knowledge wiki.
+> Delivers **deterministic payload reduction (37.7% across our 10-fixture local mixture, from 42,808 to 26,653 tokens; 48.2%–97.2% on repetitive log fixtures)** with sub-5ms lossless template factoring, 100% byte-exact inverse reconstruction (`decompressText`), turn $t+1$ regret feedback learning, and an append-only, zero-LLM-cost Markdown knowledge wiki. *(Note: In paired live Codex runs, token differences stemmed from non-deterministic agent trajectory variation rather than content compression, so no universal live agent bill-savings percentage is claimed; see [LOCAL_TOKEN_SAVINGS_REPORT.md](https://github.com/ashy5454/echoregent/blob/main/docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md) and [LIVE_CODEX_REPORT.md](https://github.com/ashy5454/echoregent/blob/main/docs/evidence/LIVE_CODEX_REPORT.md).)*
 
 [![npm version](https://img.shields.io/npm/v/@echoregent/core?color=cb3837)](https://www.npmjs.com/package/@echoregent/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ashy5454/echoregent/blob/main/LICENSE)
@@ -63,7 +63,7 @@ const response = await fetch('https://api.openai.com/v1/chat/completions', {
 })
 ```
 
-`engine.process()` supports OpenAI Responses API (`'responses'`), OpenAI Chat Completions (`'chat-completions'`), and native Anthropic Messages API (`POST /v1/messages` via `'chat-completions'`). It inspects tool outputs (e.g. CI logs, tracebacks, git diffs, Anthropic `tool_result` content blocks) and compacts them into lossless numeric templates in under 5ms, saving **37.7% average token cost (up to 55.7% on structured tool logs and multi-turn agent runs)** while preserving streaming events, tool call IDs, and exact line counts.
+`engine.process()` supports OpenAI Responses API (`'responses'`), OpenAI Chat Completions (`'chat-completions'`), and native Anthropic Messages API (`POST /v1/messages` via `'chat-completions'`). It inspects tool outputs (e.g. CI logs, tracebacks, git diffs, Anthropic `tool_result` content blocks) and compacts them into lossless numeric templates in under 5ms, achieving **37.7% payload token reduction across our 10-fixture local mixture (42,808 down to 26,653 tokens; 48.2%–97.2% on repetitive log fixtures)** with 100% byte-exact inverse reconstruction (`decompressText`) while preserving streaming events, tool call IDs, and exact line counts. *(Note: Paired live Codex sessions demonstrated agent trajectory divergence rather than content compression; see [LIVE_CODEX_REPORT.md](https://github.com/ashy5454/echoregent/blob/main/docs/evidence/LIVE_CODEX_REPORT.md).)*
 
 ---
 

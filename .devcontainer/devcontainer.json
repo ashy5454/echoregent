@@ -1,0 +1,29 @@
+{
+  "name": "EchoRegent Dev Container",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22",
+  "forwardPorts": [8787],
+  "portsAttributes": {
+    "8787": {
+      "label": "EchoRegent Proxy & Health",
+      "onAutoForward": "notify",
+      "elevateIfNeeded": false
+    }
+  },
+  "postCreateCommand": "npm ci && npm run build:packages && npm run verify:all",
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash",
+        "typescript.tsdk": "node_modules/typescript/lib",
+        "editor.formatOnSave": true
+      },
+      "extensions": [
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "humao.rest-client",
+        "vitest.explorer"
+      ]
+    }
+  },
+  "remoteUser": "node"
+}
