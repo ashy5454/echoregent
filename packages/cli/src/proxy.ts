@@ -1,6 +1,6 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { once } from 'node:events'
-import { EchoRegent, type MemoryScope } from '@echoregent/core'
+import { EchoRegent, type MemoryScope } from '@arkadhi/echoregent-core'
 
 export interface ProxyOptions { upstream: string; port?: number; engine?: EchoRegent; scope?: MemoryScope; localToken?: string }
 export interface ProxyStats { requests: number; compressed: number; protected: number; errors: number }

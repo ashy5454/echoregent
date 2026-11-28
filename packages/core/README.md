@@ -1,9 +1,9 @@
-# @echoregent/core
+# @arkadhi/echoregent-core
 
 > **EchoRegent — The Token Management Layer & Continual LLM-Wiki Memory Engine for AI Agents.**  
 > Delivers **deterministic payload reduction (37.7% across our 10-fixture local mixture, from 42,808 to 26,653 tokens; 48.2%–97.2% on repetitive log fixtures)** with sub-5ms lossless template factoring, 100% byte-exact inverse reconstruction (`decompressText`), turn $t+1$ regret feedback learning, and an append-only, zero-LLM-cost Markdown knowledge wiki. *(Note: In paired live Codex runs, token differences stemmed from non-deterministic agent trajectory variation rather than content compression, so no universal live agent bill-savings percentage is claimed; see [LOCAL_TOKEN_SAVINGS_REPORT.md](https://github.com/ashy5454/echoregent/blob/main/docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md) and [LIVE_CODEX_REPORT.md](https://github.com/ashy5454/echoregent/blob/main/docs/evidence/LIVE_CODEX_REPORT.md).)*
 
-[![npm version](https://img.shields.io/npm/v/@echoregent/core?color=cb3837)](https://www.npmjs.com/package/@echoregent/core)
+[![npm version](https://img.shields.io/npm/v/@arkadhi/echoregent-core?color=cb3837)](https://www.npmjs.com/package/@arkadhi/echoregent-core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ashy5454/echoregent/blob/main/LICENSE)
 [![Node: >=22.12](https://img.shields.io/badge/Node->=22.12-brightgreen.svg)](https://nodejs.org/)
 [![Pure ESM](https://img.shields.io/badge/Pure-ESM-yellow.svg)](https://nodejs.org/api/esm.html)
@@ -17,11 +17,10 @@
 ### Installation
 
 ```bash
-npm install @echoregent/core@next
+npm install @arkadhi/echoregent-core
 ```
 
-> **Note:** The initial release uses npm's `@next` tag. Omit `@next` once promoted to `@latest`.  
-> Node.js `>=22.12.0` is required. Pure ESM with bundled TypeScript declarations (`.d.ts`).  
+> **Note:** Node.js `>=22.12.0` is required. Pure ESM with bundled TypeScript declarations (`.d.ts`).  
 > **Zero native compilation, zero Docker containers, zero Python runtime, zero model weight downloads, and zero telemetry.**
 
 ### 1-Line Middleware Integration
@@ -29,7 +28,7 @@ npm install @echoregent/core@next
 Wrap your provider requests before dispatching to OpenAI, Anthropic, or local model endpoints:
 
 ```typescript
-import { EchoRegent } from '@echoregent/core'
+import { EchoRegent } from '@arkadhi/echoregent-core'
 
 // Initialize with autonomous continual learning, project-wide memory, and compaction
 const engine = new EchoRegent({
@@ -77,7 +76,7 @@ Autonomous agents and LLM applications face an economic and architectural contex
 
 **EchoRegent eliminates this dilemma:**
 
-| Capability | Naive Truncation | Vector Memory (Mem0 / Supermemory) | @echoregent/core |
+| Capability | Naive Truncation | Vector Memory (Mem0 / Supermemory) | @arkadhi/echoregent-core |
 |---|---|---|---|
 | **Cost to Compress** | Free (Lossy) | N/A | **0 LLM calls (Deterministic)** |
 | **Cost to Index Memory** | N/A | 1,000–3,000 LLM tokens / write | **0 LLM calls (Zero token tax)** |
@@ -112,7 +111,7 @@ import {
   compressRepeatedLines,
   decompressText,
   restoreCompressedRequest,
-} from '@echoregent/core'
+} from '@arkadhi/echoregent-core'
 
 const engine = new EchoRegent()
 
@@ -156,7 +155,7 @@ console.log(restored === rawLogs) // true!
 
 #### Native Anthropic Messages API (`POST /v1/messages`) Support
 
-`@echoregent/core` provides native, first-class support for the Anthropic Messages API schema (used by Claude Code and the Anthropic TypeScript/Python SDKs) through `engine.process(request, 'chat-completions', scope)`:
+`@arkadhi/echoregent-core` provides native, first-class support for the Anthropic Messages API schema (used by Claude Code and the Anthropic TypeScript/Python SDKs) through `engine.process(request, 'chat-completions', scope)`:
 
 - **`tool_result` Content Compaction**: In Claude Code multi-turn workflows, tool executions return blocks with `type: 'tool_result'`. EchoRegent traverses user message content parts, detects `tool_result` outputs (both direct string content and structured text block arrays), and factors repetitive compiler, test, or linter logs into lossless templates.
 - **Top-Level `system` Memory Injection**: When `injectMemory: true`, EchoRegent detects top-level `request.system`, automatically strips any previously injected memory block from earlier turns to prevent context inflation, and prepends the fresh, deduplicated `[EchoRegent LLM-Wiki Memory Context]` block to `request.system`.
@@ -211,7 +210,7 @@ import {
   compactConversationTurns,
   restoreConversationTurns,
   restoreCompressedRequest,
-} from '@echoregent/core'
+} from '@arkadhi/echoregent-core'
 
 // Enable history compaction in EchoRegent
 const engine = new EchoRegent({ compactHistory: true })
@@ -283,7 +282,7 @@ When initialized with file storage, EchoRegent automatically maintains an audita
 #### TypeScript Example
 
 ```typescript
-import { EchoRegent, type MemoryScope } from '@echoregent/core'
+import { EchoRegent, type MemoryScope } from '@arkadhi/echoregent-core'
 
 const engine = new EchoRegent({
   injectMemory: true,        // Auto-inject relevant memory into process()
@@ -391,7 +390,7 @@ import {
   AdaptiveCompressionLearner,
   EchoRegent,
   type TurnObservation,
-} from '@echoregent/core'
+} from '@arkadhi/echoregent-core'
 
 // 1. Initialize learner with learning rate and protection threshold
 const learner = new AdaptiveCompressionLearner({
@@ -487,7 +486,7 @@ When content triggers a protected zone:
 #### TypeScript Example
 
 ```typescript
-import { classify, evaluatePolicy, EchoRegent } from '@echoregent/core'
+import { classify, evaluatePolicy, EchoRegent } from '@arkadhi/echoregent-core'
 
 // 1. Classify domain, intent, state, and risk
 const codingQuery = 'How do I run flutter doctor and fix database lease timeouts?'
@@ -530,7 +529,7 @@ console.log(result.request === protectedPayload) // true (original object return
 ### `EchoRegent` Engine Class
 
 ```typescript
-import { EchoRegent, type EngineOptions, type ProcessResult, type Protocol } from '@echoregent/core'
+import { EchoRegent, type EngineOptions, type ProcessResult, type Protocol } from '@arkadhi/echoregent-core'
 ```
 
 | Method / Property | Signature | Description |
@@ -561,7 +560,7 @@ import {
   compactConversationTurns,
   restoreConversationTurns,
   restoreCompressedRequest,
-} from '@echoregent/core'
+} from '@arkadhi/echoregent-core'
 ```
 
 | Function | Signature | Description |
@@ -583,7 +582,7 @@ import {
   type AdaptiveCompressorOptions,
   type AdaptiveCompressorState,
   type TurnObservation,
-} from '@echoregent/core'
+} from '@arkadhi/echoregent-core'
 ```
 
 | Method / Property | Signature | Description |
@@ -604,7 +603,7 @@ import {
 ### Classification & Policy Functions
 
 ```typescript
-import { classify, evaluatePolicy, scopeKey } from '@echoregent/core'
+import { classify, evaluatePolicy, scopeKey } from '@arkadhi/echoregent-core'
 ```
 
 | Function | Signature | Description |
@@ -692,7 +691,7 @@ EchoRegent is engineered for net-negative token overhead. Compaction requires **
 
 ## Security & Local Privacy
 
-- **Zero Remote Telemetry**: `@echoregent/core` makes **zero network requests**, contains no tracking pixels, and sends no telemetry.
+- **Zero Remote Telemetry**: `@arkadhi/echoregent-core` makes **zero network requests**, contains no tracking pixels, and sends no telemetry.
 - **Fail-Closed Protection**: Medical symptoms, legal advice inquiries, and crisis statements immediately disable compression and memory.
 - **Local Filesystem Isolation**: Memory files are written with restrictive POSIX permissions (`0o700` directories, `0o600` files). Hashed scope keys prevent directory traversal attacks.
 - **Auditable Plaintext**: All memory facts are stored as transparent, version-controllable Markdown documents.

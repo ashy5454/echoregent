@@ -20,7 +20,7 @@ Only the latest active minor release receives security updates and vulnerability
 EchoRegent operates on strict, deterministic security invariants designed to protect enterprise and developer workloads:
 
 1. **Local-First & Zero Telemetry:**
-   - EchoRegent packages (`@echoregent/core` and `@echoregent/cli`) make **zero outbound network connections** for analytics, telemetry, pingbacks, or usage metrics.
+   - EchoRegent packages (`@arkadhi/echoregent-core` and `@arkadhi/echoregent`) make **zero outbound network connections** for analytics, telemetry, pingbacks, or usage metrics.
    - All compression, token accounting, policy checks, and memory operations execute strictly in-process on the local machine (`127.0.0.1`).
    - The CLI proxy binds exclusively to loopback interfaces.
 
@@ -55,7 +55,7 @@ If you discover a security vulnerability in EchoRegent, please report it private
 
 To help us triage and resolve your report quickly, please include:
 - A descriptive title and summary of the issue.
-- The affected component (`@echoregent/core`, `@echoregent/cli`, proxy, or memory layer).
+- The affected component (`@arkadhi/echoregent-core`, `@arkadhi/echoregent`, proxy, or memory layer).
 - Step-by-step instructions or a minimal reproducible proof-of-concept (PoC).
 - Potential impact (e.g., memory leakage, policy bypass, ReDoS, path escape).
 - Any proposed fix or mitigation.

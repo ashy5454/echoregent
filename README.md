@@ -12,8 +12,8 @@
 
 <p align="center">
   <a href=".github/workflows/ci.yml"><img src="https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square&logo=github-actions&logoColor=white" alt="CI Status"/></a>
-  <a href="https://www.npmjs.com/package/@echoregent/core"><img src="https://img.shields.io/npm/v/@echoregent/core?style=flat-square&label=%40echoregent%2Fcore&color=blue" alt="npm @echoregent/core"/></a>
-  <a href="https://www.npmjs.com/package/@echoregent/cli"><img src="https://img.shields.io/npm/v/@echoregent/cli?style=flat-square&label=%40echoregent%2Fcli&color=blue" alt="npm @echoregent/cli"/></a>
+  <a href="https://www.npmjs.com/package/@arkadhi/echoregent-core"><img src="https://img.shields.io/npm/v/@arkadhi/echoregent-core?style=flat-square&label=%40echoregent%2Fcore&color=blue" alt="npm @arkadhi/echoregent-core"/></a>
+  <a href="https://www.npmjs.com/package/@arkadhi/echoregent"><img src="https://img.shields.io/npm/v/@arkadhi/echoregent?style=flat-square&label=%40echoregent%2Fcli&color=blue" alt="npm @arkadhi/echoregent"/></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square" alt="MIT License"/></a>
   <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Node->=22.12-brightgreen.svg?style=flat-square&logo=node.js&logoColor=white" alt="Node >=22.12"/></a>
   <a href="SECURITY.md"><img src="https://img.shields.io/badge/Telemetry-0%25%20(100%25%20Local)-success?style=flat-square" alt="0% Telemetry"/></a>
@@ -44,16 +44,12 @@ Choose the installation path that matches your environment:
 
 #### 1. npm Registry (Standard)
 ```bash
-npm install -g @echoregent/cli
+npm install -g @arkadhi/echoregent
 ```
-*(Note: Initial builds are published under the `@next` tag on npm: `npm install -g @echoregent/cli@next`. Omit `@next` once promoted to `@latest`.)*
 
-#### 2. Zero-Wait Direct GitHub Release v0.4.0 CDN
-Install directly from GitHub's global release CDN without waiting for npm registry indexing or mirrors:
+#### 2. Install the SDK only (for your own Node.js / TypeScript app)
 ```bash
-npm install -g \
-  https://github.com/ashy5454/echoregent/releases/download/v0.4.0/echoregent-core-0.4.0.tgz \
-  https://github.com/ashy5454/echoregent/releases/download/v0.4.0/echoregent-cli-0.4.0.tgz
+npm install @arkadhi/echoregent-core
 ```
 
 #### 3. 1-Click Cloud & Container Try-Out (Zero Local Setup)
@@ -160,13 +156,13 @@ curl http://127.0.0.1:8787/v1/chat/completions \
 
 ---
 
-### # 3 — 1-Line TypeScript SDK (@echoregent/core)
+### # 3 — 1-Line TypeScript SDK (@arkadhi/echoregent-core)
 
 Integrate EchoRegent directly into your Node.js or TypeScript application backend. One pure-JS runtime dependency (`gpt-tokenizer` for exact `o200k_base` BPE accounting) — zero native addons, zero ONNX runtimes, zero bundled weights (~120KB footprint, pure ESM).
 
 ```bash
-npm install @echoregent/core@next
-# Or install from release tarball: npm install artifacts/echoregent-core-0.4.0.tgz
+npm install @arkadhi/echoregent-core
+# Or from a local build: npm install artifacts/arkadhi-echoregent-core-0.4.0.tgz
 ```
 
 ```typescript
@@ -177,7 +173,7 @@ import {
   compactConversationTurns,
   restoreCompressedRequest,
   decompressText
-} from '@echoregent/core'
+} from '@arkadhi/echoregent-core'
 
 // 1. Initialize engine with history compaction, adaptive learning, and autonomous wiki memory
 const engine = new EchoRegent({
@@ -251,7 +247,7 @@ Existing memory engines (Mem0, Supermemory) suffer from an architectural economi
 
 $$\text{Net Billed Tokens } T_{\text{net}} = T_{\text{in}} - T_{\text{comp}} + T_{\text{memw}} + T_{\text{memr}}$$
 
-| Architecture & Component | EchoRegent (`@echoregent`) | Mem0 + OpenMemory | Supermemory | RTK + ICM (`rtk-ai`) |
+| Architecture & Component | EchoRegent (`@arkadhi/echoregent`) | Mem0 + OpenMemory | Supermemory | RTK + ICM (`rtk-ai`) |
 |---|:---:|:---:|:---:|:---:|
 | **Raw Input Tokens ($T_{\text{in}}$)** | 150,000 | 150,000 | 150,000 | 150,000 |
 | **Tool / History Compaction ($T_{\text{comp}}$)** | **-25,940** (-37.7% modeled from fixture avg) | 0 (No input compression) | 0 (No input compression) | -18,000 (Lossy filtering) |
@@ -292,7 +288,7 @@ EchoRegent structures facts with atomic attribution, historical supersession, an
 - **`^[source]` Citations:** Every single fact cites its caller origin (e.g., `^[src/db/pool.ts:42]`, `^[pull/104]`).
 
 ```typescript
-import { EchoRegent } from '@echoregent/core'
+import { EchoRegent } from '@arkadhi/echoregent-core'
 
 const engine = new EchoRegent({
   memory: { mode: 'file', directory: '.echoregent/memory' },
@@ -329,7 +325,7 @@ Setting `injectMemory: true` in `EchoRegent` options or passing `--inject-memory
 
 ## Continual Learning
 
-EchoRegent provides two complementary continual learning engines: a **zero-weight online delta-rule learner** in `@echoregent/core` for instantaneous local adaptation without backprop, and a **neural ONNX/TF-IDF pipeline** in `src/cts-core` and `pipeline/` for high-throughput enterprise classification.
+EchoRegent provides two complementary continual learning engines: a **zero-weight online delta-rule learner** in `@arkadhi/echoregent-core` for instantaneous local adaptation without backprop, and a **neural ONNX/TF-IDF pipeline** in `src/cts-core` and `pipeline/` for high-throughput enterprise classification.
 
 ### 1. Zero-Weight Online Delta-Rule Learner (`AdaptiveCompressionLearner`)
 
@@ -437,7 +433,7 @@ claude
 #### Option B: Model Context Protocol (MCP) Mode
 Add EchoRegent as an MCP server with one CLI command:
 ```bash
-claude mcp add echoregent npx -y @echoregent/cli@next mcp --memory file --memory-dir .echoregent/memory --project . --session claude-session
+claude mcp add echoregent npx -y @arkadhi/echoregent mcp --memory file --memory-dir .echoregent/memory --project . --session claude-session
 ```
 
 Alternatively, add EchoRegent manually in `~/.claude.json`:
@@ -446,7 +442,7 @@ Alternatively, add EchoRegent manually in `~/.claude.json`:
   "mcpServers": {
     "echoregent": {
       "command": "npx",
-      "args": ["-y", "@echoregent/cli", "mcp", "--memory", "file", "--memory-dir", ".echoregent/memory", "--project", ".", "--session", "claude-session"]
+      "args": ["-y", "@arkadhi/echoregent", "mcp", "--memory", "file", "--memory-dir", ".echoregent/memory", "--project", ".", "--session", "claude-session"]
     }
   }
 }
@@ -464,7 +460,7 @@ Route Cursor's model requests through EchoRegent:
    ```
 3. Or add EchoRegent as an MCP server in **Settings > Features > MCP**:
    - **Type:** `command`
-   - **Command:** `npx -y @echoregent/cli mcp --memory file --memory-dir .echoregent/memory --project . --session cursor-session`
+   - **Command:** `npx -y @arkadhi/echoregent mcp --memory file --memory-dir .echoregent/memory --project . --session cursor-session`
 </details>
 
 <details>
@@ -479,7 +475,7 @@ Configure Windsurf / Cascade via `~/.codeium/windsurf/mcp_config.json`:
       "command": "npx",
       "args": [
         "-y",
-        "@echoregent/cli",
+        "@arkadhi/echoregent",
         "mcp",
         "--memory", "file",
         "--memory-dir", ".echoregent/memory",
@@ -611,7 +607,7 @@ client = OpenAI(
 
 ### Deterministic Safety Guardrails (Medical, Legal, Crisis)
 
-EchoRegent includes built-in fail-closed policy protections (`evaluatePolicy` in `@echoregent/core`):
+EchoRegent includes built-in fail-closed policy protections (`evaluatePolicy` in `@arkadhi/echoregent-core`):
 - **Medical Policy:** Contexts containing `medication`, `prescription`, `symptoms`, `diagnosis`, `dosage`, or `blood pressure` are protected.
 - **Legal Policy:** Contexts touching `lawsuit`, `litigation`, `lease contract`, `eviction`, or `indemnity` are protected.
 - **Crisis Policy:** Self-harm, suicide keywords, or acute crisis intervention terms trigger immediate protection.
@@ -627,7 +623,7 @@ EchoRegent includes built-in fail-closed policy protections (`evaluatePolicy` in
 
 ## Compared To
 
-| # | Dimension | EchoRegent (`@echoregent`) | RTK + ICM (`rtk-ai/rtk`) | Headroom (`headroom-ai`) | Mem0 + OpenMemory (`mem0ai`) | Supermemory (`supermemory`) |
+| # | Dimension | EchoRegent (`@arkadhi/echoregent`) | RTK + ICM (`rtk-ai/rtk`) | Headroom (`headroom-ai`) | Mem0 + OpenMemory (`mem0ai`) | Supermemory (`supermemory`) |
 |---|---|---|---|---|---|---|
 | **1** | **Core Architecture** | Deterministic template factoring + Karpathy LLM-Wiki | Shell stdout filtering (Rust) + SQLite BM25/cosine | Rule-based tool/log stripper & proxy | LLM fact extraction into Qdrant/Postgres | Document chunking + HNSW + LLM Dreaming |
 | **2** | **Language & Stack** | TypeScript / Node 22.12+ (Pure ESM, 0 native binaries) | Rust (binary) + SQLite native libraries | Python 3.10+ (Tiktoken, C-ext) + Node proxy wrapper | Python / TypeScript + Docker Compose | TypeScript / Next.js / Cloudflare Workers |

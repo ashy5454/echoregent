@@ -1,5 +1,5 @@
 {
-  "name": "@echoregent/core",
+  "name": "@arkadhi/echoregent-core",
   "version": "0.4.0",
   "description": "Local context middleware: deterministic compression, policy controls and scoped, source-cited memory",
   "type": "module",
