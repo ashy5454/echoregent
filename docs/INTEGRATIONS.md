@@ -3,8 +3,8 @@
 > **Self-serve integration recipes for every major AI coding agent, developer IDE, and LLM SDK.**  
 > Cut prompt tokens by 30% to 60% with zero-overhead deterministic log compaction, online continual learning, fail-closed policy controls, and local source-cited LLM-Wiki memory.
 
-[![npm core](https://img.shields.io/npm/v/@echoregent/core?color=cb3837&label=@echoregent/core)](https://www.npmjs.com/package/@echoregent/core)
-[![npm cli](https://img.shields.io/npm/v/@echoregent/cli?color=cb3837&label=@echoregent/cli)](https://www.npmjs.com/package/@echoregent/cli)
+[![npm core](https://img.shields.io/npm/v/@arkadhi/echoregent-core?color=cb3837&label=@arkadhi/echoregent-core)](https://www.npmjs.com/package/@arkadhi/echoregent-core)
+[![npm cli](https://img.shields.io/npm/v/@arkadhi/echoregent?color=cb3837&label=@arkadhi/echoregent)](https://www.npmjs.com/package/@arkadhi/echoregent)
 [![Node: >=22.12](https://img.shields.io/badge/Node->=22.12-brightgreen.svg)](https://nodejs.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ashy5454/echoregent/blob/main/LICENSE)
 [![Zero Telemetry](https://img.shields.io/badge/Telemetry-Zero%20Calls-success.svg)](https://github.com/ashy5454/echoregent/blob/main/SECURITY.md)
@@ -39,7 +39,7 @@
   - [Streaming & Response Header Auditing](#53-streaming--response-header-auditing)
 - [Recipe 6: OpenAI Node / TypeScript SDK & Vercel AI SDK](#recipe-6-openai-node--typescript-sdk--vercel-ai-sdk)
   - [Approach A: Local HTTP Proxy Mode](#61-approach-a-local-http-proxy-mode)
-  - [Approach B: In-Process `@echoregent/core` Middleware (Zero Daemon)](#62-approach-b-in-process-echoregentcore-middleware-zero-daemon)
+  - [Approach B: In-Process `@arkadhi/echoregent-core` Middleware (Zero Daemon)](#62-approach-b-in-process-echoregentcore-middleware-zero-daemon)
   - [Vercel AI SDK Integration (`ai` + `@ai-sdk/openai`)](#63-vercel-ai-sdk-integration-ai--ai-sdkopenai)
 - [Recipe 7: Continual Learning Loop Recipe](#recipe-7-continual-learning-loop-recipe)
   - [First-Principles Biological Motivation](#71-first-principles-biological-motivation)
@@ -71,7 +71,7 @@ EchoRegent operates as a **local, private context management layer** positioned 
 │                   remember, recall,          `/memory/*`, `/compress`       │
 │                   update, forget, purge                                     │
 │                                                                             │
-│  [4] In-Process Core SDK Middleware: `import { EchoRegent } from '@echoregent/core'`
+│  [4] In-Process Core SDK Middleware: `import { EchoRegent } from '@arkadhi/echoregent-core'`
 └──────────────────────────────────────┬──────────────────────────────────────┘
                                        │
                                        ▼
@@ -102,7 +102,7 @@ EchoRegent operates as a **local, private context management layer** positioned 
 | **Windsurf IDE** | Base URL override | MCP (`mcp_config.json`) | Yes (Proxy) | Yes (MCP) | Yes (Proxy mode) |
 | **Hermes Agent** | MCP (`config.yaml`) | Custom provider endpoint | Yes (MCP & Proxy) | Yes (Wiki memory) | Yes (Proxy mode) |
 | **OpenAI Python SDK** | `base_url="http://127.0.0.1:8787/v1"` | REST API (`/memory/*`) | Yes (Transparent) | Yes (REST endpoints) | Yes (Transparent) |
-| **OpenAI Node SDK** | In-Process `@echoregent/core` | Proxy (`http://127.0.0.1:8787/v1`) | Yes (In-process/Proxy) | Yes (In-process/REST) | Yes (In-process/Proxy) |
+| **OpenAI Node SDK** | In-Process `@arkadhi/echoregent-core` | Proxy (`http://127.0.0.1:8787/v1`) | Yes (In-process/Proxy) | Yes (In-process/REST) | Yes (In-process/Proxy) |
 | **Vercel AI SDK** | `createOpenAI({ baseURL })` | Custom `fetch` middleware | Yes (Transparent) | Yes (Pre-process hook) | Yes (Transparent) |
 | **Custom Agent Loops** | `AdaptiveCompressionLearner` + `WikiMemory` | In-process Core SDK | Yes (Online Plasticity)| Yes (`updates`/`extends`)| Yes (Full Lifecycle) |
 
@@ -726,16 +726,16 @@ async function main() {
 main().catch(console.error)
 ```
 
-### 6.2 Approach B: In-Process `@echoregent/core` Middleware (Zero Daemon)
+### 6.2 Approach B: In-Process `@arkadhi/echoregent-core` Middleware (Zero Daemon)
 
-For applications that prefer zero background processes, embed `@echoregent/core` directly into your application process:
+For applications that prefer zero background processes, embed `@arkadhi/echoregent-core` directly into your application process:
 
 ```bash
-npm install @echoregent/core@next openai
+npm install @arkadhi/echoregent-core openai
 ```
 
 ```typescript
-import { EchoRegent, type MemoryScope } from '@echoregent/core'
+import { EchoRegent, type MemoryScope } from '@arkadhi/echoregent-core'
 import OpenAI from 'openai'
 
 // 1. Initialize in-process engine
@@ -876,7 +876,7 @@ import {
   type MemoryScope,
   type TurnObservation,
   type ToolCallItem,
-} from '@echoregent/core'
+} from '@arkadhi/echoregent-core'
 import OpenAI from 'openai'
 import { writeFileSync, readFileSync, existsSync } from 'node:fs'
 
@@ -1016,7 +1016,7 @@ EchoRegent's memory layer implements provenance-tracked knowledge evolution:
 - **`relation: 'extends'` (Augmenting)**: Used when new findings add details or operational extensions to existing facts without invalidating them. Both facts remain active and searchable.
 
 ```typescript
-import { EchoRegent, type MemoryScope } from '@echoregent/core'
+import { EchoRegent, type MemoryScope } from '@arkadhi/echoregent-core'
 
 const engine = new EchoRegent({
   memory: {

@@ -2,7 +2,7 @@
 import { parseArgs } from 'node:util'
 import { resolve } from 'node:path'
 import { randomUUID } from 'node:crypto'
-import { EchoRegent, type MemorySettings } from '@echoregent/core'
+import { EchoRegent, type MemorySettings } from '@arkadhi/echoregent-core'
 import { startProxy } from './proxy.js'
 import { wrapCodex } from './codex.js'
 import { runMcp } from './mcp.js'

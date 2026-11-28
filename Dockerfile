@@ -20,7 +20,7 @@ RUN npm ci
 # Copy repository source code
 COPY . .
 
-# Build packages (@echoregent/core and @echoregent/cli) and link CLI globally
+# Build packages (@arkadhi/echoregent-core and @arkadhi/echoregent) and link CLI globally
 RUN npm run build:packages && npm link ./packages/cli
 
 # Create persistent storage volume for continual LLM-wiki memory and adaptive models

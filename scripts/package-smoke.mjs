@@ -23,19 +23,19 @@ function run(command, args, options = {}) {
 try {
   const npmCli = process.env.npm_execpath ?? (process.platform === 'win32' ? join(process.execPath, '..', 'node_modules/npm/bin/npm-cli.js') : '/usr/share/nodejs/npm/bin/npm-cli.js')
   await mkdir(artifacts, { recursive: true })
-  await run(process.execPath, [npmCli, 'pack', '--workspace', '@echoregent/core', '--pack-destination', artifacts], { cwd: root })
-  await run(process.execPath, [npmCli, 'pack', '--workspace', '@echoregent/cli', '--pack-destination', artifacts], { cwd: root })
+  await run(process.execPath, [npmCli, 'pack', '--workspace', '@arkadhi/echoregent-core', '--pack-destination', artifacts], { cwd: root })
+  await run(process.execPath, [npmCli, 'pack', '--workspace', '@arkadhi/echoregent', '--pack-destination', artifacts], { cwd: root })
   await writeFile(join(directory, 'package.json'), JSON.stringify({ private: true, type: 'module' }))
-  await run(process.execPath, [npmCli, 'install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', join(artifacts, 'echoregent-core-0.4.0.tgz'), join(artifacts, 'echoregent-cli-0.4.0.tgz')])
-  const cli = join(directory, 'node_modules/@echoregent/cli/dist/index.js')
+  await run(process.execPath, [npmCli, 'install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund', join(artifacts, 'arkadhi-echoregent-core-0.4.0.tgz'), join(artifacts, 'arkadhi-echoregent-0.4.0.tgz')])
+  const cli = join(directory, 'node_modules/@arkadhi/echoregent/dist/index.js')
   assert.equal((await run(process.execPath, [cli, '--version'])).trim(), '0.4.0')
   assert.ok((await run(process.execPath, [cli, 'models'])).includes('No model weights'))
-  await writeFile(join(directory, 'sdk.mjs'), `import assert from 'node:assert/strict'; import { EchoRegent } from '@echoregent/core'; const e = new EchoRegent(); assert.equal(e.compressText('PASS unit\\n'.repeat(90)).changed, true); assert.equal(e.compressText('My medication dose').policy.protected, true); console.log('SDK installed and working');`)
+  await writeFile(join(directory, 'sdk.mjs'), `import assert from 'node:assert/strict'; import { EchoRegent } from '@arkadhi/echoregent-core'; const e = new EchoRegent(); assert.equal(e.compressText('PASS unit\\n'.repeat(90)).changed, true); assert.equal(e.compressText('My medication dose').policy.protected, true); console.log('SDK installed and working');`)
   assert.ok((await run(process.execPath, [join(directory, 'sdk.mjs')])).includes('SDK installed and working'))
-  for (const name of ['core', 'cli']) {
-    const files = await readdir(join(directory, `node_modules/@echoregent/${name}/dist`))
+  for (const name of ['echoregent-core', 'echoregent']) {
+    const files = await readdir(join(directory, `node_modules/@arkadhi/${name}/dist`))
     assert.ok(files.includes('index.js') && files.includes('index.d.ts'), `${name} is missing compiled JS/declarations`)
-    assert.ok(!(await readdir(join(directory, `node_modules/@echoregent/${name}`))).includes('src'), 'Source build leaked into published package')
+    assert.ok(!(await readdir(join(directory, `node_modules/@arkadhi/${name}`))).includes('src'), 'Source build leaked into published package')
   }
   // Verify the actual installed npm command shim, without a shell.
   const shim = join(directory, 'node_modules/.bin/echoregent')
@@ -44,7 +44,7 @@ try {
     const shimOutput = await run(process.env.ComSpec ?? 'cmd.exe', ['/d', '/c', 'echoregent.cmd', '--version'], { env: { ...process.env, PATH: `${join(directory, 'node_modules/.bin')};${process.env.PATH}` } })
     assert.equal(shimOutput.trim(), '0.4.0')
   }
-  await writeFile(join(directory, 'usage.ts'), `import { EchoRegent, type MemoryScope } from '@echoregent/core';\nconst scope: MemoryScope = { project: 'p', session: 's' };\nnew EchoRegent().process({ input: [] }, 'responses', scope);\n// @ts-expect-error scope requires a session\nconst invalidScope: MemoryScope = { project: 'p' };\n// @ts-expect-error unsupported provider protocol\nnew EchoRegent().process({}, 'anthropic');\n`)
+  await writeFile(join(directory, 'usage.ts'), `import { EchoRegent, type MemoryScope } from '@arkadhi/echoregent-core';\nconst scope: MemoryScope = { project: 'p', session: 's' };\nnew EchoRegent().process({ input: [] }, 'responses', scope);\n// @ts-expect-error scope requires a session\nconst invalidScope: MemoryScope = { project: 'p' };\n// @ts-expect-error unsupported provider protocol\nnew EchoRegent().process({}, 'anthropic');\n`)
   await writeFile(join(directory, 'tsconfig.json'), JSON.stringify({ compilerOptions: { target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext', strict: true, noEmit: true, skipLibCheck: true }, include: ['usage.ts'] }))
   await run(process.execPath, [join(root, 'node_modules/typescript/bin/tsc'), '-p', join(directory, 'tsconfig.json')])
   const { Client } = await import('@modelcontextprotocol/sdk/client/index.js')

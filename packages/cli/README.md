@@ -1,9 +1,9 @@
-# @echoregent/cli
+# @arkadhi/echoregent
 
 > **EchoRegent — The Token Management Layer & Continual LLM-Wiki Memory Engine for AI Agents.**  
 > Local HTTP proxy, transparent coding-agent launcher, diagnostics suite, and Model Context Protocol (MCP) server. Delivers **deterministic payload reduction (37.7% across our 10-fixture local mixture, from 42,808 to 26,653 tokens; 48.2%–97.2% on repetitive log fixtures)** with sub-2ms lossless template factoring and 100% byte-exact inverse reconstruction (`decompressText`). *(Note: In paired live Codex runs, token differences stemmed from non-deterministic agent trajectory variation rather than content compression, so no universal live agent bill-savings percentage is claimed; see [LOCAL_TOKEN_SAVINGS_REPORT.md](https://github.com/ashy5454/echoregent/blob/main/docs/evidence/LOCAL_TOKEN_SAVINGS_REPORT.md) and [LIVE_CODEX_REPORT.md](https://github.com/ashy5454/echoregent/blob/main/docs/evidence/LIVE_CODEX_REPORT.md).)*
 
-[![npm version](https://img.shields.io/npm/v/@echoregent/cli?color=cb3837)](https://www.npmjs.com/package/@echoregent/cli)
+[![npm version](https://img.shields.io/npm/v/@arkadhi/echoregent?color=cb3837)](https://www.npmjs.com/package/@arkadhi/echoregent)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/ashy5454/echoregent/blob/main/LICENSE)
 [![Node: >=22.12](https://img.shields.io/badge/Node->=22.12-brightgreen.svg)](https://nodejs.org/)
 [![Pure ESM](https://img.shields.io/badge/Pure-ESM-yellow.svg)](https://nodejs.org/api/esm.html)
@@ -17,21 +17,20 @@
 Install globally via npm:
 
 ```bash
-npm install -g @echoregent/cli@next
+npm install -g @arkadhi/echoregent
 ```
 
-*(The initial release uses the `@next` tag. Omit `@next` once the release is promoted to `@latest` on npm.)*
 
 Alternatively, run directly without global installation via `npx`:
 
 ```bash
-npx @echoregent/cli@next wrap codex
+npx @arkadhi/echoregent wrap codex
 ```
 
 ### Requirements & Runtime Characteristics
 - **Node.js**: `>= 22.12.0` (Native `fetch`, modern stream handling, ES modules).
 - **Architecture**: 100% Pure ESM with bundled TypeScript declarations (`.d.ts`).
-- **Dependencies**: Featherweight; depends only on `@echoregent/core` and `@modelcontextprotocol/sdk`.
+- **Dependencies**: Featherweight; depends only on `@arkadhi/echoregent-core` and `@modelcontextprotocol/sdk`.
 - **Zero Heavy Runtime**: No Python, no C++ compilation, no Docker containers, no background daemons, and no model weight downloads.
 
 ---

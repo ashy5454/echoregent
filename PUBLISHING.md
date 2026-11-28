@@ -1,6 +1,6 @@
 # Publishing & Zero-Server Distribution Guide
 
-This repository releases two packages: `@echoregent/core` (the token management & continual memory engine SDK) and `@echoregent/cli` (the local proxy, Codex launcher, diagnostics, and MCP server). The root workspace stays private. Publish core first because CLI depends on the exact core version.
+This repository releases two packages: `@arkadhi/echoregent-core` (the token management & continual memory engine SDK) and `@arkadhi/echoregent` (the local proxy, Codex launcher, diagnostics, and MCP server). The root workspace stays private. Publish core first because CLI depends on the exact core version.
 
 The current release version is `0.4.0`. The release branch is `oss-release-v0.4.0` at [https://github.com/ashy5454/echoregent](https://github.com/ashy5454/echoregent). A Git push alone does not publish packages to npm or create GitHub Releases.
 
@@ -11,10 +11,10 @@ The current release version is `0.4.0`. The release branch is `oss-release-v0.4.
 EchoRegent requires **zero hosted backend servers**:
 
 1. **Package Hosting (npm Registry + GitHub Releases CDN):**
-   - Publishing `@echoregent/core` and `@echoregent/cli` to the public npm registry (`registry.npmjs.org`) places both packages onto npm's global Cloudflare CDN for free. Developers worldwide run `npm install -g @echoregent/cli` or `npx @echoregent/cli` without hitting any custom infrastructure.
+   - Publishing `@arkadhi/echoregent-core` and `@arkadhi/echoregent` to the public npm registry (`registry.npmjs.org`) places both packages onto npm's global Cloudflare CDN for free. Developers worldwide run `npm install -g @arkadhi/echoregent` or `npx @arkadhi/echoregent` without hitting any custom infrastructure.
    - Attaching `echoregent-core-0.4.0.tgz` and `echoregent-cli-0.4.0.tgz` to a GitHub Release (`v0.4.0`) enables direct global distribution via GitHub's CDN (`npm install -g https://github.com/ashy5454/echoregent/releases/download/v0.4.0/...`). This works instantly even before npm propagation or without an npm account.
 2. **Runtime Compute (`127.0.0.1` Local Loopback):**
-   - Both `@echoregent/core` and `@echoregent/cli` run 100% in-process or locally on loopback (`127.0.0.1:8787`).
+   - Both `@arkadhi/echoregent-core` and `@arkadhi/echoregent` run 100% in-process or locally on loopback (`127.0.0.1:8787`).
    - Zero external model weights, zero cloud database dependencies, and zero proprietary server runtimes.
    - 100,000 active users cost Arkadhi **$0/month in server compute and $0/month in bandwidth**.
 
@@ -24,7 +24,7 @@ EchoRegent requires **zero hosted backend servers**:
 
 - Install Node 22.12+ and its bundled npm (Node 24 is also supported).
 - Install the GitHub CLI (`gh`) for creating GitHub Releases.
-- For **Channel A (npm Registry)**: Use an npm account with publish permission for the `@echoregent` scope. Create/control that npm organization or obtain access from its owner. GitHub repository ownership does not grant npm scope ownership.
+- For **Channel A (npm Registry)**: Use an npm account with publish permission for the `@arkadhi` scope. Create/control that npm organization or obtain access from its owner. GitHub repository ownership does not grant npm scope ownership.
 - Have the Codex CLI on PATH for the local packaging fixture check (`npm install -g @openai/codex@0.167.0`).
 - Log in to the npm registry using your account and complete any browser/2FA prompts:
 
@@ -35,7 +35,7 @@ npm whoami --registry=https://registry.npmjs.org/
 
 On PowerShell on Windows, use `npm.cmd` instead of `npm` if script execution policy blocks `npm.ps1`. The commands below otherwise work with the same arguments.
 
-If `@echoregent` is unavailable to your account, choose a scope you control and update both package names, CLI's core dependency, source imports, workspace commands, smoke scripts, and documentation consistently before rebuilding. Do not publish mismatched package names or dependencies.
+If `@arkadhi` is unavailable to your account, choose a scope you control and update both package names, CLI's core dependency, source imports, workspace commands, smoke scripts, and documentation consistently before rebuilding. Do not publish mismatched package names or dependencies.
 
 ---
 
@@ -66,17 +66,17 @@ See the [verification evidence](docs/evidence/COMPACTION_VERIFICATION.md). The l
 ## 3. Check version availability and package contents
 
 ```sh
-npm view @echoregent/core@0.4.0 version --registry=https://registry.npmjs.org/
-npm view @echoregent/cli@0.4.0 version --registry=https://registry.npmjs.org/
-npm pack --dry-run --json --workspace @echoregent/core
-npm pack --dry-run --json --workspace @echoregent/cli
+npm view @arkadhi/echoregent-core@0.4.0 version --registry=https://registry.npmjs.org/
+npm view @arkadhi/echoregent@0.4.0 version --registry=https://registry.npmjs.org/
+npm pack --dry-run --json --workspace @arkadhi/echoregent-core
+npm pack --dry-run --json --workspace @arkadhi/echoregent
 ```
 
 An E404 from a version query means that package/version is not yet visible in the registry. An authentication or network error does not establish availability. npm versions are immutable: if `0.4.0` is already published, choose a new version before building.
 
-Both package allowlists contain compiled `dist` files, declarations, README, and licensing files. `@echoregent/core` has only **one pure-JS runtime dependency** (`gpt-tokenizer` for exact `o200k_base` BPE accounting) and **zero native addons, zero ONNX runtimes, and zero bundled model weights**. Neither package contains weights, model/training directories, environment files, provider credentials, local memory stores, or internal playbooks.
+Both package allowlists contain compiled `dist` files, declarations, README, and licensing files. `@arkadhi/echoregent-core` has only **one pure-JS runtime dependency** (`gpt-tokenizer` for exact `o200k_base` BPE accounting) and **zero native addons, zero ONNX runtimes, and zero bundled model weights**. Neither package contains weights, model/training directories, environment files, provider credentials, local memory stores, or internal playbooks.
 
-If preparing a later version, keep the two package versions and CLI's exact `@echoregent/core` dependency aligned, update the lockfile with `npm install --package-lock-only`, and update version-dependent CLI output, proxy health, smoke-script expectations, and archive names. Search for the existing release string with `rg -n '0\.4\.0' packages scripts package.json docs`.
+If preparing a later version, keep the two package versions and CLI's exact `@arkadhi/echoregent-core` dependency aligned, update the lockfile with `npm install --package-lock-only`, and update version-dependent CLI output, proxy health, smoke-script expectations, and archive names. Search for the existing release string with `rg -n '0\.4\.0' packages scripts package.json docs`.
 
 ---
 
@@ -92,8 +92,8 @@ npm run pack:packages
 For version `0.4.0`, this builds clean distributions and generates:
 
 ```text
-artifacts/echoregent-core-0.4.0.tgz
-artifacts/echoregent-cli-0.4.0.tgz
+artifacts/arkadhi-echoregent-core-0.4.0.tgz
+artifacts/arkadhi-echoregent-0.4.0.tgz
 ```
 
 The `prepack` scripts automatically compile each TypeScript workspace. Archive names and hashes change with version/content; inspect the actual output from your checkout.
@@ -104,15 +104,15 @@ The `prepack` scripts automatically compile each TypeScript workspace. Archive n
 
 Use npm's `next` distribution tag initially. The package versions remain `0.4.0`; `next` selects the release without advertising it as the default stable installation.
 
-**Publish core first** because CLI depends on the exact `@echoregent/core` version:
+**Publish core first** because CLI depends on the exact `@arkadhi/echoregent-core` version:
 
 ```sh
 # 1. Publish core package
-npm publish artifacts/echoregent-core-0.4.0.tgz --access public --tag next --registry=https://registry.npmjs.org/
-npm view @echoregent/core@0.4.0 version --registry=https://registry.npmjs.org/
+npm publish artifacts/arkadhi-echoregent-core-0.4.0.tgz --access public --tag next --registry=https://registry.npmjs.org/
+npm view @arkadhi/echoregent-core@0.4.0 version --registry=https://registry.npmjs.org/
 
 # 2. Publish CLI package
-npm publish artifacts/echoregent-cli-0.4.0.tgz --access public --tag next --registry=https://registry.npmjs.org/
+npm publish artifacts/arkadhi-echoregent-0.4.0.tgz --access public --tag next --registry=https://registry.npmjs.org/
 ```
 
 Complete any npm account/2FA requirements interactively. If core publication fails, resolve that error before publishing CLI. CLI's exact dependency resolves a published core version even when core is tagged `next`.
@@ -131,8 +131,8 @@ Using the GitHub CLI (`gh`):
 
 ```sh
 gh release create v0.4.0 \
-  artifacts/echoregent-core-0.4.0.tgz \
-  artifacts/echoregent-cli-0.4.0.tgz \
+  artifacts/arkadhi-echoregent-core-0.4.0.tgz \
+  artifacts/arkadhi-echoregent-0.4.0.tgz \
   --title "EchoRegent v0.4.0" \
   --notes-file docs/RELEASE.md
 ```
@@ -150,7 +150,7 @@ npm install -g \
 Or install from local tarballs directly:
 
 ```sh
-npm install -g ./artifacts/echoregent-core-0.4.0.tgz ./artifacts/echoregent-cli-0.4.0.tgz
+npm install -g ./artifacts/arkadhi-echoregent-core-0.4.0.tgz ./artifacts/arkadhi-echoregent-0.4.0.tgz
 ```
 
 Or for SDK projects:
@@ -166,15 +166,15 @@ npm install https://github.com/ashy5454/echoregent/releases/download/v0.4.0/echo
 Check the package metadata and distribution tags:
 
 ```sh
-npm view @echoregent/core@0.4.0 version engines dependencies dist-tags --registry=https://registry.npmjs.org/
-npm view @echoregent/cli@0.4.0 version engines dependencies dist-tags --registry=https://registry.npmjs.org/
+npm view @arkadhi/echoregent-core@0.4.0 version engines dependencies dist-tags --registry=https://registry.npmjs.org/
+npm view @arkadhi/echoregent@0.4.0 version engines dependencies dist-tags --registry=https://registry.npmjs.org/
 ```
 
 Test global CLI installation:
 
 ```sh
 # Via npm registry
-npm install -g @echoregent/cli@next
+npm install -g @arkadhi/echoregent
 
 # Or via GitHub Release tarball
 npm install -g https://github.com/ashy5454/echoregent/releases/download/v0.4.0/echoregent-core-0.4.0.tgz https://github.com/ashy5454/echoregent/releases/download/v0.4.0/echoregent-cli-0.4.0.tgz
@@ -194,14 +194,14 @@ Test the SDK in a fresh directory:
 mkdir echoregent-registry-check
 cd echoregent-registry-check
 npm init -y
-npm install @echoregent/core@next
+npm install @arkadhi/echoregent-core
 ```
 
 Create `check.mjs` in that directory:
 
 ```js
 import assert from 'node:assert/strict'
-import { EchoRegent } from '@echoregent/core'
+import { EchoRegent } from '@arkadhi/echoregent-core'
 
 const engine = new EchoRegent({ adaptiveCompression: true, autoLearnMemory: true })
 assert.equal(engine.compressText('PASS unit\n'.repeat(90)).changed, true)
@@ -232,15 +232,15 @@ Set `OPENAI_API_KEY` or `ECHOREGENT_PROVIDER_KEY` in your environment first, and
 After reviewing CI and validating real-workload task quality and provider usage, move the published npm version to the stable `latest` tag:
 
 ```sh
-npm dist-tag add @echoregent/core@0.4.0 latest
-npm dist-tag add @echoregent/cli@0.4.0 latest
+npm dist-tag add @arkadhi/echoregent-core@0.4.0 latest
+npm dist-tag add @arkadhi/echoregent@0.4.0 latest
 ```
 
 Then standard commands select the stable release:
 
 ```sh
-npm install -g @echoregent/cli
-npm install @echoregent/core
+npm install -g @arkadhi/echoregent
+npm install @arkadhi/echoregent-core
 ```
 
 Dist-tag changes do not republish or alter the package bytes. If a stable version needs a fix, publish a new version; npm will not let you replace an existing version. An incorrect `latest` tag can be pointed back to a previously published known-good version.

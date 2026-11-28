@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { delimiter, dirname, join, resolve } from 'node:path'
 import process from 'node:process'
-import { EchoRegent } from '@echoregent/core'
+import { EchoRegent } from '@arkadhi/echoregent-core'
 import { startProxy } from './proxy.js'
 
 export function resolveCodexCommand(command = 'codex'): { command: string; prefixArgs: string[] } {

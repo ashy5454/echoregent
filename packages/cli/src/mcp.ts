@@ -1,7 +1,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js'
-import { EchoRegent, type MemoryScope } from '@echoregent/core'
+import { EchoRegent, type MemoryScope } from '@arkadhi/echoregent-core'
 
 const string = { type: 'string' }
 const sources = { type: 'array', items: string, minItems: 1 }

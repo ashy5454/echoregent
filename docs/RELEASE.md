@@ -20,8 +20,8 @@ Prepare/review public code and remove private findings, credentials, ignored dat
 When npm publishing and public repository access are authorized, publish core first, then CLI:
 
 ```sh
-npm publish artifacts/echoregent-core-0.4.0.tgz --access public --tag next
-npm publish artifacts/echoregent-cli-0.4.0.tgz --access public --tag next
+npm publish artifacts/arkadhi-echoregent-core-0.4.0.tgz --access public --tag next
+npm publish artifacts/arkadhi-echoregent-0.4.0.tgz --access public --tag next
 ```
 
 Publishing and repository visibility changes have not been performed by this packaging work. Until then, install both local `.tgz` files together. The CLI's published dependency resolves core from npm after core is published.
